@@ -47,8 +47,6 @@ class ViewController : UIViewController {
         view.device = device
         view.delegate = self
         view.framebufferOnly = false
-        view.layer.borderWidth = 1
-        view.layer.borderColor = UIColor.red.cgColor
         self.view.addSubview(view)
         self.videoDisplayView = view
     }
@@ -111,32 +109,9 @@ extension ViewController: MTKViewDelegate {
     }
 }
 
-struct Point {
-    let x: Int
-    let y: Int
-    
-    init(x: Int, y: Int) {
-        self.x = x
-        self.y = y
-    }
-    
-    var point: CGPoint {
-        return CGPoint(x: x, y: y)
-    }
-}
-
-struct Shape {
-    private(set) var points: [Point] = []
-    
-    mutating func add(_ point: Point) {
-        points.append(point)
-    }
-}
-
 extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
-    private static func FindSquares(_ image: UIImage) -> [Shape] {
-        //TODO:
-        return []
+    private static func FindSquares(_ input: UIImage) -> [SCIShape] {
+        return SCI.findSquares(input)
     }
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
@@ -147,8 +122,15 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
             return
         }
         var outputImage = CIImage(cvImageBuffer: imageBuffer)
-        let uiImage = UIImage(ciImage: outputImage)
+        let tmp = UIImage(ciImage: outputImage)
         
+        UIGraphicsBeginImageContext(tmp.size)
+        tmp.draw(in: CGRect(origin: .zero, size: tmp.size))
+        guard let uiImage = UIGraphicsGetImageFromCurrentImageContext() else {
+            return
+        }
+        UIGraphicsEndImageContext()
+
         let squares = Self.FindSquares(uiImage)
         
         if !squares.isEmpty {
@@ -163,8 +145,9 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
             
             squares.enumerated().forEach { (it) in
                 let i = it.offset
-                let points = it.element.points
-                
+                guard let points = it.element.points else {
+                    return
+                }
                 guard let first = points.first else {
                     return
                 }
@@ -175,9 +158,9 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
                 }
                 
                 let path = CGMutablePath()
-                path.move(to: first.point)
+                path.move(to: first.point())
                 points.dropFirst().forEach({ (p) in
-                    path.addLine(to: p.point)
+                    path.addLine(to: p.point())
                 })
                 path.closeSubpath()
                 
