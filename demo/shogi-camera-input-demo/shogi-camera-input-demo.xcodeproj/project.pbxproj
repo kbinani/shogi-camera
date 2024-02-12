@@ -13,6 +13,7 @@
 		940A14B92B7A9DE9006E2D01 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 940A14B72B7A9DE9006E2D01 /* Main.storyboard */; };
 		940A14BB2B7A9DEB006E2D01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 940A14BA2B7A9DEB006E2D01 /* Assets.xcassets */; };
 		940A14BE2B7A9DEB006E2D01 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 940A14BC2B7A9DEB006E2D01 /* LaunchScreen.storyboard */; };
+		940A14C82B7AA079006E2D01 /* opencv2.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 940A14C72B7AA079006E2D01 /* opencv2.xcframework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +25,7 @@
 		940A14BA2B7A9DEB006E2D01 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		940A14BD2B7A9DEB006E2D01 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		940A14BF2B7A9DEB006E2D01 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		940A14C72B7AA079006E2D01 /* opencv2.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = opencv2.xcframework; path = "../../../build/opencv-4.9.0/build/opencv2.xcframework"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -31,6 +33,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				940A14C82B7AA079006E2D01 /* opencv2.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -56,6 +59,7 @@
 		940A14B02B7A9DE9006E2D01 /* shogi-camera-input-demo */ = {
 			isa = PBXGroup;
 			children = (
+				940A14C72B7AA079006E2D01 /* opencv2.xcframework */,
 				940A14B12B7A9DE9006E2D01 /* AppDelegate.swift */,
 				940A14B32B7A9DE9006E2D01 /* SceneDelegate.swift */,
 				940A14B52B7A9DE9006E2D01 /* ViewController.swift */,
