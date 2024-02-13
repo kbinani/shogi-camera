@@ -1,4 +1,4 @@
-#include "shogi_camera_input.h"
+#include <shogi_camera_input/objc/shogi_camera_input.h>
 
 @implementation SCIPoint
 
@@ -45,7 +45,7 @@
 
 @end
 
-#include "./shogi_camera_input.cpp"
+#include "../shogi_camera_input.cpp"
 
 @implementation SCI
 

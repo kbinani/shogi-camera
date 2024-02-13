@@ -6,6 +6,8 @@
 
 #include <vector>
 
+#include <shogi_camera_input/shogi_camera_input.hpp>
+
 namespace com::github::kbinani::sci {
 
 namespace {
