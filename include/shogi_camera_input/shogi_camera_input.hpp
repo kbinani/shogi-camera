@@ -4,6 +4,6 @@
 
 namespace com::github::kbinani::sci {
 
-void findSquares(cv::Mat const& image, std::vector<std::vector<cv::Point2i>> &squares);
+void findSquares(cv::Mat const &image, std::vector<std::vector<cv::Point2i>> &squares);
 
 }
