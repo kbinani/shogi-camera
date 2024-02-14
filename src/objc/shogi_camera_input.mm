@@ -59,7 +59,7 @@
   }
 
   std::vector<std::vector<cv::Point2i>> squares;
-  com::github::kbinani::sci::findSquares(image, squares);
+  com::github::kbinani::sci::debug::FindSquares(image, squares);
   for (auto const &square : squares) {
     NSMutableArray<SCIPoint *> *points = [[NSMutableArray alloc] init];
     for (auto const &p : square) {
