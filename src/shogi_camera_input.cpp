@@ -23,8 +23,7 @@ double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) {
 }
 } // namespace
 
-namespace debug {
-void FindSquares(cv::Mat const &image, std::vector<std::vector<cv::Point2i>> &squares) {
+void Session::FindSquares(cv::Mat const &image, std::vector<std::vector<cv::Point2i>> &squares) {
   cv::Mat timg(image);
   cv::cvtColor(image, timg, CV_RGB2GRAY);
 
@@ -167,5 +166,11 @@ void FindSquares(cv::Mat const &image, std::vector<std::vector<cv::Point2i>> &sq
     }
   }
 }
-} // namespace debug
+
+Session::Session() {
+}
+
+void Session::push(cv::Mat const &frame) {
+}
+
 } // namespace com::github::kbinani::sci

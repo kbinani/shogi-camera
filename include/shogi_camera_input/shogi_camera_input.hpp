@@ -246,8 +246,15 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
   return TrimSquarePartFromString(cp);
 }
 
-namespace debug {
-void FindSquares(cv::Mat const &image, std::vector<std::vector<cv::Point2i>> &squares);
-}
+class Session {
+public:
+  Session();
+  void push(cv::Mat const &frame);
+
+  static void FindSquares(cv::Mat const &image, std::vector<std::vector<cv::Point2i>> &squares);
+
+private:
+  Position position;
+};
 
 } // namespace com::github::kbinani::sci
