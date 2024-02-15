@@ -246,7 +246,7 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
   return TrimSquarePartFromString(cp);
 }
 
-struct Shape {
+struct Contour {
   std::vector<cv::Point2i> points;
   double area;
 };
@@ -257,13 +257,13 @@ public:
   void push(cv::Mat const &frame);
 
   struct Status {
-    std::vector<Shape> shapes;
-    cv::Mat processed;
+    std::vector<Contour> contours;
     int width;
     int height;
   };
-
-  static Status FindSquares(cv::Mat const &image);
+  Status status() const {
+    return s;
+  }
 
 #if defined(__APPLE__)
   static cv::Mat MatFromUIImage(void *ptr);
@@ -271,7 +271,24 @@ public:
 #endif // defined(__APPLE__)
 
 private:
+  Status s;
   Position position;
+};
+
+class SessionWrapper {
+public:
+  SessionWrapper() : ptr(std::make_shared<Session>()) {}
+
+  void push(cv::Mat const &frame) {
+    ptr->push(frame);
+  }
+
+  Session::Status status() const {
+    return ptr->status();
+  }
+
+private:
+  std::shared_ptr<Session> ptr;
 };
 
 } // namespace sci

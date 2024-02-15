@@ -15,6 +15,7 @@
 		940A14BE2B7A9DEB006E2D01 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 940A14BC2B7A9DEB006E2D01 /* LaunchScreen.storyboard */; };
 		940A14C82B7AA079006E2D01 /* opencv2.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 940A14C72B7AA079006E2D01 /* opencv2.xcframework */; };
 		940A14F12B7DC84D006E2D01 /* shogi_camera_input.mm in Sources */ = {isa = PBXBuildFile; fileRef = 940A14E72B7B2141006E2D01 /* shogi_camera_input.mm */; };
+		940A14F32B7DEFF1006E2D01 /* DebugPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 940A14F22B7DEFF1006E2D01 /* DebugPreview.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,7 @@
 		940A14EA2B7B2152006E2D01 /* shogi_camera_input.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = shogi_camera_input.cpp; path = ../../../src/shogi_camera_input.cpp; sourceTree = "<group>"; };
 		940A14EC2B7D6E21006E2D01 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; name = module.modulemap; path = ../../../include/shogi_camera_input/module.modulemap; sourceTree = "<group>"; };
 		940A14EE2B7D7C6E006E2D01 /* CoreAudioTypes.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioTypes.framework; path = System/Library/Frameworks/CoreAudioTypes.framework; sourceTree = SDKROOT; };
+		940A14F22B7DEFF1006E2D01 /* DebugPreview.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DebugPreview.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +73,7 @@
 				940A14B12B7A9DE9006E2D01 /* AppDelegate.swift */,
 				940A14B32B7A9DE9006E2D01 /* SceneDelegate.swift */,
 				940A14B52B7A9DE9006E2D01 /* ViewController.swift */,
+				940A14F22B7DEFF1006E2D01 /* DebugPreview.swift */,
 				940A14B72B7A9DE9006E2D01 /* Main.storyboard */,
 				940A14BA2B7A9DEB006E2D01 /* Assets.xcassets */,
 				940A14BC2B7A9DEB006E2D01 /* LaunchScreen.storyboard */,
@@ -163,6 +166,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				940A14B62B7A9DE9006E2D01 /* ViewController.swift in Sources */,
+				940A14F32B7DEFF1006E2D01 /* DebugPreview.swift in Sources */,
 				940A14B22B7A9DE9006E2D01 /* AppDelegate.swift in Sources */,
 				940A14F12B7DC84D006E2D01 /* shogi_camera_input.mm in Sources */,
 				940A14B42B7A9DE9006E2D01 /* SceneDelegate.swift in Sources */,
