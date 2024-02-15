@@ -30,12 +30,10 @@ class SCIPreview: UIView {
       let width = CGFloat(status.width)
       let height = CGFloat(status.height)
       let scale = min(size.width / height, size.height / width)
-      let tx = CGAffineTransform.identity.concatenating(
-        .init(translationX: -width * 0.5, y: -height * 0.5)
-      )
-      .concatenating(.init(rotationAngle: CGFloat.pi * 0.5))
-      .concatenating(.init(scaleX: scale, y: scale))
-      .concatenating(.init(translationX: size.width * 0.5, y: size.height * 0.5))
+      let tx = CGAffineTransform(translationX: -width * 0.5, y: -height * 0.5)
+        .concatenating(.init(rotationAngle: CGFloat.pi * 0.5))
+        .concatenating(.init(scaleX: scale, y: scale))
+        .concatenating(.init(translationX: size.width * 0.5, y: size.height * 0.5))
       ctx.concatenate(tx)
       status.shapes.forEach { shape in
         guard let first = shape.points.first else {
@@ -48,11 +46,13 @@ class SCIPreview: UIView {
         })
         path.closeSubpath()
 
-        ctx.setFillColor(red: 0, green: 0, blue: 1, alpha: 0.2)
+        let color: UIColor = shape.points.size() == 4 ? .red : .blue
+
+        ctx.setFillColor(color.withAlphaComponent(0.2).cgColor)
         ctx.addPath(path)
         ctx.fillPath()
 
-        ctx.setStrokeColor(red: 0, green: 0, blue: 1, alpha: 1)
+        ctx.setStrokeColor(color.cgColor)
         ctx.addPath(path)
         ctx.setLineWidth(3)
         ctx.strokePath()

@@ -249,7 +249,6 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
 struct Shape {
   std::vector<cv::Point2i> points;
   double area;
-  bool match;
 };
 
 class Session {
