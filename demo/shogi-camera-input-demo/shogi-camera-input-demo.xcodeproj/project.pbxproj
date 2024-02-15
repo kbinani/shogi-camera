@@ -14,7 +14,7 @@
 		940A14BB2B7A9DEB006E2D01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 940A14BA2B7A9DEB006E2D01 /* Assets.xcassets */; };
 		940A14BE2B7A9DEB006E2D01 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 940A14BC2B7A9DEB006E2D01 /* LaunchScreen.storyboard */; };
 		940A14C82B7AA079006E2D01 /* opencv2.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 940A14C72B7AA079006E2D01 /* opencv2.xcframework */; };
-		940A14E82B7B2141006E2D01 /* shogi_camera_input.mm in Sources */ = {isa = PBXBuildFile; fileRef = 940A14E72B7B2141006E2D01 /* shogi_camera_input.mm */; };
+		940A14F12B7DC84D006E2D01 /* shogi_camera_input.mm in Sources */ = {isa = PBXBuildFile; fileRef = 940A14E72B7B2141006E2D01 /* shogi_camera_input.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,10 +27,8 @@
 		940A14BD2B7A9DEB006E2D01 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		940A14BF2B7A9DEB006E2D01 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		940A14C72B7AA079006E2D01 /* opencv2.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = opencv2.xcframework; path = ../../../build/opencv/build/opencv2.xcframework; sourceTree = "<group>"; };
-		940A14C92B7ABE8A006E2D01 /* shogi-camera-input-demo-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "shogi-camera-input-demo-Bridging-Header.h"; sourceTree = "<group>"; };
 		940A14CC2B7ABE9C006E2D01 /* shogi_camera_input.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = shogi_camera_input.hpp; path = ../../../include/shogi_camera_input/shogi_camera_input.hpp; sourceTree = "<group>"; };
 		940A14E72B7B2141006E2D01 /* shogi_camera_input.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = shogi_camera_input.mm; path = ../../../src/objc/shogi_camera_input.mm; sourceTree = "<group>"; };
-		940A14E92B7B2149006E2D01 /* shogi_camera_input.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = shogi_camera_input.h; path = ../../../include/shogi_camera_input/objc/shogi_camera_input.h; sourceTree = "<group>"; };
 		940A14EA2B7B2152006E2D01 /* shogi_camera_input.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = shogi_camera_input.cpp; path = ../../../src/shogi_camera_input.cpp; sourceTree = "<group>"; };
 		940A14EC2B7D6E21006E2D01 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; name = module.modulemap; path = ../../../include/shogi_camera_input/module.modulemap; sourceTree = "<group>"; };
 		940A14EE2B7D7C6E006E2D01 /* CoreAudioTypes.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioTypes.framework; path = System/Library/Frameworks/CoreAudioTypes.framework; sourceTree = SDKROOT; };
@@ -77,9 +75,7 @@
 				940A14BA2B7A9DEB006E2D01 /* Assets.xcassets */,
 				940A14BC2B7A9DEB006E2D01 /* LaunchScreen.storyboard */,
 				940A14BF2B7A9DEB006E2D01 /* Info.plist */,
-				940A14C92B7ABE8A006E2D01 /* shogi-camera-input-demo-Bridging-Header.h */,
 				940A14E72B7B2141006E2D01 /* shogi_camera_input.mm */,
-				940A14E92B7B2149006E2D01 /* shogi_camera_input.h */,
 				940A14EA2B7B2152006E2D01 /* shogi_camera_input.cpp */,
 				940A14EC2B7D6E21006E2D01 /* module.modulemap */,
 			);
@@ -168,7 +164,7 @@
 			files = (
 				940A14B62B7A9DE9006E2D01 /* ViewController.swift in Sources */,
 				940A14B22B7A9DE9006E2D01 /* AppDelegate.swift in Sources */,
-				940A14E82B7B2141006E2D01 /* shogi_camera_input.mm in Sources */,
+				940A14F12B7DC84D006E2D01 /* shogi_camera_input.mm in Sources */,
 				940A14B42B7A9DE9006E2D01 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -342,7 +338,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kbinani.shogi-camera-input-demo";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "shogi-camera-input-demo/shogi-camera-input-demo-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -375,7 +370,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kbinani.shogi-camera-input-demo";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "shogi-camera-input-demo/shogi-camera-input-demo-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

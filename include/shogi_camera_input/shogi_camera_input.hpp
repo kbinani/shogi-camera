@@ -246,16 +246,6 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
   return TrimSquarePartFromString(cp);
 }
 
-class Foo {
-public:
-  Foo() = default;
-  Foo(Foo const&) = default;
-  Foo & operator = (Foo const&) = default;
-  
-  static cv::Mat MatFromUIImage(void *ptr);
-  static void* UIImageFromMat(cv::Mat const& m);
-};
-
 struct Shape {
   std::vector<cv::Point2i> points;
   double area;
@@ -274,8 +264,13 @@ public:
 
   static Status FindSquares(cv::Mat const &image);
 
+#if defined(__APPLE__)
+  static cv::Mat MatFromUIImage(void *ptr);
+  static void *UIImageFromMat(cv::Mat const &m);
+#endif // defined(__APPLE__)
+
 private:
   Position position;
 };
 
-} // namespace com::github::kbinani::sci
+} // namespace sci

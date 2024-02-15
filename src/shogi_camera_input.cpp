@@ -11,7 +11,7 @@
 
 namespace sci {
 
-//namespace {
+namespace {
 int const N = 11;
 int const thresh = 50;
 
@@ -22,17 +22,19 @@ double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) {
   double dy2 = pt2.y - pt0.y;
   return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
 }
-//} // namespace
+} // namespace
 
-cv::Mat Foo::MatFromUIImage(void *ptr) {
-    cv::Mat image;
-    UIImageToMat((__bridge UIImage *)ptr, image, true);
+#if defined(__APPLE__)
+cv::Mat Session::MatFromUIImage(void *ptr) {
+  cv::Mat image;
+  UIImageToMat((__bridge UIImage *)ptr, image, true);
   return image;
 }
 
-void* Foo::UIImageFromMat(cv::Mat const& m) {
-  return (__bridge_retained void*)MatToUIImage(m);
+void *Session::UIImageFromMat(cv::Mat const &m) {
+  return (__bridge_retained void *)MatToUIImage(m);
 }
+#endif // defined(__APPLE__)
 
 Session::Status Session::FindSquares(cv::Mat const &image) {
   Session::Status st;
@@ -60,17 +62,12 @@ Session::Status Session::FindSquares(cv::Mat const &image) {
       // dilate canny output to remove potential
       // holes between edge segments
       dilate(gray, gray, cv::Mat(), cv::Point(-1, -1));
-      //        ret = gray.clone();
     } else {
       // apply threshold if l!=0:
       //     tgray(x,y) = gray(x,y) < (l+1)*255/N ? 255 : 0
       gray = gray0 >= (l + 1) * 255 / N;
     }
 
-//    if (l == 6) {
-//      st.processed = gray.clone();
-//    }
-    
     // find contours and store them all as a list
     findContours(gray, contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
 
@@ -89,7 +86,7 @@ Session::Status Session::FindSquares(cv::Mat const &image) {
       Shape shape;
       shape.points = approx;
       shape.match = false;
-      
+
       // square contours should have 4 vertices after approximation
       // relatively large area (to filter out noisy contours)
       // and be convex.
@@ -117,86 +114,6 @@ Session::Status Session::FindSquares(cv::Mat const &image) {
     }
   }
   return st;
-
-#if 0
-  cv::Point2f center = cv::Point2f(size.width / 2.0f, size.height / 2.0f);
-  std::sort(squares.begin(), squares.end(), [center](std::vector<cv::Point> const &a, std::vector<cv::Point> const &b) {
-    cv::Moments mA = cv::moments(a);
-    cv::Moments mB = cv::moments(b);
-    cv::Point2f m2A = cv::Point2f(mA.m10 / mA.m00, mA.m01 / mA.m00);
-    cv::Point2f m2B = cv::Point2f(mB.m10 / mB.m00, mB.m01 / mB.m00);
-    double distanceA = hypot(m2A.x - center.x, m2A.y - center.y);
-    double distanceB = hypot(m2B.x - center.x, m2B.y - center.y);
-    return distanceA < distanceB;
-  });
-
-  bool changed = true;
-  while (changed && squares.size() > 1) {
-    changed = false;
-    for (size_t i = 0; i < squares.size() - 1; i++) {
-      auto const &a = squares[i];
-      auto const &b = squares[i + 1];
-      cv::Moments mA = cv::moments(a);
-      cv::Moments mB = cv::moments(b);
-      cv::Point2f m2A = cv::Point2f(mA.m10 / mA.m00, mA.m01 / mA.m00);
-      cv::Point2f m2B = cv::Point2f(mB.m10 / mB.m00, mB.m01 / mB.m00);
-      double areaA = fabs(contourArea(a));
-      double areaB = fabs(contourArea(b));
-      double distance = hypot(m2A.x - m2B.x, m2A.y - m2B.y);
-      if (fabs(areaA - areaB) / ((areaA + areaB) / 2) < 0.1 && distance < MIN(size.width, size.height) * 0.1) {
-        // remove B
-        changed = true;
-        squares.erase(squares.begin() + i + 1);
-        break;
-      }
-    }
-  }
-
-  double distanceThreshold = MIN(size.width, size.height) * 0.1;
-
-  changed = true;
-  while (changed && squares.size() > 1) {
-    changed = false;
-    for (size_t i = 0; i < squares.size() - 1; i++) {
-      auto const &points = squares[i];
-      int num = 0; // 画像の四辺の上に重なっている辺の個数.
-      for (size_t j = 0; j < 3; j++) {
-        auto const &a = points[j];
-        auto const &b = points[j + 1];
-
-        // 上辺
-        if (fabs(a.y) < distanceThreshold && fabs(b.y) < distanceThreshold) {
-          num++;
-          continue;
-        }
-
-        // 下辺
-        if (fabs(a.y - size.height) < distanceThreshold && fabs(b.y - size.height) < distanceThreshold) {
-          num++;
-          continue;
-        }
-
-        // 左辺
-        if (fabs(a.x) < distanceThreshold && fabs(b.x) < distanceThreshold) {
-          num++;
-          continue;
-        }
-
-        // 右辺
-        if (fabs(a.x - size.width) < distanceThreshold && fabs(b.x - size.width) < distanceThreshold) {
-          num++;
-          continue;
-        }
-      }
-      if (num >= 2) {
-        changed = true;
-        squares.erase(squares.begin() + i);
-        break;
-      }
-    }
-  }
-  return gray;
-#endif
 }
 
 Session::Session() {
@@ -205,4 +122,4 @@ Session::Session() {
 void Session::push(cv::Mat const &frame) {
 }
 
-} // namespace com::github::kbinani::sci
+} // namespace sci

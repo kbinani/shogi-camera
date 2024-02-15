@@ -1,8 +1,8 @@
 import AVKit
 import Foundation
 import MetalKit
-import UIKit
 import MyModule
+import UIKit
 import opencv2
 
 class ViewController: UIViewController {
@@ -136,12 +136,13 @@ extension ViewController: MTKViewDelegate {
 
 extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
   private static func FindSquares(_ input: UIImage, buffer: inout [sci.Shape]) -> UIImage? {
-    let mat = sci.Foo.MatFromUIImage(Unmanaged.passUnretained(input).toOpaque())
+    let mat = sci.Session.MatFromUIImage(Unmanaged.passUnretained(input).toOpaque())
     let status = sci.Session.FindSquares(mat)
     status.shapes.forEach { shape in
       buffer.append(shape)
     }
-    return Unmanaged<UIImage>.fromOpaque(sci.Foo.UIImageFromMat(status.processed)).takeRetainedValue()
+    return Unmanaged<UIImage>.fromOpaque(sci.Session.UIImageFromMat(status.processed))
+      .takeRetainedValue()
   }
 
   private func convert(uiImage: UIImage) -> UIImage? {
@@ -187,7 +188,6 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
       defer {
         UIGraphicsEndImageContext()
       }
-      print("gray.size=", gray.size, "tmp.size=", tmp.size)
       gray.draw(in: .init(origin: .zero, size: uiImage.size))
 
       squares.enumerated().forEach { (it) in
