@@ -1,6 +1,6 @@
 import AVKit
 import Foundation
-import MyModule
+import ShogiCameraInput
 import UIKit
 import opencv2
 
