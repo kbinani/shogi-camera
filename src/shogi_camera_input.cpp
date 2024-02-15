@@ -41,12 +41,14 @@ Session::Status Session::FindSquares(cv::Mat const &image) {
   cv::Mat timg(image);
   cv::cvtColor(image, timg, CV_RGB2GRAY);
 
+  cv::Size size = image.size();
+  st.width = size.width;
+  st.height = size.height;
   st.processed = timg.clone();
 
   cv::Mat gray0(image.size(), CV_8U), gray;
 
   std::vector<std::vector<cv::Point>> contours;
-  cv::Size size = image.size();
   double area = size.width * size.height;
 
   int ch[] = {0, 0};

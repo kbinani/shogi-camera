@@ -260,6 +260,8 @@ public:
   struct Status {
     std::vector<Shape> shapes;
     cv::Mat processed;
+    int width;
+    int height;
   };
 
   static Status FindSquares(cv::Mat const &image);
