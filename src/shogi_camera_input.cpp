@@ -23,11 +23,14 @@ double Angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) {
   return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
 }
 
-void FindContours(cv::Mat const &image, std::vector<Contour> &buffer) {
+void FindContours(cv::Mat const &image, Session::Status &s) {
+  s.contours.clear();
   cv::Mat timg(image);
   cv::cvtColor(image, timg, CV_RGB2GRAY);
 
   cv::Size size = image.size();
+  s.width = size.width;
+  s.height = size.height;
 
   cv::Mat gray0(image.size(), CV_8U), gray;
 
@@ -61,9 +64,30 @@ void FindContours(cv::Mat const &image, std::vector<Contour> &buffer) {
 
       contour.area = fabs(contourArea(cv::Mat(contour.points)));
       if (area / 324.0 < contour.area && contour.area < area / 81.0) {
-        buffer.push_back(contour);
+        s.contours.push_back(contour);
       }
     }
+  }
+}
+
+void FindBoard(Session::Status &s) {
+  std::vector<Contour> squares;
+  for (auto const &contour : s.contours) {
+    if (contour.points.size() != 4) {
+      continue;
+    }
+    squares.push_back(contour);
+  }
+  if (squares.empty()) {
+    return;
+  }
+  // 四角形の面積の中央値を升目の面積(squareArea)とする.
+  std::sort(squares.begin(), squares.end(), [](Contour const &a, Contour const &b) { return a.area < b.area; });
+  size_t mid = squares.size() / 2;
+  if (squares.size() % 2 == 0) {
+    s.squareArea = (squares[mid - 1].area + squares[mid].area) * 0.5;
+  } else {
+    s.squareArea = squares[mid].area;
   }
 }
 } // namespace
@@ -84,10 +108,8 @@ Session::Session() {
 }
 
 void Session::push(cv::Mat const &frame) {
-  s.contours.clear();
-  FindContours(frame, s.contours);
-  s.width = frame.size().width;
-  s.height = frame.size().height;
+  FindContours(frame, s);
+  FindBoard(s);
 }
 
 } // namespace sci

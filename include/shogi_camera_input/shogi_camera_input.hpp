@@ -260,6 +260,8 @@ public:
     std::vector<Contour> contours;
     int width;
     int height;
+    // 升目の面積
+    double squareArea;
   };
   Status status() const {
     return s;
