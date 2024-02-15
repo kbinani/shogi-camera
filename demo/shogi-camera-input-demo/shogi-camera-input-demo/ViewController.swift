@@ -81,6 +81,19 @@ class ViewController: UIViewController {
     session.addOutput(videoDataOutput)
 
     session.sessionPreset = AVCaptureSession.Preset.medium
+    if let max = device.activeFormat.videoSupportedFrameRateRanges.max(by: { left, right in
+      left.maxFrameRate < right.maxFrameRate
+    }) {
+      do {
+        try device.lockForConfiguration()
+        defer {
+          device.unlockForConfiguration()
+        }
+        device.activeVideoMinFrameDuration = max.maxFrameDuration
+      } catch {
+        print(error)
+      }
+    }
     self.session = session
 
     DispatchQueue.global().async { [weak session] in
