@@ -4,14 +4,15 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/imgproc/types_c.h>
 
+#include <iostream>
 #include <vector>
 
 #include <shogi_camera_input/shogi_camera_input.hpp>
 
-namespace com::github::kbinani::sci {
+namespace sci {
 
-namespace {
-int const N = 5;
+//namespace {
+int const N = 11;
 int const thresh = 50;
 
 double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) {
@@ -21,11 +22,24 @@ double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) {
   double dy2 = pt2.y - pt0.y;
   return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
 }
-} // namespace
+//} // namespace
 
-void Session::FindSquares(cv::Mat const &image, std::vector<std::vector<cv::Point2i>> &squares) {
+cv::Mat Foo::MatFromUIImage(void *ptr) {
+    cv::Mat image;
+    UIImageToMat((__bridge UIImage *)ptr, image, true);
+  return image;
+}
+
+void* Foo::UIImageFromMat(cv::Mat const& m) {
+  return (__bridge_retained void*)MatToUIImage(m);
+}
+
+Session::Status Session::FindSquares(cv::Mat const &image) {
+  Session::Status st;
   cv::Mat timg(image);
   cv::cvtColor(image, timg, CV_RGB2GRAY);
+
+  st.processed = timg.clone();
 
   cv::Mat gray0(image.size(), CV_8U), gray;
 
@@ -46,12 +60,17 @@ void Session::FindSquares(cv::Mat const &image, std::vector<std::vector<cv::Poin
       // dilate canny output to remove potential
       // holes between edge segments
       dilate(gray, gray, cv::Mat(), cv::Point(-1, -1));
+      //        ret = gray.clone();
     } else {
       // apply threshold if l!=0:
       //     tgray(x,y) = gray(x,y) < (l+1)*255/N ? 255 : 0
       gray = gray0 >= (l + 1) * 255 / N;
     }
 
+//    if (l == 6) {
+//      st.processed = gray.clone();
+//    }
+    
     // find contours and store them all as a list
     findContours(gray, contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
 
@@ -63,14 +82,22 @@ void Session::FindSquares(cv::Mat const &image, std::vector<std::vector<cv::Poin
       // to the contour perimeter
       approxPolyDP(cv::Mat(contours[i]), approx, arcLength(cv::Mat(contours[i]), true) * 0.02, true);
 
+      if (!isContourConvex(cv::Mat(approx))) {
+        continue;
+      }
+
+      Shape shape;
+      shape.points = approx;
+      shape.match = false;
+      
       // square contours should have 4 vertices after approximation
       // relatively large area (to filter out noisy contours)
       // and be convex.
       // Note: absolute value of an area is used because
       // area may be positive or negative - in accordance with the
       // contour orientation
-      double cArea = fabs(contourArea(cv::Mat(approx)));
-      if (area * 0.01 < cArea && cArea < area * 0.9 && isContourConvex(cv::Mat(approx))) {
+      shape.area = fabs(contourArea(cv::Mat(approx)));
+      if (area / 324.0 < shape.area && shape.area < area / 81.0) {
         double maxCosine = 0;
 
         for (int j = 2; j < 5; j++) {
@@ -83,12 +110,15 @@ void Session::FindSquares(cv::Mat const &image, std::vector<std::vector<cv::Poin
         // (all angles are ~90 degree) then write quandrange
         // vertices to resultant sequence
         if (maxCosine < 0.3) {
-          squares.push_back(approx);
+          shape.match = true;
         }
+        st.shapes.push_back(shape);
       }
     }
   }
+  return st;
 
+#if 0
   cv::Point2f center = cv::Point2f(size.width / 2.0f, size.height / 2.0f);
   std::sort(squares.begin(), squares.end(), [center](std::vector<cv::Point> const &a, std::vector<cv::Point> const &b) {
     cv::Moments mA = cv::moments(a);
@@ -165,6 +195,8 @@ void Session::FindSquares(cv::Mat const &image, std::vector<std::vector<cv::Poin
       }
     }
   }
+  return gray;
+#endif
 }
 
 Session::Session() {

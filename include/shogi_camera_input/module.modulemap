@@ -1,0 +1,5 @@
+module MyModule {
+    header "shogi_camera_input.hpp"
+
+    export *
+}

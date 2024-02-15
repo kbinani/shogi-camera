@@ -1,4 +1,9 @@
+#import <MetalKit/MetalKit.h>
+#import <AVFoundation/AVFoundation.h>
+
 #include <shogi_camera_input/objc/shogi_camera_input.h>
+
+//#import "shogi_camera_input_demo-Swift.h"
 
 @implementation SCIPoint
 
@@ -49,27 +54,24 @@
 
 @implementation SCI
 
-+ (NSArray<SCIShape *> *)FindSquares:(UIImage *)input {
-  NSMutableArray<SCIShape *> *ret = [[NSMutableArray alloc] init];
-
-  cv::Mat image;
-  UIImageToMat(input, image, true);
-  if (image.empty()) {
-    return ret;
-  }
-
-  std::vector<std::vector<cv::Point2i>> squares;
-  com::github::kbinani::sci::Session::FindSquares(image, squares);
-  for (auto const &square : squares) {
-    NSMutableArray<SCIPoint *> *points = [[NSMutableArray alloc] init];
-    for (auto const &p : square) {
-      [points addObject:[[SCIPoint alloc] initWithX:p.x y:p.y]];
-    }
-
-    SCIShape *shape = [[SCIShape alloc] initWithPoints:points];
-    [ret addObject:shape];
-  }
-  return ret;
-}
+//+ (SessionStatus *)FindSquares:(UIImage *)input {
+//  cv::Mat image;
+//  UIImageToMat(input, image, true);
+//  if (image.empty()) {
+//    return input;
+//  }
+//
+//  Session::Status st = com::github::kbinani::sci::Session::FindSquares(image);
+//  for (auto const &square : squares) {
+//    NSMutableArray<SCIPoint *> *points = [[NSMutableArray alloc] init];
+//    for (auto const &p : square) {
+//      [points addObject:[[SCIPoint alloc] initWithX:p.x y:p.y]];
+//    }
+//
+//    SCIShape *shape = [[SCIShape alloc] initWithPoints:points];
+//    [ret addObject:shape];
+//  }
+//  return MatToUIImage(recog);
+//}
 
 @end

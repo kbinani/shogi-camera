@@ -26,12 +26,14 @@
 		940A14BA2B7A9DEB006E2D01 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		940A14BD2B7A9DEB006E2D01 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		940A14BF2B7A9DEB006E2D01 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		940A14C72B7AA079006E2D01 /* opencv2.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = opencv2.xcframework; path = "../../../build/opencv/build/opencv2.xcframework"; sourceTree = "<group>"; };
+		940A14C72B7AA079006E2D01 /* opencv2.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = opencv2.xcframework; path = ../../../build/opencv/build/opencv2.xcframework; sourceTree = "<group>"; };
 		940A14C92B7ABE8A006E2D01 /* shogi-camera-input-demo-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "shogi-camera-input-demo-Bridging-Header.h"; sourceTree = "<group>"; };
 		940A14CC2B7ABE9C006E2D01 /* shogi_camera_input.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = shogi_camera_input.hpp; path = ../../../include/shogi_camera_input/shogi_camera_input.hpp; sourceTree = "<group>"; };
 		940A14E72B7B2141006E2D01 /* shogi_camera_input.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = shogi_camera_input.mm; path = ../../../src/objc/shogi_camera_input.mm; sourceTree = "<group>"; };
 		940A14E92B7B2149006E2D01 /* shogi_camera_input.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = shogi_camera_input.h; path = ../../../include/shogi_camera_input/objc/shogi_camera_input.h; sourceTree = "<group>"; };
 		940A14EA2B7B2152006E2D01 /* shogi_camera_input.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = shogi_camera_input.cpp; path = ../../../src/shogi_camera_input.cpp; sourceTree = "<group>"; };
+		940A14EC2B7D6E21006E2D01 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; name = module.modulemap; path = ../../../include/shogi_camera_input/module.modulemap; sourceTree = "<group>"; };
+		940A14EE2B7D7C6E006E2D01 /* CoreAudioTypes.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioTypes.framework; path = System/Library/Frameworks/CoreAudioTypes.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,6 +53,7 @@
 			children = (
 				940A14B02B7A9DE9006E2D01 /* shogi-camera-input-demo */,
 				940A14AF2B7A9DE9006E2D01 /* Products */,
+				940A14ED2B7D7C6E006E2D01 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -78,8 +81,17 @@
 				940A14E72B7B2141006E2D01 /* shogi_camera_input.mm */,
 				940A14E92B7B2149006E2D01 /* shogi_camera_input.h */,
 				940A14EA2B7B2152006E2D01 /* shogi_camera_input.cpp */,
+				940A14EC2B7D6E21006E2D01 /* module.modulemap */,
 			);
 			path = "shogi-camera-input-demo";
+			sourceTree = "<group>";
+		};
+		940A14ED2B7D7C6E006E2D01 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				940A14EE2B7D7C6E006E2D01 /* CoreAudioTypes.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -242,6 +254,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OBJC_INTEROP_MODE = objcxx;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -298,6 +311,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OBJC_INTEROP_MODE = objcxx;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;

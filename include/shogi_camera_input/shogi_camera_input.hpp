@@ -6,7 +6,7 @@
 #include <map>
 #include <string>
 
-namespace com::github::kbinani::sci {
+namespace sci {
 
 using PieceUnderlyingType = uint32_t;
 
@@ -86,7 +86,7 @@ inline Position MakePosition(Handicap h) {
 struct Hand {
   std::deque<PieceType> pieces;
 };
-
+#if 0
 // 局面
 struct Board {
   Position position;
@@ -101,7 +101,7 @@ inline Board MakeBoard(Handicap h) {
   b.step = 0;
   return b;
 }
-
+#endif
 // 筋. 右が File1, 左が File9
 enum File : int32_t {
   File1 = 0,
@@ -246,12 +246,33 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
   return TrimSquarePartFromString(cp);
 }
 
+class Foo {
+public:
+  Foo() = default;
+  Foo(Foo const&) = default;
+  Foo & operator = (Foo const&) = default;
+  
+  static cv::Mat MatFromUIImage(void *ptr);
+  static void* UIImageFromMat(cv::Mat const& m);
+};
+
+struct Shape {
+  std::vector<cv::Point2i> points;
+  double area;
+  bool match;
+};
+
 class Session {
 public:
   Session();
   void push(cv::Mat const &frame);
 
-  static void FindSquares(cv::Mat const &image, std::vector<std::vector<cv::Point2i>> &squares);
+  struct Status {
+    std::vector<Shape> shapes;
+    cv::Mat processed;
+  };
+
+  static Status FindSquares(cv::Mat const &image);
 
 private:
   Position position;

@@ -2,6 +2,8 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
+//#import "shogi_camera_input_demo-Swift.h"
+
 @interface SCIPoint : NSObject
 @property(nonatomic) int x;
 @property(nonatomic) int y;
@@ -15,5 +17,5 @@
 @end
 
 @interface SCI : NSObject
-+ (NSArray<SCIShape *> *)FindSquares:(UIImage *)image;
+//+ (SessionStatus *)FindSquares:(UIImage *)image;
 @end

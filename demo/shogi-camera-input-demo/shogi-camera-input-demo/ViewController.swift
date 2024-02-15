@@ -2,6 +2,8 @@ import AVKit
 import Foundation
 import MetalKit
 import UIKit
+import MyModule
+import opencv2
 
 class ViewController: UIViewController {
   private weak var videoDisplayView: MTKView? = nil
@@ -120,33 +122,51 @@ extension ViewController: MTKViewDelegate {
 }
 
 extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
-  private static func FindSquares(_ input: UIImage) -> [SCIShape] {
-    return SCI.findSquares(input)
+  private static func FindSquares(_ input: UIImage, buffer: inout [sci.Shape]) -> UIImage? {
+    let mat = sci.Foo.MatFromUIImage(Unmanaged.passUnretained(input).toOpaque())
+    let status = sci.Session.FindSquares(mat)
+    status.shapes.forEach { shape in
+      buffer.append(shape)
+    }
+    return Unmanaged<UIImage>.fromOpaque(sci.Foo.UIImageFromMat(status.processed)).takeRetainedValue()
+  }
+
+  private func convert(uiImage: UIImage) -> UIImage? {
+    UIGraphicsBeginImageContext(uiImage.size)
+    defer {
+      UIGraphicsEndImageContext()
+    }
+    uiImage.draw(in: CGRect(origin: .zero, size: uiImage.size))
+    return UIGraphicsGetImageFromCurrentImageContext()
   }
 
   func captureOutput(
     _ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer,
     from connection: AVCaptureConnection
   ) {
-    guard let videoDisplayView else {
-      return
-    }
     guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
       return
     }
     var outputImage = CIImage(cvImageBuffer: imageBuffer)
     let tmp = UIImage(ciImage: outputImage)
 
-    UIGraphicsBeginImageContext(tmp.size)
-    tmp.draw(in: CGRect(origin: .zero, size: tmp.size))
-    guard let uiImage = UIGraphicsGetImageFromCurrentImageContext() else {
+    guard let uiImage = convert(uiImage: tmp) else {
       return
     }
-    UIGraphicsEndImageContext()
 
-    let squares = Self.FindSquares(uiImage)
+    var squares: [sci.Shape] = []
+    guard let recog = Self.FindSquares(uiImage, buffer: &squares) else {
+      return
+    }
+    guard let gray = convert(uiImage: recog) else {
+      return
+    }
 
-    if !squares.isEmpty {
+    if squares.isEmpty {
+      if let img = CIImage(image: gray) {
+        outputImage = img
+      }
+    } else {
       UIGraphicsBeginImageContext(uiImage.size)
       guard let ctx = UIGraphicsGetCurrentContext() else {
         return
@@ -154,14 +174,12 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
       defer {
         UIGraphicsEndImageContext()
       }
-      uiImage.draw(at: .zero)
+      print("gray.size=", gray.size, "tmp.size=", tmp.size)
+      gray.draw(in: .init(origin: .zero, size: uiImage.size))
 
       squares.enumerated().forEach { (it) in
         let i = it.offset
-        guard let points = it.element.points else {
-          return
-        }
-        guard let first = points.first else {
+        guard let first = it.element.points.first else {
           return
         }
 
@@ -171,9 +189,9 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         }
 
         let path = CGMutablePath()
-        path.move(to: first.point())
-        points.dropFirst().forEach({ (p) in
-          path.addLine(to: p.point())
+        path.move(to: .init(x: CGFloat(first.x), y: CGFloat(first.y)))
+        it.element.points.dropFirst().forEach({ (p) in
+          path.addLine(to: .init(x: CGFloat(p.x), y: CGFloat(p.y)))
         })
         path.closeSubpath()
 
