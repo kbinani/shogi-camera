@@ -4,6 +4,27 @@ import ShogiCameraInput
 import UIKit
 import opencv2
 
+extension sci.Contour {
+  var cgPath: CGPath {
+    let path = CGMutablePath()
+    guard let first = self.points.first else {
+      return path
+    }
+    path.move(to: first.cgPoint)
+    self.points.dropFirst().forEach({ (p) in
+      path.addLine(to: p.cgPoint)
+    })
+    path.closeSubpath()
+    return path
+  }
+}
+
+extension cv.Point {
+  var cgPoint: CGPoint {
+    return CGPoint(x: CGFloat(x), y: CGFloat(y))
+  }
+}
+
 class DebugView: UIView {
   private var captureSession: AVCaptureSession? = nil
   private weak var previewLayer: AVCaptureVideoPreviewLayer?
@@ -11,7 +32,7 @@ class DebugView: UIView {
   private var session: sci.SessionWrapper?
 
   class OverlayLayer: CALayer {
-    var status: sci.Session.Status? {
+    var status: sci.Status? {
       didSet {
         setNeedsDisplay()
       }
@@ -35,24 +56,32 @@ class DebugView: UIView {
         .concatenating(.init(scaleX: scale, y: scale))
         .concatenating(.init(translationX: size.width * 0.5, y: size.height * 0.5))
       ctx.concatenate(tx)
-      status.contours.forEach { shape in
-        guard let first = shape.points.first else {
-          return
-        }
-        let path = CGMutablePath()
-        path.move(to: .init(x: CGFloat(first.x), y: CGFloat(first.y)))
-        shape.points.dropFirst().forEach({ (p) in
-          path.addLine(to: .init(x: CGFloat(p.x), y: CGFloat(p.y)))
-        })
-        path.closeSubpath()
 
-        let color: UIColor = shape.points.size() == 4 ? .red : .blue
-
-        ctx.setFillColor(color.withAlphaComponent(0.2).cgColor)
+      status.contours.forEach { contour in
+        let path = contour.cgPath
+        ctx.setStrokeColor(UIColor.cyan.cgColor)
+        ctx.addPath(path)
+        ctx.setLineWidth(1)
+        ctx.strokePath()
+      }
+      status.squares.forEach { square in
+        let path = square.cgPath
+        ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
         ctx.addPath(path)
         ctx.fillPath()
 
-        ctx.setStrokeColor(color.cgColor)
+        ctx.setStrokeColor(UIColor.red.cgColor)
+        ctx.addPath(path)
+        ctx.setLineWidth(3)
+        ctx.strokePath()
+      }
+      status.pieces.forEach { piece in
+        let path = piece.cgPath
+        ctx.setFillColor(UIColor.blue.withAlphaComponent(0.2).cgColor)
+        ctx.addPath(path)
+        ctx.fillPath()
+
+        ctx.setStrokeColor(UIColor.blue.cgColor)
         ctx.addPath(path)
         ctx.setLineWidth(3)
         ctx.strokePath()
@@ -98,7 +127,7 @@ class DebugView: UIView {
         defer {
           device.unlockForConfiguration()
         }
-        let rate = min(max(5, range.minFrameRate), range.maxFrameRate)
+        let rate = min(max(2, range.minFrameRate), range.maxFrameRate)
         device.activeVideoMinFrameDuration = CMTime(
           seconds: 1 / rate, preferredTimescale: 1_000_000)
       } catch {
@@ -171,7 +200,7 @@ extension DebugView: AVCaptureVideoDataOutputSampleBufferDelegate {
     guard let converted = Self.Convert(uiImage: uiImage) else {
       return
     }
-    let mat = sci.Session.MatFromUIImage(Unmanaged.passUnretained(converted).toOpaque())
+    let mat = sci.Utility.MatFromUIImage(Unmanaged.passUnretained(converted).toOpaque())
     session.push(mat)
     overlayLayer?.status = session.status()
   }

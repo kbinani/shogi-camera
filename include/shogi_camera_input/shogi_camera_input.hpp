@@ -5,6 +5,7 @@
 #include <deque>
 #include <map>
 #include <string>
+#include <thread>
 
 namespace sci {
 
@@ -246,35 +247,76 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
   return TrimSquarePartFromString(cp);
 }
 
+inline double Distance(cv::Point const &a, cv::Point const &b) {
+  double dx = a.x - b.x;
+  double dy = a.y - b.y;
+  return sqrt(dx * dx + dy * dy);
+}
+
 struct Contour {
   std::vector<cv::Point2i> points;
   double area;
+
+  // 最も短い辺の長さ/最も長い辺の長さ
+  double aspectRatio() const {
+    if (points.empty()) {
+      return 0;
+    }
+    double shortest = std::numeric_limits<double>::max();
+    double longest = std::numeric_limits<double>::lowest();
+    for (int i = 0; i < points.size() - 1; i++) {
+      double distance = Distance(points[i], points[i + 1]);
+      shortest = std::min(shortest, distance);
+      longest = std::max(longest, distance);
+    }
+    return shortest / longest;
+  }
+};
+
+struct Status {
+  std::vector<Contour> contours;
+  std::vector<Contour> squares;
+  std::vector<Contour> pieces;
+  int width;
+  int height;
+  // 升目の面積
+  double squareArea;
+  // マス目のアスペクト比. 横長の将棋盤は存在しないと仮定して, 幅/高さ.
+  double aspectRatio;
 };
 
 class Session {
 public:
   Session();
+  ~Session();
   void push(cv::Mat const &frame);
 
-  struct Status {
-    std::vector<Contour> contours;
-    int width;
-    int height;
-    // 升目の面積
-    double squareArea;
-  };
-  Status status() const {
-    return s;
+  Status status() {
+    auto cp = s;
+    return *cp;
   }
 
+private:
+  void run();
+
+private:
+  std::thread th;
+  std::atomic<bool> stop;
+  std::condition_variable cv;
+  std::mutex mut;
+  std::deque<cv::Mat> queue;
+  std::shared_ptr<Status> s;
+  Position position;
+};
+
+class Utility {
+  Utility() = delete;
+
+public:
 #if defined(__APPLE__)
   static cv::Mat MatFromUIImage(void *ptr);
   static void *UIImageFromMat(cv::Mat const &m);
 #endif // defined(__APPLE__)
-
-private:
-  Status s;
-  Position position;
 };
 
 class SessionWrapper {
@@ -285,7 +327,7 @@ public:
     ptr->push(frame);
   }
 
-  Session::Status status() const {
+  Status status() const {
     return ptr->status();
   }
 

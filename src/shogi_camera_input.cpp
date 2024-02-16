@@ -1,3 +1,4 @@
+#include <opencv2/calib3d.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/types_c.h>
 #include <opencv2/imgcodecs/ios.h>
@@ -23,8 +24,11 @@ double Angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) {
   return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
 }
 
-void FindContours(cv::Mat const &image, Session::Status &s) {
+void FindContours(cv::Mat const &image, Status &s) {
   s.contours.clear();
+  s.squares.clear();
+  s.pieces.clear();
+
   cv::Mat timg(image);
   cv::cvtColor(image, timg, CV_RGB2GRAY);
 
@@ -54,23 +58,38 @@ void FindContours(cv::Mat const &image, Session::Status &s) {
       Contour contour;
       approxPolyDP(cv::Mat(contours[i]), contour.points, arcLength(cv::Mat(contours[i]), true) * 0.02, true);
 
-      if (contour.points.size() != 4 && contour.points.size() != 5) {
-        continue;
-      }
-
       if (!isContourConvex(cv::Mat(contour.points))) {
         continue;
       }
-
       contour.area = fabs(contourArea(cv::Mat(contour.points)));
-      if (area / 324.0 < contour.area && contour.area < area / 81.0) {
-        s.contours.push_back(contour);
+
+      if (contour.area <= area / 648.0) {
+        continue;
+      }
+      s.contours.push_back(contour);
+
+      if (area / 81.0 <= contour.area) {
+        continue;
+      }
+      switch (contour.points.size()) {
+      case 4: {
+        // アスペクト比が 2 以上の四角形を除去
+        if (contour.aspectRatio() >= 0.5) {
+          s.squares.push_back(contour);
+          std::cout << (area / contour.area) << std::endl;
+        }
+        break;
+      }
+      case 5: {
+        s.pieces.push_back(contour);
+        break;
+      }
       }
     }
   }
 }
 
-void FindBoard(Session::Status &s) {
+void FindBoard(Status &s) {
   std::vector<Contour> squares;
   for (auto const &contour : s.contours) {
     if (contour.points.size() != 4) {
@@ -85,31 +104,68 @@ void FindBoard(Session::Status &s) {
   std::sort(squares.begin(), squares.end(), [](Contour const &a, Contour const &b) { return a.area < b.area; });
   size_t mid = squares.size() / 2;
   if (squares.size() % 2 == 0) {
-    s.squareArea = (squares[mid - 1].area + squares[mid].area) * 0.5;
+    auto const &a = squares[mid - 1];
+    auto const &b = squares[mid];
+    s.squareArea = (a.area + b.area) * 0.5;
+    s.aspectRatio = (a.aspectRatio() + b.aspectRatio()) * 0.5;
   } else {
     s.squareArea = squares[mid].area;
+    s.aspectRatio = squares[mid].aspectRatio();
   }
 }
 } // namespace
 
 #if defined(__APPLE__)
-cv::Mat Session::MatFromUIImage(void *ptr) {
+cv::Mat Utility::MatFromUIImage(void *ptr) {
   cv::Mat image;
   UIImageToMat((__bridge UIImage *)ptr, image, true);
   return image;
 }
 
-void *Session::UIImageFromMat(cv::Mat const &m) {
+void *Utility::UIImageFromMat(cv::Mat const &m) {
   return (__bridge_retained void *)MatToUIImage(m);
 }
 #endif // defined(__APPLE__)
 
 Session::Session() {
+  s = std::make_shared<Status>();
+  stop = false;
+  std::thread th(std::bind(&Session::run, this));
+  this->th.swap(th);
+}
+
+Session::~Session() {
+  stop = true;
+  cv.notify_one();
+  th.join();
+}
+
+void Session::run() {
+  while (!stop) {
+    std::unique_lock<std::mutex> lock(mut);
+    cv.wait(lock, [this]() { return !queue.empty() || stop; });
+    if (stop) {
+      lock.unlock();
+      break;
+    }
+    cv::Mat frame = queue.front();
+    queue.pop_front();
+    lock.unlock();
+
+    auto s = std::make_shared<Status>();
+    FindContours(frame, *s);
+    FindBoard(*s);
+    this->s = s;
+  }
 }
 
 void Session::push(cv::Mat const &frame) {
-  FindContours(frame, s);
-  FindBoard(s);
+  {
+    std::lock_guard<std::mutex> lock(mut);
+    queue.clear();
+    queue.push_back(frame);
+  }
+  cv.notify_all();
 }
 
 } // namespace sci
