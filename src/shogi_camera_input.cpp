@@ -73,10 +73,9 @@ void FindContours(cv::Mat const &image, Status &s) {
       }
       switch (contour.points.size()) {
       case 4: {
-        // アスペクト比が 2 以上の四角形を除去
-        if (contour.aspectRatio() >= 0.5) {
+        // アスペクト比が 0.6 未満の四角形を除去
+        if (contour.aspectRatio() >= 0.6) {
           s.squares.push_back(contour);
-          std::cout << (area / contour.area) << std::endl;
         }
         break;
       }
