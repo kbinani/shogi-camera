@@ -75,9 +75,24 @@ void FindContours(cv::Mat const &image, Status &s) {
       switch (contour.points.size()) {
       case 4: {
         // アスペクト比が 0.6 未満の四角形を除去
-        if (contour.aspectRatio() >= 0.6) {
-          s.squares.push_back(contour);
+        if (contour.aspectRatio() < 0.6) {
+          break;
         }
+        double maxCosine = 0;
+
+        for (int j = 2; j < 5; j++) {
+          // find the maximum cosine of the angle between joint edges
+          double cosine = fabs(Angle(contour.points[j % 4], contour.points[j - 2], contour.points[j - 1]));
+          maxCosine = std::max(maxCosine, cosine);
+        }
+
+        // if cosines of all angles are small
+        // (all angles are ~90 degree) then write quandrange
+        // vertices to resultant sequence
+        if (maxCosine >= 0.3) {
+          break;
+        }
+        s.squares.push_back(contour);
         break;
       }
       case 5: {
