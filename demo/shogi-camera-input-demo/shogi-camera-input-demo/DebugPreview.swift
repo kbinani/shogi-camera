@@ -25,6 +25,12 @@ extension cv.Point {
   }
 }
 
+extension cv.Point2f {
+  var cgPoint: CGPoint {
+    return CGPoint(x: CGFloat(x), y: CGFloat(y))
+  }
+}
+
 class DebugView: UIView {
   private var captureSession: AVCaptureSession? = nil
   private weak var previewLayer: AVCaptureVideoPreviewLayer?
@@ -86,6 +92,19 @@ class DebugView: UIView {
         ctx.setLineWidth(3)
         ctx.strokePath()
       }
+      // 盤面の向きを表示
+      let cx = width * 0.5
+      let cy = height * 0.5
+      let length = max(width, height) * 10
+      ctx.move(
+        to: .init(
+          x: cx - length * cos(status.boardDirection), y: cy - length * sin(status.boardDirection)))
+      ctx.addLine(
+        to: .init(
+          x: cx + length * cos(status.boardDirection), y: cy + length * sin(status.boardDirection)))
+      ctx.setLineWidth(3)
+      ctx.setStrokeColor(UIColor.white.cgColor)
+      ctx.strokePath()
     }
   }
 

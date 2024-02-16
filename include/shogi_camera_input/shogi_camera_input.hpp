@@ -271,6 +271,16 @@ struct Contour {
     }
     return shortest / longest;
   }
+
+  cv::Point2d mean() const {
+    double x = 0;
+    double y = 0;
+    for (auto const &p : points) {
+      x += p.x;
+      y += p.y;
+    }
+    return cv::Point2d(x / points.size(), y / points.size());
+  }
 };
 
 struct Status {
@@ -283,6 +293,8 @@ struct Status {
   double squareArea;
   // マス目のアスペクト比. 横長の将棋盤は存在しないと仮定して, 幅/高さ.
   double aspectRatio;
+  // 盤面の向き. 対局者の向きと 90 度ズレている可能性がある.
+  double boardDirection;
 };
 
 class Session {

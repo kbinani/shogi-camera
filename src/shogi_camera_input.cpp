@@ -6,6 +6,7 @@
 #include <opencv2/imgproc/types_c.h>
 
 #include <iostream>
+#include <numbers>
 #include <vector>
 
 #include <shogi_camera_input/shogi_camera_input.hpp>
@@ -89,18 +90,19 @@ void FindContours(cv::Mat const &image, Status &s) {
 }
 
 void FindBoard(Status &s) {
-  std::vector<Contour> squares;
-  for (auto const &contour : s.contours) {
-    if (contour.points.size() != 4) {
+  using namespace std;
+  vector<Contour> squares;
+  for (auto const &square : s.squares) {
+    if (square.points.size() != 4) {
       continue;
     }
-    squares.push_back(contour);
+    squares.push_back(square);
   }
   if (squares.empty()) {
     return;
   }
   // 四角形の面積の中央値を升目の面積(squareArea)とする.
-  std::sort(squares.begin(), squares.end(), [](Contour const &a, Contour const &b) { return a.area < b.area; });
+  sort(squares.begin(), squares.end(), [](Contour const &a, Contour const &b) { return a.area < b.area; });
   size_t mid = squares.size() / 2;
   if (squares.size() % 2 == 0) {
     auto const &a = squares[mid - 1];
@@ -111,6 +113,51 @@ void FindBoard(Status &s) {
     s.squareArea = squares[mid].area;
     s.aspectRatio = squares[mid].aspectRatio();
   }
+
+  // squares の各辺の傾きから, 盤面の向きを推定する.
+  vector<double> angles;
+  for (auto const &square : s.squares) {
+    for (size_t i = 0; i < 3; i++) {
+      auto const &a = square.points[i];
+      auto const &b = square.points[i + 1];
+      double dx = b.x - a.x;
+      double dy = b.y - a.y;
+      double angle = atan2(dy, dx);
+      while (angle < 0) {
+        angle += numbers::pi * 2;
+      }
+      while (numbers::pi * 0.5 < angle) {
+        angle -= numbers::pi * 0.5;
+      }
+      angles.push_back(angle * 180 / numbers::pi);
+    }
+  }
+  // 5 度単位でヒストグラムを作り, 最頻値を調べる. angle は [0, 90) に限定しているので index は [0, 17]
+  array<int, 17> count;
+  count.fill(0);
+  for (double const &angle : angles) {
+    int index = angle / 5;
+    count[index] += 1;
+  }
+  int maxIndex = -1;
+  int maxCount = -1;
+  for (int i = 0; i < (int)count.size(); i++) {
+    if (maxCount < count[i]) {
+      maxCount = count[i];
+      maxIndex = i;
+    }
+  }
+  // 最頻となったヒストグラムの位置から, 前後 5 度に収まっている angle について, その平均値を計算する.
+  double targetAngle = (maxIndex + 0.5) * 5;
+  double sumCosAngle = 0;
+  int countAngle = 0;
+  for (double const &angle : angles) {
+    if (targetAngle - 5 <= angle && angle <= targetAngle + 5) {
+      sumCosAngle += cos(angle / 180.0 * numbers::pi);
+      countAngle += 1;
+    }
+  }
+  s.boardDirection = acos(sumCosAngle / countAngle);
 }
 } // namespace
 
@@ -156,6 +203,7 @@ void Session::run() {
     FindBoard(*s);
     this->s = s;
   }
+  std::cout << 1 << std::endl;
 }
 
 void Session::push(cv::Mat const &frame) {
