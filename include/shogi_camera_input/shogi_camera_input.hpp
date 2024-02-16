@@ -295,6 +295,7 @@ struct Status {
   double aspectRatio;
   // 盤面の向き. 対局者の向きと 90 度ズレている可能性がある.
   double boardDirection;
+  Contour outline;
 };
 
 class Session {

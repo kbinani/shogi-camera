@@ -25,6 +25,10 @@ double Angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) {
   return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
 }
 
+cv::Point2d Rotate(cv::Point2d const &p, double radian) {
+  return cv::Point2d(cos(radian) * p.x - sin(radian) * p.y, sin(radian) * p.x + cos(radian) * p.y);
+}
+
 void FindContours(cv::Mat const &image, Status &s) {
   s.contours.clear();
   s.squares.clear();
@@ -173,6 +177,48 @@ void FindBoard(Status &s) {
     }
   }
   s.boardDirection = acos(sumCosAngle / countAngle);
+
+  {
+    // squares と pieces を -1 * boardDirection 回転した状態で矩形を検出する.
+    vector<cv::Point2d> centers;
+    for (auto const &square : s.squares) {
+      auto center = Rotate(square.mean(), -s.boardDirection);
+      centers.push_back(center);
+    }
+    for (auto const &piece : s.pieces) {
+      auto center = Rotate(piece.mean(), -s.boardDirection);
+      centers.push_back(center);
+    }
+    cv::Point2d top = centers[0];
+    cv::Point2d bottom = top;
+    cv::Point2d left = top;
+    cv::Point2d right = top;
+    for (auto const &center : centers) {
+      if (center.y < top.y) {
+        top = center;
+      }
+      if (center.y > bottom.y) {
+        bottom = center;
+      }
+      if (center.x < left.x) {
+        left = center;
+      }
+      if (center.x > right.x) {
+        right = center;
+      }
+    }
+    cv::Point2d lt(left.x, top.y);
+    cv::Point2d rt(right.x, top.y);
+    cv::Point2d rb(right.x, bottom.y);
+    cv::Point2d lb(left.x, bottom.y);
+    s.outline.points = {
+        Rotate(lt, s.boardDirection),
+        Rotate(rt, s.boardDirection),
+        Rotate(rb, s.boardDirection),
+        Rotate(lb, s.boardDirection),
+    };
+    s.outline.area = fabs(cv::contourArea(cv::Mat(s.outline.points)));
+  }
 }
 } // namespace
 

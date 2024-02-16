@@ -63,13 +63,6 @@ class DebugView: UIView {
         .concatenating(.init(translationX: size.width * 0.5, y: size.height * 0.5))
       ctx.concatenate(tx)
 
-      status.contours.forEach { contour in
-        let path = contour.cgPath
-        ctx.setStrokeColor(UIColor.cyan.cgColor)
-        ctx.addPath(path)
-        ctx.setLineWidth(1)
-        ctx.strokePath()
-      }
       status.squares.forEach { square in
         let path = square.cgPath
         ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
@@ -92,18 +85,11 @@ class DebugView: UIView {
         ctx.setLineWidth(3)
         ctx.strokePath()
       }
-      // 盤面の向きを表示
-      let cx = width * 0.5
-      let cy = height * 0.5
-      let length = max(width, height) * 10
-      ctx.move(
-        to: .init(
-          x: cx - length * cos(status.boardDirection), y: cy - length * sin(status.boardDirection)))
-      ctx.addLine(
-        to: .init(
-          x: cx + length * cos(status.boardDirection), y: cy + length * sin(status.boardDirection)))
+
+      let outlinePath = status.outline.cgPath
+      ctx.addPath(outlinePath)
       ctx.setLineWidth(3)
-      ctx.setStrokeColor(UIColor.white.cgColor)
+      ctx.setStrokeColor(UIColor.green.cgColor)
       ctx.strokePath()
     }
   }
