@@ -152,7 +152,7 @@ void FindBoard(Status &s) {
     }
   }
   // 5 度単位でヒストグラムを作り, 最頻値を調べる. angle は [0, 90) に限定しているので index は [0, 17]
-  array<int, 17> count;
+  array<int, 18> count;
   count.fill(0);
   for (double const &angle : angles) {
     int index = angle / 5;
