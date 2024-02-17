@@ -128,6 +128,43 @@ std::optional<cv::Point2f> PieceDirection(std::vector<cv::Point2f> const &points
   return apex - midBottom;
 }
 
+std::optional<cv::Point2d> Intersection(cv::Point2d const &p1, cv::Point2d const &p2, cv::Point2d const &q1, cv::Point2d const &q2) {
+  using namespace std;
+  cv::Point2d v = p2 - p1;
+  cv::Point2d w = q2 - q1;
+
+  double cross = w.x * v.y - w.y * v.x;
+  if (!isnormal(cross)) {
+    // 平行
+    return nullopt;
+  }
+
+  if (w.x != 0) {
+    double s = (q1.y * w.x + p1.x * w.y - q1.x * w.y - w.x * p1.y) / cross;
+    if (s == 0 || isnormal(s)) {
+      return p1 + v * s;
+    } else {
+      return nullopt;
+    }
+  } else {
+    if (v.x != 0) {
+      double s = (q1.x - p1.x) / v.x;
+      if (s == 0 || isnormal(s)) {
+        return p1 + v * s;
+      } else {
+        return nullopt;
+      }
+    } else {
+      // v と w がどちらも y 軸に平行
+      return nullopt;
+    }
+  }
+}
+
+cv::Point2d Normalize(cv::Point2d const &a) {
+  return a / cv::norm(a);
+}
+
 void FindContours(cv::Mat const &image, Status &s) {
   using namespace std;
   s.contours.clear();
@@ -371,38 +408,22 @@ cv::Point2f PieceCenter(Status const &s, int x, int y) {
 
 void FindPieces(cv::Mat const &frame, Status &s) {
   using namespace std;
-  set<pair<bool, int>> attached; // first => s.square なら true, s.pieces なら false, second => s.squares または s.pieces のインデックス.
-  float const squareSize = sqrtf(s.squareArea);
-  for (int y = 0; y < 9; y++) {
-    for (int x = 0; x < 9; x++) {
-      cv::Point2f center = PieceCenter(s, x, y);
-      // center に最も中心が近い Contour を s.pieces か s.squares の中から探す.
-      // 距離は駒サイズのスケール sqrt(squareArea) / 2 より離れていると対象外にする.
-      optional<pair<bool, int>> index;
-      float nearest = numeric_limits<float>::max();
-      for (int i = 0; i < s.pieces.size(); i++) {
-        pair<bool, int> key = make_pair(false, i);
-        if (attached.find(key) != attached.end()) {
-          continue;
-        }
-        cv::Point2f m = s.pieces[i].mean();
-        float distance = cv::norm(m - center);
-        if (distance > squareSize * 0.5) {
-          continue;
-        }
-        if (distance < nearest) {
-          nearest = distance;
-          index = key;
-        }
-      }
-      if (!index) {
-        // 駒の方を優先で探す. 既に見つかっているならそちらを優先.
-        for (int i = 0; i < s.squares.size(); i++) {
-          pair<bool, int> key = make_pair(true, i);
+  {
+    set<pair<bool, int>> attached; // first => s.square なら true, s.pieces なら false, second => s.squares または s.pieces のインデックス.
+    float const squareSize = sqrtf(s.squareArea);
+    for (int y = 0; y < 9; y++) {
+      for (int x = 0; x < 9; x++) {
+        cv::Point2f center = PieceCenter(s, x, y);
+        // center に最も中心が近い Contour を s.pieces か s.squares の中から探す.
+        // 距離は駒サイズのスケール sqrt(squareArea) / 2 より離れていると対象外にする.
+        optional<pair<bool, int>> index;
+        float nearest = numeric_limits<float>::max();
+        for (int i = 0; i < s.pieces.size(); i++) {
+          pair<bool, int> key = make_pair(false, i);
           if (attached.find(key) != attached.end()) {
             continue;
           }
-          cv::Point2f m = s.squares[i].mean();
+          cv::Point2f m = s.pieces[i].mean();
           float distance = cv::norm(m - center);
           if (distance > squareSize * 0.5) {
             continue;
@@ -412,15 +433,119 @@ void FindPieces(cv::Mat const &frame, Status &s) {
             index = key;
           }
         }
+        if (!index) {
+          // 駒の方を優先で探す. 既に見つかっているならそちらを優先.
+          for (int i = 0; i < s.squares.size(); i++) {
+            pair<bool, int> key = make_pair(true, i);
+            if (attached.find(key) != attached.end()) {
+              continue;
+            }
+            cv::Point2f m = s.squares[i].mean();
+            float distance = cv::norm(m - center);
+            if (distance > squareSize * 0.5) {
+              continue;
+            }
+            if (distance < nearest) {
+              nearest = distance;
+              index = key;
+            }
+          }
+        }
+        if (!index) {
+          continue;
+        }
+        attached.insert(*index);
+        if (index->first) {
+          s.detected[x][y] = s.squares[index->second];
+        } else {
+          s.detected[x][y] = s.pieces[index->second];
+        }
       }
-      if (!index) {
-        continue;
+    }
+  }
+
+  {
+    // 検出した駒・升を元に, より正確な盤面の矩形を検出する.
+    // 先手から見て盤面の上辺
+    optional<cv::Vec4f> top;
+    {
+      vector<cv::Point2f> points;
+      for (int x = 0; x < 9; x++) {
+        if (s.detected[x][0]) {
+          points.push_back(s.detected[x][0]->mean());
+        }
       }
-      attached.insert(*index);
-      if (index->first) {
-        s.detected[x][y] = s.squares[index->second];
-      } else {
-        s.detected[x][y] = s.pieces[index->second];
+      if (points.size() > 1) {
+        cv::Vec4f v;
+        cv::fitLine(cv::Mat(points), v, CV_DIST_L2, 0, 0.01, 0.01);
+        top = v;
+      }
+    }
+    optional<cv::Vec4f> bottom;
+    {
+      vector<cv::Point2f> points;
+      for (int x = 0; x < 9; x++) {
+        if (s.detected[x][8]) {
+          points.push_back(s.detected[x][8]->mean());
+        }
+      }
+      if (points.size() > 1) {
+        cv::Vec4f v;
+        cv::fitLine(cv::Mat(points), v, CV_DIST_L2, 0, 0.01, 0.01);
+        bottom = v;
+      }
+    }
+    optional<cv::Vec4f> left;
+    {
+      vector<cv::Point2f> points;
+      for (int y = 0; y < 9; y++) {
+        if (s.detected[0][y]) {
+          points.push_back(s.detected[0][y]->mean());
+        }
+      }
+      if (points.size() > 1) {
+        cv::Vec4f v;
+        cv::fitLine(cv::Mat(points), v, CV_DIST_L2, 0, 0.01, 0.01);
+        left = v;
+      }
+    }
+    optional<cv::Vec4f> right;
+    {
+      vector<cv::Point2f> points;
+      for (int y = 0; y < 9; y++) {
+        if (s.detected[8][y]) {
+          points.push_back(s.detected[8][y]->mean());
+        }
+      }
+      if (points.size() > 1) {
+        cv::Vec4f v;
+        cv::fitLine(cv::Mat(points), v, CV_DIST_L2, 0, 0.01, 0.01);
+        right = v;
+      }
+    }
+    if (top && bottom && left && right) {
+      static auto intersection = [](cv::Vec4f const &a, cv::Vec4f const &b) {
+        cv::Point2d p1(a[2], a[3]);
+        cv::Point2d p2(a[2] + a[0], a[3] + a[1]);
+        cv::Point2d q1(b[2], b[3]);
+        cv::Point2d q2(b[2] + b[0], b[3] + b[1]);
+        return Intersection(p1, p2, q1, q2);
+      };
+      auto tl = intersection(*top, *left);
+      auto tr = intersection(*top, *right);
+      auto br = intersection(*bottom, *right);
+      auto bl = intersection(*bottom, *left);
+      if (tl && tr && br && bl) {
+        // tl, tr, br, bl は駒中心を元に計算しているので 8x8 の範囲しか無い. 半マス分増やす
+        cv::Point2d topLeft = (*tl) + (((*tl) - (*tr)) / 16) + (((*tl) - (*bl)) / 16);
+        cv::Point2d topRight = (*tr) + (((*tr) - (*tl)) / 16) + (((*tr) - (*br)) / 16);
+        cv::Point2d bottomRight = (*br) + (((*br) - (*bl)) / 16) + (((*br) - (*tr)) / 16);
+        cv::Point2d bottomLeft = (*bl) + (((*bl) - (*br)) / 16) + (((*bl) - (*tl)) / 16);
+
+        Contour preciseOutline;
+        preciseOutline.points = {topLeft, topRight, bottomRight, bottomLeft};
+        preciseOutline.area = fabs(cv::contourArea(preciseOutline.points));
+        s.preciseOutline = preciseOutline;
       }
     }
   }

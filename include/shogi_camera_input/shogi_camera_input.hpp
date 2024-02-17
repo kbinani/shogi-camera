@@ -311,6 +311,9 @@ struct Status {
   // 検出された駒、または升目. squares または pieces の中から最も近かったものが代入される. 検出できなかった場合 nullopt になる.
   std::array<std::array<std::optional<Contour>, 9>, 9> detected;
 
+  // より正確な盤面のアウトライン.
+  std::optional<Contour> preciseOutline;
+
   Position position;
 };
 
