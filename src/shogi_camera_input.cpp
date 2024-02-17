@@ -220,26 +220,37 @@ void FindBoard(cv::Mat const &frame, Status &s) {
     s.aspectRatio = squares[mid].aspectRatio();
   }
 
-  // squares の各辺の傾きから, 盤面の向きを推定する.
-  vector<double> angles;
-  for (auto const &square : s.squares) {
-    for (size_t i = 0; i < 3; i++) {
-      auto const &a = square.points[i];
-      auto const &b = square.points[i + 1];
-      double dx = b.x - a.x;
-      double dy = b.y - a.y;
-      double angle = atan2(dy, dx);
-      while (angle < 0) {
-        angle += numbers::pi * 2;
-      }
-      while (numbers::pi * 0.5 < angle) {
-        angle -= numbers::pi * 0.5;
-      }
-      angles.push_back(angle * 180 / numbers::pi);
-    }
-  }
-
   {
+    // squares の各辺の傾きから, 盤面の向きを推定する.
+    vector<double> angles;
+    for (auto const &square : s.squares) {
+      for (size_t i = 0; i < 3; i++) {
+        auto const &a = square.points[i];
+        auto const &b = square.points[i + 1];
+        double dx = b.x - a.x;
+        double dy = b.y - a.y;
+        double angle = atan2(dy, dx);
+        while (angle < 0) {
+          angle += numbers::pi * 2;
+        }
+        while (numbers::pi * 0.5 < angle) {
+          angle -= numbers::pi * 0.5;
+        }
+        angles.push_back(angle * 180 / numbers::pi);
+      }
+    }
+    for (auto const &piece : s.pieces) {
+      if (auto d = PieceDirection(piece.points); d) {
+        float angle = Angle(*d);
+        while (angle < 0) {
+          angle += numbers::pi * 2;
+        }
+        while (numbers::pi * 0.5 < angle) {
+          angle -= numbers::pi * 0.5;
+        }
+        angles.push_back(angle * 180 / numbers::pi);
+      }
+    }
     // 盤面の向きを推定する.
     // 5 度単位でヒストグラムを作り, 最頻値を調べる. angle は [0, 90) に限定しているので index は [0, 17]
     array<int, 18> count;
