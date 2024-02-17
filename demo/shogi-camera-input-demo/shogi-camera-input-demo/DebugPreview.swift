@@ -130,17 +130,34 @@ class DebugView: UIView {
         }
       }
 
-      // 盤面の向きを表示
-      let cx = width * 0.5
-      let cy = height * 0.5
-      let length = max(width, height) * 10
-      let dx = length * cos(CGFloat(status.boardDirection))
-      let dy = length * sin(CGFloat(status.boardDirection))
-      ctx.move(to: .init(x: cx - dx, y: cy - dy))
-      ctx.addLine(to: .init(x: cx + dx, y: cy + dy))
-      ctx.setLineWidth(3)
-      ctx.setStrokeColor(UIColor.white.cgColor)
-      ctx.strokePath()
+      status.hgrids.forEach { grid in
+        let vx = CGFloat(grid[0])
+        let vy = CGFloat(grid[1])
+        let x = CGFloat(grid[2])
+        let y = CGFloat(grid[3])
+        let scale = width * 2 / sqrt(vx * vx + vy * vy)
+        let a = CGPoint(x: x - vx * scale, y: y - vy * scale)
+        let b = CGPoint(x: x + vx * scale, y: y + vy * scale)
+        ctx.move(to: a)
+        ctx.addLine(to: b)
+        ctx.setLineWidth(1)
+        ctx.setStrokeColor(UIColor.white.cgColor)
+        ctx.strokePath()
+      }
+      status.vgrids.forEach { grid in
+        let vx = CGFloat(grid[0])
+        let vy = CGFloat(grid[1])
+        let x = CGFloat(grid[2])
+        let y = CGFloat(grid[3])
+        let scale = width * 2 / sqrt(vx * vx + vy * vy)
+        let a = CGPoint(x: x - vx * scale, y: y - vy * scale)
+        let b = CGPoint(x: x + vx * scale, y: y + vy * scale)
+        ctx.move(to: a)
+        ctx.addLine(to: b)
+        ctx.setLineWidth(1)
+        ctx.setStrokeColor(UIColor.black.cgColor)
+        ctx.strokePath()
+      }
 
       let outlinePath = status.outline.cgPath
       ctx.addPath(outlinePath)

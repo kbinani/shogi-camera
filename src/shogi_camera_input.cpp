@@ -55,6 +55,7 @@ struct RadianAverage {
   void push(double radian) {
     x += cos(radian);
     y += sin(radian);
+    count++;
   }
 
   double get() const {
@@ -63,6 +64,7 @@ struct RadianAverage {
 
   double x = 0;
   double y = 0;
+  size_t count = 0;
 };
 
 float MeanAngle(std::initializer_list<float> values) {
@@ -169,8 +171,28 @@ std::optional<cv::Point2d> Intersection(cv::Vec4f const &a, cv::Vec4f const &b) 
   return Intersection(p1, p2, q1, q2);
 }
 
+// 直線 line と点 p との距離を計算する. line は [vx, vy, x0, y0] 形式(cv::fitLine の結果の型と同じ形式)
+double Distance(cv::Vec4f const &line, cv::Point2d const &p) {
+  // line と直行する直線
+  cv::Vec4f c(line[1], line[0], p.x, p.y);
+  if (auto i = Intersection(line, c); i) {
+    return cv::norm(*i - p);
+  } else {
+    return std::numeric_limits<double>::infinity();
+  }
+}
+
 cv::Point2d Normalize(cv::Point2d const &a) {
   return a / cv::norm(a);
+}
+
+std::optional<cv::Vec4f> FitLine(std::vector<cv::Point2f> const &points) {
+  if (points.size() < 2) {
+    return std::nullopt;
+  }
+  cv::Vec4f line;
+  cv::fitLine(cv::Mat(points), line, CV_DIST_L2, 0, 0.01, 0.01);
+  return line;
 }
 
 void FindContours(cv::Mat const &image, Status &s) {
@@ -358,6 +380,118 @@ void FindBoard(cv::Mat const &frame, Status &s) {
   }
 
   {
+    // 各 square, piece を起点に, その長軸と短軸それぞれについて, 軸付近に中心を持つ駒・升を検出する.
+    // どの軸にも属さない square, piece を除去する.
+    set<shared_ptr<Contour>> squares;     // 抽出した squares. 後で s.squares と swap する.
+    set<shared_ptr<PieceContour>> pieces; // 抽出した pieces. 後で s.pieces と swap する.
+    double cosThreshold = cos(2.5 / 180.0 * numbers::pi);
+    auto Detect = [&](double direction, double tolerance, vector<cv::Vec4f> &grids) {
+      set<shared_ptr<Contour>> cSquares;
+      set<shared_ptr<PieceContour>> cPieces;
+      // tolerance: 軸との距離の最大値. この距離以下なら軸上に居るとみなす.
+      for (auto const &square : s.squares) {
+        if (square->area <= s.squareArea * 0.7 || s.squareArea * 1.3 <= square->area) {
+          // 升目の面積と比べて 3 割以上差がある場合対象外にする.
+          continue;
+        }
+        if (cSquares.find(square) != cSquares.end()) {
+          // 処理済み.
+          continue;
+        }
+        cv::Point2f center = square->mean();
+        // square の各辺の方向のうち, direction と近い方向をその square の向きとする.
+        RadianAverage ra;
+        for (int i = 0; i < 4; i++) {
+          cv::Point2f edge = square->points[i] - square->points[(i + 1) % 4];
+          double dir = Angle(edge);
+          if (fabs(cos(dir - direction)) > cosThreshold) {
+            ra.push(dir);
+          }
+        }
+        if (ra.count != 2) {
+          continue;
+        }
+        double squareDirection = ra.get();
+        cv::Vec4f axis(cos(squareDirection), sin(squareDirection), center.x, center.y);
+        vector<cv::Point2f> centers;
+        //        set<shared_ptr<Contour>> cSquares;
+        //        set<shared_ptr<PieceContour>> cPieces;
+        for (auto const &sq : s.squares) {
+          cv::Point2f c = sq->mean();
+          if (sq == square) {
+            // 自分自身.
+            centers.push_back(c);
+            continue;
+          }
+          if (cSquares.find(sq) != cSquares.end()) {
+            // 処理済み.
+            continue;
+          }
+          if (sq->area <= s.squareArea * 0.7 || s.squareArea * 1.3 <= sq->area) {
+            // 升目の面積と比べて 3 割以上差がある場合対象外にする.
+            continue;
+          }
+          double distance = Distance(axis, c);
+          if (!isfinite(distance)) {
+            continue;
+          }
+          if (distance <= tolerance) {
+            cSquares.insert(sq);
+            centers.push_back(c);
+          }
+        }
+        for (auto const &p : s.pieces) {
+          if (p->area > s.squareArea) {
+            // 升目の面積より大きい piece は対象外にする.
+            continue;
+          }
+          if (cPieces.find(p) != cPieces.end()) {
+            // 処理済み
+            continue;
+          }
+          cv::Point2f c = p->mean();
+          double distance = Distance(axis, c);
+          if (!isfinite(distance)) {
+            continue;
+          }
+          if (distance <= tolerance) {
+            cPieces.insert(p);
+            centers.push_back(c);
+          }
+        }
+        if (centers.empty()) {
+          continue;
+        }
+        auto grid = FitLine(centers);
+        if (!grid) {
+          continue;
+        }
+        if (fabs(atan2((*grid)[1], (*grid)[0]) - direction) <= cosThreshold) {
+          // grid の向きと direction が大きく違っていたら, 検出した grid は無視する.
+          continue;
+        }
+        for (auto const &cS : cSquares) {
+          squares.insert(cS);
+        }
+        for (auto const &cP : cPieces) {
+          pieces.insert(cP);
+        }
+        grids.push_back(*grid);
+      }
+    };
+    Detect(s.boardDirection, sqrt(s.squareArea * s.aspectRatio) / 2, s.vgrids);
+    Detect(s.boardDirection + numbers::pi * 0.5, sqrt(s.squareArea / s.aspectRatio) / 2, s.hgrids);
+    s.squares.clear();
+    for (auto const &square : squares) {
+      s.squares.push_back(square);
+    }
+    s.pieces.clear();
+    for (auto const &piece : pieces) {
+      s.pieces.push_back(piece);
+    }
+  }
+
+  {
     // squares と pieces を -1 * boardDirection 回転した状態で矩形を検出する.
     vector<cv::Point2d> centers;
     for (auto const &square : s.squares) {
@@ -368,39 +502,41 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       auto center = Rotate(piece->mean(), -s.boardDirection);
       centers.push_back(center);
     }
-    cv::Point2f top = centers[0];
-    cv::Point2f bottom = top;
-    cv::Point2f left = top;
-    cv::Point2f right = top;
-    for (auto const &center : centers) {
-      if (center.y < top.y) {
-        top = center;
+    if (!centers.empty()) {
+      cv::Point2f top = centers[0];
+      cv::Point2f bottom = top;
+      cv::Point2f left = top;
+      cv::Point2f right = top;
+      for (auto const &center : centers) {
+        if (center.y < top.y) {
+          top = center;
+        }
+        if (center.y > bottom.y) {
+          bottom = center;
+        }
+        if (center.x < left.x) {
+          left = center;
+        }
+        if (center.x > right.x) {
+          right = center;
+        }
       }
-      if (center.y > bottom.y) {
-        bottom = center;
-      }
-      if (center.x < left.x) {
-        left = center;
-      }
-      if (center.x > right.x) {
-        right = center;
-      }
+      cv::Point2f lt(left.x, top.y);
+      cv::Point2f rt(right.x, top.y);
+      cv::Point2f rb(right.x, bottom.y);
+      cv::Point2f lb(left.x, bottom.y);
+      s.outline.points = {
+          Rotate(lt, s.boardDirection),
+          Rotate(rt, s.boardDirection),
+          Rotate(rb, s.boardDirection),
+          Rotate(lb, s.boardDirection),
+      };
+      s.outline.area = fabs(cv::contourArea(cv::Mat(s.outline.points)));
+      s.bx = left.x;
+      s.by = top.y;
+      s.bwidth = right.x - left.x;
+      s.bheight = bottom.y - top.y;
     }
-    cv::Point2f lt(left.x, top.y);
-    cv::Point2f rt(right.x, top.y);
-    cv::Point2f rb(right.x, bottom.y);
-    cv::Point2f lb(left.x, bottom.y);
-    s.outline.points = {
-        Rotate(lt, s.boardDirection),
-        Rotate(rt, s.boardDirection),
-        Rotate(rb, s.boardDirection),
-        Rotate(lb, s.boardDirection),
-    };
-    s.outline.area = fabs(cv::contourArea(cv::Mat(s.outline.points)));
-    s.bx = left.x;
-    s.by = top.y;
-    s.bwidth = right.x - left.x;
-    s.bheight = bottom.y - top.y;
   }
 }
 

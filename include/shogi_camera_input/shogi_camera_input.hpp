@@ -336,6 +336,8 @@ struct Status {
   float bwidth;
   float bheight;
 
+  std::vector<cv::Vec4f> vgrids;
+  std::vector<cv::Vec4f> hgrids;
   // 検出された駒、または升目. squares または pieces の中から最も近かったものが代入される. 検出できなかった場合 nullopt になる.
   std::array<std::array<std::shared_ptr<Contour>, 9>, 9> detected;
 
