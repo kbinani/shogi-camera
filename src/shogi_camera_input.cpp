@@ -379,9 +379,10 @@ void FindBoard(cv::Mat const &frame, Status &s) {
     }
   }
 
-  {
-    // 各 square, piece を起点に, その長軸と短軸それぞれについて, 軸付近に中心を持つ駒・升を検出する.
-    // どの軸にも属さない square, piece を除去する.
+  if (false) {
+    // TODO: ここの処理は斜めから撮影した時に s.outline が盤面を正確に覆わなくなる問題の対策のための処理. 多少斜め方向からの撮影なら, この処理なくても問題なく盤面を認識できているので無くても良い. 本当は斜め角度大のときも正確に検出できるようにしたい.
+    //  各 square, piece を起点に, その長軸と短軸それぞれについて, 軸付近に中心を持つ駒・升を検出する.
+    //  どの軸にも属さない square, piece を除去する.
     set<shared_ptr<Contour>> squares;     // 抽出した squares. 後で s.squares と swap する.
     set<shared_ptr<PieceContour>> pieces; // 抽出した pieces. 後で s.pieces と swap する.
     double cosThreshold = cos(2.5 / 180.0 * numbers::pi);
