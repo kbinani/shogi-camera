@@ -236,8 +236,8 @@ void FindContours(cv::Mat const &image, Status &s) {
         break;
       }
       case 5: {
-        if (PieceDirection(contour.points)) {
-          s.pieces.push_back(contour);
+        if (auto pc = PieceContour::Make(contour.points); pc && pc->aspectRatio >= 0.6) {
+          s.pieces.push_back(*pc);
         }
         break;
       }
@@ -291,16 +291,14 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       }
     }
     for (auto const &piece : s.pieces) {
-      if (auto d = PieceDirection(piece.points); d) {
-        float angle = Angle(*d);
-        while (angle < 0) {
-          angle += numbers::pi * 2;
-        }
-        while (numbers::pi * 0.5 < angle) {
-          angle -= numbers::pi * 0.5;
-        }
-        angles.push_back(angle * 180 / numbers::pi);
+      float angle = Angle(piece.direction);
+      while (angle < 0) {
+        angle += numbers::pi * 2;
       }
+      while (numbers::pi * 0.5 < angle) {
+        angle -= numbers::pi * 0.5;
+      }
+      angles.push_back(angle * 180 / numbers::pi);
     }
     // 盤面の向きを推定する.
     // 5 度単位でヒストグラムを作り, 最頻値を調べる. angle は [0, 90) に限定しているので index は [0, 17]
@@ -341,11 +339,9 @@ void FindBoard(cv::Mat const &frame, Status &s) {
     }
     // piece の頂点の向きから, direction を 90 度回して訂正するか, そのまま採用するか投票する.
     for (auto const &piece : s.pieces) {
-      if (auto d = PieceDirection(piece.points); d) {
-        float a = Normalize90To90(Angle(*d));
-        bool shouldCorrect = fabs(cos(a - direction)) < 0.25;
-        vote[shouldCorrect] += 1;
-      }
+      float a = Normalize90To90(Angle(piece.direction));
+      bool shouldCorrect = fabs(cos(a - direction)) < 0.25;
+      vote[shouldCorrect] += 1;
     }
     if (vote[true] > (vote[true] + vote[false]) * 2 / 3) {
       direction = Normalize90To90(direction + numbers::pi * 0.5);
@@ -460,7 +456,7 @@ void FindPieces(cv::Mat const &frame, Status &s) {
         if (index->first) {
           s.detected[x][y] = s.squares[index->second];
         } else {
-          s.detected[x][y] = s.pieces[index->second];
+          s.detected[x][y] = s.pieces[index->second].toContour();
         }
       }
     }
@@ -573,6 +569,50 @@ std::optional<cv::Point2f> Contour::direction(float length) const {
   } else {
     return std::nullopt;
   }
+}
+
+std::optional<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const &points) {
+  using namespace std;
+  if (points.size() != 5) {
+    return nullopt;
+  }
+  vector<int> indices;
+  for (int i = 0; i < 5; i++) {
+    indices.push_back(i);
+  }
+  sort(indices.begin(), indices.end(), [&points](int a, int b) {
+    float lengthA = cv::norm(points[a] - points[(a + 1) % 5]);
+    float lengthB = cv::norm(points[b] - points[(b + 1) % 5]);
+    return lengthA < lengthB;
+  });
+  // 最も短い辺が隣り合っている場合, 将棋の駒らしいと判定する.
+  int min0 = indices[0];
+  int min1 = indices[1];
+  if (min1 < min0) {
+    swap(min0, min1);
+  }
+  if (min0 + 1 != min1 && !(min0 == 0 && min1 == 4)) {
+    return nullopt;
+  }
+  if (min0 == 0 && min1 == 4) {
+    swap(min0, min1);
+  }
+  // 将棋の駒の頂点
+  cv::Point2f apex = points[min1];
+  // 底辺の中点
+  cv::Point2f bottom1 = points[(min0 + 3) % 5];
+  cv::Point2f bottom2 = points[(min0 + 4) % 5];
+  cv::Point2f midBottom = (bottom1 + bottom2) * 0.5;
+
+  PieceContour ret;
+  for (int i = 0; i < 5; i++) {
+    ret.points.push_back(points[(min1 + i) % 5]);
+  }
+  ret.area = fabs(cv::contourArea(ret.points));
+  ret.direction = (apex - midBottom) / cv::norm(apex - midBottom);
+  ret.aspectRatio = cv::norm(bottom1 - bottom2) / cv::norm(apex - midBottom);
+
+  return ret;
 }
 
 Status::Status() {

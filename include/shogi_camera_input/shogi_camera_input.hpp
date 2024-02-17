@@ -285,12 +285,40 @@ struct Contour {
   std::optional<cv::Point2f> direction(float length = 1) const;
 };
 
+// 駒のような形をした Contour. points[0] が駒の頂点, points[2] => points[3] が底辺
+struct PieceContour {
+  std::vector<cv::Point2f> points;
+  double area;
+  cv::Point2f direction;
+  // 底辺の長さ/(頂点と底辺の中点を結ぶ線分の長さ)
+  double aspectRatio;
+
+  cv::Point2f mean() const {
+    double x = 0;
+    double y = 0;
+    for (auto const &p : points) {
+      x += p.x;
+      y += p.y;
+    }
+    return cv::Point2f(x / points.size(), y / points.size());
+  }
+
+  Contour toContour() const {
+    Contour c;
+    c.points = points;
+    c.area = area;
+    return c;
+  }
+
+  static std::optional<PieceContour> Make(std::vector<cv::Point2f> const &points);
+};
+
 struct Status {
   Status();
 
   std::vector<Contour> contours;
   std::vector<Contour> squares;
-  std::vector<Contour> pieces;
+  std::vector<PieceContour> pieces;
   int width;
   int height;
   // 升目の面積
