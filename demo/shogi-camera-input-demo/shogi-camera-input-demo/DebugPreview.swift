@@ -64,33 +64,52 @@ class DebugView: UIView {
       ctx.concatenate(tx)
 
       status.squares.forEach { square in
-        let path = square.cgPath
-        ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
-        ctx.addPath(path)
-        ctx.fillPath()
-
-        ctx.setStrokeColor(UIColor.red.cgColor)
-        ctx.addPath(path)
-        ctx.setLineWidth(3)
+        ctx.setStrokeColor(UIColor.cyan.cgColor)
+        ctx.addPath(square.cgPath)
+        ctx.setLineWidth(1)
         ctx.strokePath()
       }
       status.pieces.forEach { piece in
-        let path = piece.cgPath
-        ctx.setFillColor(UIColor.blue.withAlphaComponent(0.2).cgColor)
-        ctx.addPath(path)
-        ctx.fillPath()
-
-        ctx.setStrokeColor(UIColor.blue.cgColor)
-        ctx.addPath(path)
-        ctx.setLineWidth(3)
+        ctx.setStrokeColor(UIColor.cyan.cgColor)
+        ctx.addPath(piece.cgPath)
+        ctx.setLineWidth(1)
         ctx.strokePath()
+      }
 
-        if let direction = piece.direction(Float(min(width, height) * 0.1)).value?.cgPoint {
-          let mean = piece.mean().cgPoint
-          ctx.move(to: mean)
-          ctx.addLine(to: .init(x: mean.x + direction.x, y: mean.y + direction.y))
-          ctx.setLineWidth(1)
-          ctx.strokePath()
+      for y in 0..<9 {
+        for x in 0..<9 {
+          guard let detected = status.detected[x][y].value else {
+            continue
+          }
+          if detected.points.size() == 4 {
+            let path = detected.cgPath
+            ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
+            ctx.addPath(path)
+            ctx.fillPath()
+
+            ctx.setStrokeColor(UIColor.red.cgColor)
+            ctx.addPath(path)
+            ctx.setLineWidth(3)
+            ctx.strokePath()
+          } else {
+            let path = detected.cgPath
+            ctx.setFillColor(UIColor.blue.withAlphaComponent(0.2).cgColor)
+            ctx.addPath(path)
+            ctx.fillPath()
+
+            ctx.setStrokeColor(UIColor.blue.cgColor)
+            ctx.addPath(path)
+            ctx.setLineWidth(3)
+            ctx.strokePath()
+
+            if let direction = detected.direction(Float(min(width, height) * 0.1)).value?.cgPoint {
+              let mean = detected.mean().cgPoint
+              ctx.move(to: mean)
+              ctx.addLine(to: .init(x: mean.x + direction.x, y: mean.y + direction.y))
+              ctx.setLineWidth(1)
+              ctx.strokePath()
+            }
+          }
         }
       }
 

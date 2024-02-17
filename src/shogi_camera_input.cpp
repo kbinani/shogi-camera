@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <numbers>
+#include <set>
 #include <vector>
 
 #include <shogi_camera_input/shogi_camera_input.hpp>
@@ -354,6 +355,75 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         Rotate(lb, s.boardDirection),
     };
     s.outline.area = fabs(cv::contourArea(cv::Mat(s.outline.points)));
+    s.bx = left.x;
+    s.by = top.y;
+    s.bwidth = right.x - left.x;
+    s.bheight = bottom.y - top.y;
+  }
+}
+
+// [x, y] の升目の中心位置を返す.
+// [0, 0] が 9一, [8, 8] が 1九. 戻り値の座標は入力画像での座標系.
+cv::Point2f PieceCenter(Status const &s, int x, int y) {
+  float fx = s.bx + x * s.bwidth / 8;
+  float fy = s.by + y * s.bheight / 8;
+  return Rotate(cv::Point2f(fx, fy), s.boardDirection);
+}
+
+void FindPieces(cv::Mat const &frame, Status &s) {
+  using namespace std;
+  set<pair<bool, int>> attached; // first => s.square なら true, s.pieces なら false, second => s.squares または s.pieces のインデックス.
+  float const squareSize = sqrtf(s.squareArea);
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      cv::Point2f center = PieceCenter(s, x, y);
+      // center に最も中心が近い Contour を s.pieces か s.squares の中から探す.
+      // 距離は駒サイズのスケール sqrt(squareArea) / 2 より離れていると対象外にする.
+      optional<pair<bool, int>> index;
+      float nearest = numeric_limits<float>::max();
+      for (int i = 0; i < s.pieces.size(); i++) {
+        pair<bool, int> key = make_pair(false, i);
+        if (attached.find(key) != attached.end()) {
+          continue;
+        }
+        cv::Point2f m = s.pieces[i].mean();
+        float distance = cv::norm(m - center);
+        if (distance > squareSize * 0.5) {
+          continue;
+        }
+        if (distance < nearest) {
+          nearest = distance;
+          index = key;
+        }
+      }
+      if (!index) {
+        // 駒の方を優先で探す. 既に見つかっているならそちらを優先.
+        for (int i = 0; i < s.squares.size(); i++) {
+          pair<bool, int> key = make_pair(true, i);
+          if (attached.find(key) != attached.end()) {
+            continue;
+          }
+          cv::Point2f m = s.squares[i].mean();
+          float distance = cv::norm(m - center);
+          if (distance > squareSize * 0.5) {
+            continue;
+          }
+          if (distance < nearest) {
+            nearest = distance;
+            index = key;
+          }
+        }
+      }
+      if (!index) {
+        continue;
+      }
+      attached.insert(*index);
+      if (index->first) {
+        s.detected[x][y] = s.squares[index->second];
+      } else {
+        s.detected[x][y] = s.pieces[index->second];
+      }
+    }
   }
 }
 } // namespace
@@ -377,6 +447,10 @@ std::optional<cv::Point2f> Contour::direction(float length) const {
   } else {
     return std::nullopt;
   }
+}
+
+Status::Status() {
+  position = MakePosition(Handicap::None);
 }
 
 Session::Session() {
@@ -407,6 +481,7 @@ void Session::run() {
     auto s = std::make_shared<Status>();
     FindContours(frame, *s);
     FindBoard(frame, *s);
+    FindPieces(frame, *s);
     this->s = s;
   }
 }

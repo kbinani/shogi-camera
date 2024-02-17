@@ -286,6 +286,8 @@ struct Contour {
 };
 
 struct Status {
+  Status();
+
   std::vector<Contour> contours;
   std::vector<Contour> squares;
   std::vector<Contour> pieces;
@@ -295,9 +297,21 @@ struct Status {
   float squareArea;
   // マス目のアスペクト比. 横長の将棋盤は存在しないと仮定して, 幅/高さ.
   float aspectRatio;
-  // 盤面の向き. 対局者の向きと 90 度ズレている可能性がある.
+  // 盤面の向き. 後手番の対局者の座る向き. 手番がまだ不明の場合, boardDirection 回転後に画像の原点に近い側に居る対局者を後手番として扱う.
   float boardDirection = 0;
+  // 駒・升の中心に外接する矩形. 中心なので面積は駒面積の約 8x8 = 64 倍の範囲. 座標系は入力画像の座標系.
   Contour outline;
+  // bx, by: "9一" の中心座標. 値は入力画像を -boardDirection 回転した座標系での値.
+  float bx;
+  float by;
+  // bwidth, bheight: [bx + bwidth, by + bheight] が "1九" の中心座標. 値は入力画像を -boardDirection 回転した座標系での値.
+  float bwidth;
+  float bheight;
+
+  // 検出された駒、または升目. squares または pieces の中から最も近かったものが代入される. 検出できなかった場合 nullopt になる.
+  std::array<std::array<std::optional<Contour>, 9>, 9> detected;
+
+  Position position;
 };
 
 class Session {
@@ -321,7 +335,6 @@ private:
   std::mutex mut;
   std::deque<cv::Mat> queue;
   std::shared_ptr<Status> s;
-  Position position;
 };
 
 class Utility {
