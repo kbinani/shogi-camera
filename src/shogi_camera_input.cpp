@@ -29,7 +29,94 @@ cv::Point2d Rotate(cv::Point2d const &p, double radian) {
   return cv::Point2d(cos(radian) * p.x - sin(radian) * p.y, sin(radian) * p.x + cos(radian) * p.y);
 }
 
+float Distance(cv::Point2f const &a, cv::Point2f const &b) {
+  float dx = a.x - b.x;
+  float dy = a.y - b.y;
+  return sqrtf(dx * dx + dy * dy);
+}
+
+float Angle(cv::Point2f const &a) {
+  return atan2f(a.y, a.x);
+}
+
+float Normalize90To90(float a) {
+  using namespace std;
+  while (a < -numbers::pi * 0.5) {
+    a += numbers::pi;
+  }
+  while (a > numbers::pi * 0.5) {
+    a -= numbers::pi;
+  }
+  return a;
+}
+
+float MeanAngle(std::initializer_list<float> values) {
+  double x = 0;
+  double y = 0;
+  for (float v : values) {
+    x += cos(v);
+    y += sin(v);
+  }
+  return atan2(y, x);
+}
+
+std::optional<float> SquareDirection(std::vector<cv::Point2f> const &points) {
+  using namespace std;
+  if (points.size() != 4) {
+    return nullopt;
+  }
+  // 最も短い辺のインデックス.
+  int index = -1;
+  float shortest = numeric_limits<float>::max();
+  for (int i = 0; i < (int)points.size(); i++) {
+    float length = cv::norm(points[i] - points[(i + 1) % 4]);
+    if (length < shortest) {
+      shortest = length;
+      index = i;
+    }
+  }
+  // 長辺の傾き
+  float angle0 = Normalize90To90(Angle(points[(index + 1) % 4] - points[(index + 2) % 4]));
+  float angle1 = Normalize90To90(Angle(points[(index + 3) % 4] - points[index % 4]));
+  return MeanAngle({angle0, angle1});
+}
+
+std::optional<cv::Point2f> PieceDirection(std::vector<cv::Point2f> const &points) {
+  using namespace std;
+  if (points.size() != 5) {
+    return nullopt;
+  }
+  vector<int> indices;
+  for (int i = 0; i < 5; i++) {
+    indices.push_back(i);
+  }
+  sort(indices.begin(), indices.end(), [&points](int a, int b) {
+    float lengthA = cv::norm(points[a] - points[(a + 1) % 5]);
+    float lengthB = cv::norm(points[b] - points[(b + 1) % 5]);
+    return lengthA < lengthB;
+  });
+  // 最も短い辺が隣り合っている場合, 将棋の駒らしいと判定する.
+  int min0 = indices[0];
+  int min1 = indices[1];
+  if (min1 < min0) {
+    swap(min0, min1);
+  }
+  if (min0 + 1 != min1 && !(min0 == 0 && min1 == 4)) {
+    return nullopt;
+  }
+  if (min0 == 0 && min1 == 4) {
+    swap(min0, min1);
+  }
+  // 将棋の駒の頂点
+  cv::Point2f apex = points[min1];
+  // 底辺の中点
+  cv::Point2f midBottom = (points[(min0 + 3) % 5] + points[(min0 + 4) % 5]) * 0.5;
+
+  return apex - midBottom;
+}
+
 void FindContours(cv::Mat const &image, Status &s) {
+  using namespace std;
   s.contours.clear();
   s.squares.clear();
   s.pieces.clear();
@@ -43,7 +130,7 @@ void FindContours(cv::Mat const &image, Status &s) {
 
   cv::Mat gray0(image.size(), CV_8U), gray;
 
-  std::vector<std::vector<cv::Point>> contours;
+  vector<vector<cv::Point>> contours;
   double area = size.width * size.height;
 
   int ch[] = {0, 0};
@@ -108,7 +195,7 @@ void FindContours(cv::Mat const &image, Status &s) {
   }
 }
 
-void FindBoard(Status &s) {
+void FindBoard(cv::Mat const &frame, Status &s) {
   using namespace std;
   vector<Contour> squares;
   for (auto const &square : s.squares) {
@@ -151,32 +238,59 @@ void FindBoard(Status &s) {
       angles.push_back(angle * 180 / numbers::pi);
     }
   }
-  // 5 度単位でヒストグラムを作り, 最頻値を調べる. angle は [0, 90) に限定しているので index は [0, 17]
-  array<int, 18> count;
-  count.fill(0);
-  for (double const &angle : angles) {
-    int index = angle / 5;
-    count[index] += 1;
-  }
-  int maxIndex = -1;
-  int maxCount = -1;
-  for (int i = 0; i < (int)count.size(); i++) {
-    if (maxCount < count[i]) {
-      maxCount = count[i];
-      maxIndex = i;
+
+  {
+    // 盤面の向きを推定する.
+    // 5 度単位でヒストグラムを作り, 最頻値を調べる. angle は [0, 90) に限定しているので index は [0, 17]
+    array<int, 18> count;
+    count.fill(0);
+    for (double const &angle : angles) {
+      int index = angle / 5;
+      count[index] += 1;
+    }
+    int maxIndex = -1;
+    int maxCount = -1;
+    for (int i = 0; i < (int)count.size(); i++) {
+      if (maxCount < count[i]) {
+        maxCount = count[i];
+        maxIndex = i;
+      }
+    }
+    // 最頻となったヒストグラムの位置から, 前後 5 度に収まっている angle について, その平均値を計算する.
+    double targetAngle = (maxIndex + 0.5) * 5;
+    double sumCosAngle = 0;
+    int countAngle = 0;
+    for (double const &angle : angles) {
+      if (targetAngle - 5 <= angle && angle <= targetAngle + 5) {
+        sumCosAngle += cos(angle / 180.0 * numbers::pi);
+        countAngle += 1;
+      }
+    }
+    float direction = Normalize90To90(acosf(sumCosAngle / countAngle));
+    s.boardDirection = direction;
+
+    // Session.boardDirection は対局者の向きにしたい.
+    map<bool, int> vote;
+    // square の長手方向から, direction を 90 度回して訂正するか, そのまま採用するか投票する.
+    for (auto const &square : s.squares) {
+      if (auto d = SquareDirection(square.points); d) {
+        bool shouldCorrect = fabs(cos(*d - direction)) < 0.25;
+        vote[shouldCorrect] += 1;
+      }
+    }
+    // piece の頂点の向きから, direction を 90 度回して訂正するか, そのまま採用するか投票する.
+    for (auto const &piece : s.pieces) {
+      if (auto d = PieceDirection(piece.points); d) {
+        float a = Normalize90To90(Angle(*d));
+        bool shouldCorrect = fabs(cos(a - direction)) < 0.25;
+        vote[shouldCorrect] += 1;
+      }
+    }
+    if (vote[true] > (vote[true] + vote[false]) * 2 / 3) {
+      direction = Normalize90To90(direction + numbers::pi * 0.5);
+      s.boardDirection = direction;
     }
   }
-  // 最頻となったヒストグラムの位置から, 前後 5 度に収まっている angle について, その平均値を計算する.
-  double targetAngle = (maxIndex + 0.5) * 5;
-  double sumCosAngle = 0;
-  int countAngle = 0;
-  for (double const &angle : angles) {
-    if (targetAngle - 5 <= angle && angle <= targetAngle + 5) {
-      sumCosAngle += cos(angle / 180.0 * numbers::pi);
-      countAngle += 1;
-    }
-  }
-  s.boardDirection = acos(sumCosAngle / countAngle);
 
   {
     // squares と pieces を -1 * boardDirection 回転した状態で矩形を検出する.
@@ -189,10 +303,10 @@ void FindBoard(Status &s) {
       auto center = Rotate(piece.mean(), -s.boardDirection);
       centers.push_back(center);
     }
-    cv::Point2d top = centers[0];
-    cv::Point2d bottom = top;
-    cv::Point2d left = top;
-    cv::Point2d right = top;
+    cv::Point2f top = centers[0];
+    cv::Point2f bottom = top;
+    cv::Point2f left = top;
+    cv::Point2f right = top;
     for (auto const &center : centers) {
       if (center.y < top.y) {
         top = center;
@@ -207,10 +321,10 @@ void FindBoard(Status &s) {
         right = center;
       }
     }
-    cv::Point2d lt(left.x, top.y);
-    cv::Point2d rt(right.x, top.y);
-    cv::Point2d rb(right.x, bottom.y);
-    cv::Point2d lb(left.x, bottom.y);
+    cv::Point2f lt(left.x, top.y);
+    cv::Point2f rt(right.x, top.y);
+    cv::Point2f rb(right.x, bottom.y);
+    cv::Point2f lb(left.x, bottom.y);
     s.outline.points = {
         Rotate(lt, s.boardDirection),
         Rotate(rt, s.boardDirection),
@@ -233,6 +347,15 @@ void *Utility::UIImageFromMat(cv::Mat const &m) {
   return (__bridge_retained void *)MatToUIImage(m);
 }
 #endif // defined(__APPLE__)
+
+std::optional<cv::Point2f> Contour::direction(float length) const {
+  if (auto d = PieceDirection(points); d) {
+    double norm = cv::norm(*d);
+    return *d / norm * length;
+  } else {
+    return std::nullopt;
+  }
+}
 
 Session::Session() {
   s = std::make_shared<Status>();
@@ -261,10 +384,9 @@ void Session::run() {
 
     auto s = std::make_shared<Status>();
     FindContours(frame, *s);
-    FindBoard(*s);
+    FindBoard(frame, *s);
     this->s = s;
   }
-  std::cout << 1 << std::endl;
 }
 
 void Session::push(cv::Mat const &frame) {

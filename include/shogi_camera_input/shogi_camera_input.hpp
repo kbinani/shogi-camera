@@ -254,7 +254,7 @@ inline double Distance(cv::Point const &a, cv::Point const &b) {
 }
 
 struct Contour {
-  std::vector<cv::Point2i> points;
+  std::vector<cv::Point2f> points;
   double area;
 
   // 最も短い辺の長さ/最も長い辺の長さ
@@ -272,15 +272,17 @@ struct Contour {
     return shortest / longest;
   }
 
-  cv::Point2d mean() const {
+  cv::Point2f mean() const {
     double x = 0;
     double y = 0;
     for (auto const &p : points) {
       x += p.x;
       y += p.y;
     }
-    return cv::Point2d(x / points.size(), y / points.size());
+    return cv::Point2f(x / points.size(), y / points.size());
   }
+
+  std::optional<cv::Point2f> direction(float length = 1) const;
 };
 
 struct Status {
@@ -290,11 +292,11 @@ struct Status {
   int width;
   int height;
   // 升目の面積
-  double squareArea;
+  float squareArea;
   // マス目のアスペクト比. 横長の将棋盤は存在しないと仮定して, 幅/高さ.
-  double aspectRatio;
+  float aspectRatio;
   // 盤面の向き. 対局者の向きと 90 度ズレている可能性がある.
-  double boardDirection;
+  float boardDirection = 0;
   Contour outline;
 };
 

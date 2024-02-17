@@ -84,7 +84,27 @@ class DebugView: UIView {
         ctx.addPath(path)
         ctx.setLineWidth(3)
         ctx.strokePath()
+
+        if let direction = piece.direction(Float(min(width, height) * 0.1)).value?.cgPoint {
+          let mean = piece.mean().cgPoint
+          ctx.move(to: mean)
+          ctx.addLine(to: .init(x: mean.x + direction.x, y: mean.y + direction.y))
+          ctx.setLineWidth(1)
+          ctx.strokePath()
+        }
       }
+
+      // 盤面の向きを表示
+      let cx = width * 0.5
+      let cy = height * 0.5
+      let length = max(width, height) * 10
+      let dx = length * cos(CGFloat(status.boardDirection))
+      let dy = length * sin(CGFloat(status.boardDirection))
+      ctx.move(to: .init(x: cx - dx, y: cy - dy))
+      ctx.addLine(to: .init(x: cx + dx, y: cy + dy))
+      ctx.setLineWidth(3)
+      ctx.setStrokeColor(UIColor.white.cgColor)
+      ctx.strokePath()
 
       let outlinePath = status.outline.cgPath
       ctx.addPath(outlinePath)
