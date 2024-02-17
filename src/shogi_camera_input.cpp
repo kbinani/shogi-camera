@@ -50,14 +50,26 @@ float Normalize90To90(float a) {
   return a;
 }
 
-float MeanAngle(std::initializer_list<float> values) {
+struct RadianAverage {
+  void push(double radian) {
+    x += cos(radian);
+    y += sin(radian);
+  }
+
+  double get() const {
+    return atan2(y, x);
+  }
+
   double x = 0;
   double y = 0;
+};
+
+float MeanAngle(std::initializer_list<float> values) {
+  RadianAverage ra;
   for (float v : values) {
-    x += cos(v);
-    y += sin(v);
+    ra.push(v);
   }
-  return atan2(y, x);
+  return ra.get();
 }
 
 std::optional<float> SquareDirection(std::vector<cv::Point2f> const &points) {
@@ -269,15 +281,14 @@ void FindBoard(cv::Mat const &frame, Status &s) {
     }
     // 最頻となったヒストグラムの位置から, 前後 5 度に収まっている angle について, その平均値を計算する.
     double targetAngle = (maxIndex + 0.5) * 5;
-    double sumCosAngle = 0;
-    int countAngle = 0;
+    RadianAverage ra;
     for (double const &angle : angles) {
       if (targetAngle - 5 <= angle && angle <= targetAngle + 5) {
-        sumCosAngle += cos(angle / 180.0 * numbers::pi);
-        countAngle += 1;
+        double radian = angle / 180.0 * numbers::pi;
+        ra.push(radian);
       }
     }
-    float direction = Normalize90To90(acosf(sumCosAngle / countAngle));
+    float direction = Normalize90To90(ra.get());
     s.boardDirection = direction;
 
     // Session.boardDirection は対局者の向きにしたい.
