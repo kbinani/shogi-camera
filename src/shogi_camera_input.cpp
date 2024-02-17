@@ -152,7 +152,6 @@ void FindContours(cv::Mat const &image, Status &s) {
   for (int l = 0; l < N; l++) {
     if (l == 0) {
       Canny(gray0, gray, 5, thresh, 5);
-      dilate(gray, gray, cv::Mat(), cv::Point(-1, -1));
     } else {
       gray = gray0 >= (l + 1) * 255 / N;
     }
