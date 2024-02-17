@@ -50,6 +50,7 @@ class DebugView: UIView {
   private var captureSession: AVCaptureSession? = nil
   private weak var previewLayer: AVCaptureVideoPreviewLayer?
   private weak var overlayLayer: OverlayLayer?
+  private weak var imageView: UIImageView?
   private var session: sci.SessionWrapper?
 
   class OverlayLayer: CALayer {
@@ -235,6 +236,10 @@ class DebugView: UIView {
     self.overlayLayer = overlay
     self.session = .init()
 
+    let imageView = UIImageView(frame: .zero)
+    addSubview(imageView)
+    self.imageView = imageView
+
     DispatchQueue.global().async { [weak session] in
       session?.startRunning()
     }
@@ -250,8 +255,13 @@ class DebugView: UIView {
 
   override func layoutSubviews() {
     super.layoutSubviews()
-    previewLayer?.frame = .init(origin: .zero, size: self.bounds.size)
-    overlayLayer?.frame = .init(origin: .zero, size: self.bounds.size)
+    let w = self.bounds.size.width
+    let h = self.bounds.size.height
+    // previewLayer?.frame = .init(x: 0, y: 0, width: w, height: h)
+    // overlayLayer?.frame = .init(x: 0, y: 0, width: w, height: h)
+    previewLayer?.frame = .init(x: 0, y: 0, width: w, height: h * 0.5)
+    overlayLayer?.frame = .init(x: 0, y: 0, width: w, height: h * 0.5)
+    imageView?.frame = .init(x: 0, y: h * 0.5, width: w, height: h * 0.5)
   }
 
   required init?(coder: NSCoder) {
@@ -287,6 +297,11 @@ extension DebugView: AVCaptureVideoDataOutputSampleBufferDelegate {
     }
     let mat = sci.Utility.MatFromUIImage(Unmanaged.passUnretained(converted).toOpaque())
     session.push(mat)
-    overlayLayer?.status = session.status()
+    let status = session.status()
+    overlayLayer?.status = status
+    if let ptr = sci.Utility.UIImageFromMat(status.boardWarped) {
+      let boardWarped = Unmanaged<UIImage>.fromOpaque(ptr).takeRetainedValue()
+      imageView?.image = boardWarped
+    }
   }
 }

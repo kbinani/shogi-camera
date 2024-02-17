@@ -685,6 +685,23 @@ void FindPieces(cv::Mat const &frame, Status &s) {
       }
     }
   }
+
+  if (s.preciseOutline) {
+    // 台形補正. キャプチャ画像と同じ面積で, アスペクト比が Status.aspectRatio と等しいサイズとなるような台形補正済み画像を作る.
+    double area = s.squareArea * 81;
+    // a = w/h, w = a * h
+    // area = w * h = a * h^2, h = sqrt(area/a), w = sqrt(area * a)
+    int width = (int)round(sqrt(area * s.aspectRatio));
+    int height = (int)round(sqrt(area / s.aspectRatio));
+    vector<cv::Point2f> dst({
+        cv::Point2f(0, 0),
+        cv::Point2f(width, 0),
+        cv::Point2f(width, height),
+        cv::Point2f(0, height),
+    });
+    cv::Mat mtx = cv::getPerspectiveTransform(s.preciseOutline->points, dst);
+    cv::warpPerspective(frame, s.boardWarped, mtx, cv::Size(width, height));
+  }
 }
 } // namespace
 

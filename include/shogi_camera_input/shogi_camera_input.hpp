@@ -343,6 +343,8 @@ struct Status {
 
   // より正確な盤面のアウトライン.
   std::optional<Contour> preciseOutline;
+  // 台形補正済みの盤面画像
+  cv::Mat boardWarped;
 
   Position position;
 };
