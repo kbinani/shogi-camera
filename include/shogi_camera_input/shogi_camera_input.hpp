@@ -310,15 +310,15 @@ struct PieceContour {
     return c;
   }
 
-  static std::optional<PieceContour> Make(std::vector<cv::Point2f> const &points);
+  static std::shared_ptr<PieceContour> Make(std::vector<cv::Point2f> const &points);
 };
 
 struct Status {
   Status();
 
-  std::vector<Contour> contours;
-  std::vector<Contour> squares;
-  std::vector<PieceContour> pieces;
+  std::vector<std::shared_ptr<Contour>> contours;
+  std::vector<std::shared_ptr<Contour>> squares;
+  std::vector<std::shared_ptr<PieceContour>> pieces;
   int width;
   int height;
   // 升目の面積
@@ -337,7 +337,7 @@ struct Status {
   float bheight;
 
   // 検出された駒、または升目. squares または pieces の中から最も近かったものが代入される. 検出できなかった場合 nullopt になる.
-  std::array<std::array<std::optional<Contour>, 9>, 9> detected;
+  std::array<std::array<std::shared_ptr<Contour>, 9>, 9> detected;
 
   // より正確な盤面のアウトライン.
   std::optional<Contour> preciseOutline;

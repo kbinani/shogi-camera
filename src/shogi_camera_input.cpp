@@ -161,6 +161,14 @@ std::optional<cv::Point2d> Intersection(cv::Point2d const &p1, cv::Point2d const
   }
 }
 
+std::optional<cv::Point2d> Intersection(cv::Vec4f const &a, cv::Vec4f const &b) {
+  cv::Point2d p1(a[2], a[3]);
+  cv::Point2d p2(a[2] + a[0], a[3] + a[1]);
+  cv::Point2d q1(b[2], b[3]);
+  cv::Point2d q2(b[2] + b[0], b[3] + b[1]);
+  return Intersection(p1, p2, q1, q2);
+}
+
 cv::Point2d Normalize(cv::Point2d const &a) {
   return a / cv::norm(a);
 }
@@ -196,33 +204,33 @@ void FindContours(cv::Mat const &image, Status &s) {
     findContours(gray, contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
 
     for (size_t i = 0; i < contours.size(); i++) {
-      Contour contour;
-      approxPolyDP(cv::Mat(contours[i]), contour.points, arcLength(cv::Mat(contours[i]), true) * 0.02, true);
+      auto contour = make_shared<Contour>();
+      approxPolyDP(cv::Mat(contours[i]), contour->points, arcLength(cv::Mat(contours[i]), true) * 0.02, true);
 
-      if (!isContourConvex(cv::Mat(contour.points))) {
+      if (!isContourConvex(cv::Mat(contour->points))) {
         continue;
       }
-      contour.area = fabs(contourArea(cv::Mat(contour.points)));
+      contour->area = fabs(contourArea(cv::Mat(contour->points)));
 
-      if (contour.area <= area / 648.0) {
+      if (contour->area <= area / 648.0) {
         continue;
       }
       s.contours.push_back(contour);
 
-      if (area / 81.0 <= contour.area) {
+      if (area / 81.0 <= contour->area) {
         continue;
       }
-      switch (contour.points.size()) {
+      switch (contour->points.size()) {
       case 4: {
         // アスペクト比が 0.6 未満の四角形を除去
-        if (contour.aspectRatio() < 0.6) {
+        if (contour->aspectRatio() < 0.6) {
           break;
         }
         double maxCosine = 0;
 
         for (int j = 2; j < 5; j++) {
           // find the maximum cosine of the angle between joint edges
-          double cosine = fabs(Angle(contour.points[j % 4], contour.points[j - 2], contour.points[j - 1]));
+          double cosine = fabs(Angle(contour->points[j % 4], contour->points[j - 2], contour->points[j - 1]));
           maxCosine = std::max(maxCosine, cosine);
         }
 
@@ -236,8 +244,8 @@ void FindContours(cv::Mat const &image, Status &s) {
         break;
       }
       case 5: {
-        if (auto pc = PieceContour::Make(contour.points); pc && pc->aspectRatio >= 0.6) {
-          s.pieces.push_back(*pc);
+        if (auto pc = PieceContour::Make(contour->points); pc && pc->aspectRatio >= 0.6) {
+          s.pieces.push_back(pc);
         }
         break;
       }
@@ -248,9 +256,9 @@ void FindContours(cv::Mat const &image, Status &s) {
 
 void FindBoard(cv::Mat const &frame, Status &s) {
   using namespace std;
-  vector<Contour> squares;
+  vector<shared_ptr<Contour>> squares;
   for (auto const &square : s.squares) {
-    if (square.points.size() != 4) {
+    if (square->points.size() != 4) {
       continue;
     }
     squares.push_back(square);
@@ -259,16 +267,16 @@ void FindBoard(cv::Mat const &frame, Status &s) {
     return;
   }
   // 四角形の面積の中央値を升目の面積(squareArea)とする.
-  sort(squares.begin(), squares.end(), [](Contour const &a, Contour const &b) { return a.area < b.area; });
+  sort(squares.begin(), squares.end(), [](shared_ptr<Contour> const &a, shared_ptr<Contour> const &b) { return a->area < b->area; });
   size_t mid = squares.size() / 2;
   if (squares.size() % 2 == 0) {
     auto const &a = squares[mid - 1];
     auto const &b = squares[mid];
-    s.squareArea = (a.area + b.area) * 0.5;
-    s.aspectRatio = (a.aspectRatio() + b.aspectRatio()) * 0.5;
+    s.squareArea = (a->area + b->area) * 0.5;
+    s.aspectRatio = (a->aspectRatio() + b->aspectRatio()) * 0.5;
   } else {
-    s.squareArea = squares[mid].area;
-    s.aspectRatio = squares[mid].aspectRatio();
+    s.squareArea = squares[mid]->area;
+    s.aspectRatio = squares[mid]->aspectRatio();
   }
 
   {
@@ -276,8 +284,8 @@ void FindBoard(cv::Mat const &frame, Status &s) {
     vector<double> angles;
     for (auto const &square : s.squares) {
       for (size_t i = 0; i < 3; i++) {
-        auto const &a = square.points[i];
-        auto const &b = square.points[i + 1];
+        auto const &a = square->points[i];
+        auto const &b = square->points[i + 1];
         double dx = b.x - a.x;
         double dy = b.y - a.y;
         double angle = atan2(dy, dx);
@@ -291,7 +299,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       }
     }
     for (auto const &piece : s.pieces) {
-      float angle = Angle(piece.direction);
+      float angle = Angle(piece->direction);
       while (angle < 0) {
         angle += numbers::pi * 2;
       }
@@ -332,14 +340,14 @@ void FindBoard(cv::Mat const &frame, Status &s) {
     map<bool, int> vote;
     // square の長手方向から, direction を 90 度回して訂正するか, そのまま採用するか投票する.
     for (auto const &square : s.squares) {
-      if (auto d = SquareDirection(square.points); d) {
+      if (auto d = SquareDirection(square->points); d) {
         bool shouldCorrect = fabs(cos(*d - direction)) < 0.25;
         vote[shouldCorrect] += 1;
       }
     }
     // piece の頂点の向きから, direction を 90 度回して訂正するか, そのまま採用するか投票する.
     for (auto const &piece : s.pieces) {
-      float a = Normalize90To90(Angle(piece.direction));
+      float a = Normalize90To90(Angle(piece->direction));
       bool shouldCorrect = fabs(cos(a - direction)) < 0.25;
       vote[shouldCorrect] += 1;
     }
@@ -353,11 +361,11 @@ void FindBoard(cv::Mat const &frame, Status &s) {
     // squares と pieces を -1 * boardDirection 回転した状態で矩形を検出する.
     vector<cv::Point2d> centers;
     for (auto const &square : s.squares) {
-      auto center = Rotate(square.mean(), -s.boardDirection);
+      auto center = Rotate(square->mean(), -s.boardDirection);
       centers.push_back(center);
     }
     for (auto const &piece : s.pieces) {
-      auto center = Rotate(piece.mean(), -s.boardDirection);
+      auto center = Rotate(piece->mean(), -s.boardDirection);
       centers.push_back(center);
     }
     cv::Point2f top = centers[0];
@@ -421,7 +429,7 @@ void FindPieces(cv::Mat const &frame, Status &s) {
           if (attached.find(key) != attached.end()) {
             continue;
           }
-          cv::Point2f m = s.pieces[i].mean();
+          cv::Point2f m = s.pieces[i]->mean();
           float distance = cv::norm(m - center);
           if (distance > squareSize * 0.5) {
             continue;
@@ -438,7 +446,7 @@ void FindPieces(cv::Mat const &frame, Status &s) {
             if (attached.find(key) != attached.end()) {
               continue;
             }
-            cv::Point2f m = s.squares[i].mean();
+            cv::Point2f m = s.squares[i]->mean();
             float distance = cv::norm(m - center);
             if (distance > squareSize * 0.5) {
               continue;
@@ -456,7 +464,7 @@ void FindPieces(cv::Mat const &frame, Status &s) {
         if (index->first) {
           s.detected[x][y] = s.squares[index->second];
         } else {
-          s.detected[x][y] = s.pieces[index->second].toContour();
+          s.detected[x][y] = make_shared<Contour>(s.pieces[index->second]->toContour());
         }
       }
     }
@@ -522,17 +530,10 @@ void FindPieces(cv::Mat const &frame, Status &s) {
       }
     }
     if (top && bottom && left && right) {
-      static auto intersection = [](cv::Vec4f const &a, cv::Vec4f const &b) {
-        cv::Point2d p1(a[2], a[3]);
-        cv::Point2d p2(a[2] + a[0], a[3] + a[1]);
-        cv::Point2d q1(b[2], b[3]);
-        cv::Point2d q2(b[2] + b[0], b[3] + b[1]);
-        return Intersection(p1, p2, q1, q2);
-      };
-      auto tl = intersection(*top, *left);
-      auto tr = intersection(*top, *right);
-      auto br = intersection(*bottom, *right);
-      auto bl = intersection(*bottom, *left);
+      auto tl = Intersection(*top, *left);
+      auto tr = Intersection(*top, *right);
+      auto br = Intersection(*bottom, *right);
+      auto bl = Intersection(*bottom, *left);
       if (tl && tr && br && bl) {
         // tl, tr, br, bl は駒中心を元に計算しているので 8x8 の範囲しか無い. 半マス分増やす
         cv::Point2d topLeft = (*tl) + (((*tl) - (*tr)) / 16) + (((*tl) - (*bl)) / 16);
@@ -571,10 +572,10 @@ std::optional<cv::Point2f> Contour::direction(float length) const {
   }
 }
 
-std::optional<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const &points) {
+std::shared_ptr<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const &points) {
   using namespace std;
   if (points.size() != 5) {
-    return nullopt;
+    return nullptr;
   }
   vector<int> indices;
   for (int i = 0; i < 5; i++) {
@@ -592,7 +593,7 @@ std::optional<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const &p
     swap(min0, min1);
   }
   if (min0 + 1 != min1 && !(min0 == 0 && min1 == 4)) {
-    return nullopt;
+    return nullptr;
   }
   if (min0 == 0 && min1 == 4) {
     swap(min0, min1);
@@ -604,13 +605,13 @@ std::optional<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const &p
   cv::Point2f bottom2 = points[(min0 + 4) % 5];
   cv::Point2f midBottom = (bottom1 + bottom2) * 0.5;
 
-  PieceContour ret;
+  auto ret = make_shared<PieceContour>();
   for (int i = 0; i < 5; i++) {
-    ret.points.push_back(points[(min1 + i) % 5]);
+    ret->points.push_back(points[(min1 + i) % 5]);
   }
-  ret.area = fabs(cv::contourArea(ret.points));
-  ret.direction = (apex - midBottom) / cv::norm(apex - midBottom);
-  ret.aspectRatio = cv::norm(bottom1 - bottom2) / cv::norm(apex - midBottom);
+  ret->area = fabs(cv::contourArea(ret->points));
+  ret->direction = (apex - midBottom) / cv::norm(apex - midBottom);
+  ret->aspectRatio = cv::norm(bottom1 - bottom2) / cv::norm(apex - midBottom);
 
   return ret;
 }

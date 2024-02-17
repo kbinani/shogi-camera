@@ -80,22 +80,24 @@ class DebugView: UIView {
 
       status.squares.forEach { square in
         ctx.setStrokeColor(UIColor.cyan.cgColor)
-        ctx.addPath(square.cgPath)
+        ctx.addPath(square.pointee.cgPath)
         ctx.setLineWidth(1)
         ctx.strokePath()
       }
       status.pieces.forEach { piece in
         ctx.setStrokeColor(UIColor.cyan.cgColor)
-        ctx.addPath(piece.cgPath)
+        ctx.addPath(piece.pointee.cgPath)
         ctx.setLineWidth(1)
         ctx.strokePath()
       }
 
       for y in 0..<9 {
         for x in 0..<9 {
-          guard let detected = status.detected[x][y].value else {
+          let p = status.detected[x][y]
+          if !p.__convertToBool() {
             continue
           }
+          let detected = p.pointee
           if detected.points.size() == 4 {
             let path = detected.cgPath
             ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
