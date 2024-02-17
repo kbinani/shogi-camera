@@ -236,7 +236,9 @@ void FindContours(cv::Mat const &image, Status &s) {
         break;
       }
       case 5: {
-        s.pieces.push_back(contour);
+        if (PieceDirection(contour.points)) {
+          s.pieces.push_back(contour);
+        }
         break;
       }
       }
