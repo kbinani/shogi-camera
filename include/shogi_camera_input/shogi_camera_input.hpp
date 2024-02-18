@@ -347,6 +347,13 @@ struct Status {
   cv::Mat boardWarped;
 
   Position position;
+  // 直前のフレームと比較した時の各マスの類似度
+  std::array<std::array<double, 9>, 9> similarity;
+};
+
+// 盤面画像.
+struct BoardImage {
+  cv::Mat image;
 };
 
 struct Statistics {
@@ -360,6 +367,9 @@ struct Statistics {
   std::optional<Contour> preciseOutline;
 
   void update(Status const &s);
+
+  std::deque<BoardImage> boardHistory;
+  void push(cv::Mat const &board, Status &s);
 };
 
 class Session {

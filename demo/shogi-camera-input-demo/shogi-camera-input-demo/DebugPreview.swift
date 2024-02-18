@@ -50,7 +50,7 @@ class DebugView: UIView {
   private var captureSession: AVCaptureSession? = nil
   private weak var previewLayer: AVCaptureVideoPreviewLayer?
   private weak var overlayLayer: OverlayLayer?
-  private weak var imageView: UIImageView?
+  private weak var imageViewLayer: ImageViewLayer?
   private var session: sci.SessionWrapper?
 
   class OverlayLayer: CALayer {
@@ -175,6 +175,57 @@ class DebugView: UIView {
     }
   }
 
+  class ImageViewLayer: CALayer {
+    var status: sci.Status? {
+      didSet {
+        setNeedsDisplay()
+      }
+    }
+
+    override func draw(in ctx: CGContext) {
+      guard let status else {
+        return
+      }
+      guard let ptr = sci.Utility.UIImageFromMat(status.boardWarped) else {
+        return
+      }
+      let image = Unmanaged<UIImage>.fromOpaque(ptr).takeRetainedValue()
+      guard let cgImage = image.cgImage else {
+        return
+      }
+      ctx.saveGState()
+      defer {
+        ctx.restoreGState()
+      }
+      let width = self.bounds.width
+      let height = self.bounds.height
+      let scale = min(width / image.size.width, height / image.size.height)
+      ctx.translateBy(x: 0, y: height)
+      ctx.scaleBy(x: 1, y: -1)
+      let rect = CGRect(
+        x: width * 0.5 - image.size.width * 0.5 * scale,
+        y: height * 0.5 - image.size.height * 0.5 * scale, width: image.size.width * scale,
+        height: image.size.height * scale)
+      ctx.draw(cgImage, in: rect)
+      let minSim: CGFloat = 0
+      let maxSim: CGFloat = 0.005
+      for y in 0..<9 {
+        for x in 0..<9 {
+          let pw = rect.width / 9
+          let ph = rect.height / 9
+          let px = rect.minX + pw * CGFloat(x)
+          let py = rect.minY + ph * CGFloat(y)
+          let bar = min((status.similarity[x][y] - minSim) / (maxSim - minSim), 1) * ph
+          ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
+          let r = CGRect(x: px, y: py + ph - bar, width: pw, height: bar)
+          ctx.fill([r])
+          ctx.setStrokeColor(UIColor.red.cgColor)
+          ctx.stroke(r)
+        }
+      }
+    }
+  }
+
   init() {
     super.init(frame: .zero)
 
@@ -236,10 +287,9 @@ class DebugView: UIView {
     self.overlayLayer = overlay
     self.session = .init()
 
-    let imageView = UIImageView(frame: .zero)
-    imageView.contentMode = .scaleAspectFit
-    addSubview(imageView)
-    self.imageView = imageView
+    let imageViewLayer = ImageViewLayer()
+    self.layer.addSublayer(imageViewLayer)
+    self.imageViewLayer = imageViewLayer
 
     DispatchQueue.global().async { [weak session] in
       session?.startRunning()
@@ -262,7 +312,7 @@ class DebugView: UIView {
     // overlayLayer?.frame = .init(x: 0, y: 0, width: w, height: h)
     previewLayer?.frame = .init(x: 0, y: 0, width: w, height: h * 0.5)
     overlayLayer?.frame = .init(x: 0, y: 0, width: w, height: h * 0.5)
-    imageView?.frame = .init(x: 0, y: h * 0.5, width: w, height: h * 0.5)
+    imageViewLayer?.frame = .init(x: 0, y: h * 0.5, width: w, height: h * 0.5)
   }
 
   required init?(coder: NSCoder) {
@@ -300,9 +350,6 @@ extension DebugView: AVCaptureVideoDataOutputSampleBufferDelegate {
     session.push(mat)
     let status = session.status()
     overlayLayer?.status = status
-    if let ptr = sci.Utility.UIImageFromMat(status.boardWarped) {
-      let boardWarped = Unmanaged<UIImage>.fromOpaque(ptr).takeRetainedValue()
-      imageView?.image = boardWarped
-    }
+    imageViewLayer?.status = status
   }
 }

@@ -843,6 +843,42 @@ void Statistics::update(Status const &s) {
   }
 }
 
+void Statistics::push(cv::Mat const &board, Status &s) {
+  using namespace std;
+  if (board.size().area() <= 0) {
+    return;
+  }
+  BoardImage bi;
+  bi.image = board;
+  boardHistory.push_back(bi);
+  if (boardHistory.size() == 1) {
+    return;
+  }
+  if (boardHistory.size() > 32) {
+    boardHistory.pop_front();
+  }
+  // 盤面の各マスについて, 直前の画像との類似度を計算する. 将棋は 1 手につきたかだか 2 マス変動するはず. もし変動したマスが 3 マス以上なら,
+  // 指が映り込むなどして盤面が正確に検出できなかった可能性がある. 類似度の変動した升目が 2 マス以下なら, 駒の移動 or 駒打ちの検出を試みる.
+  BoardImage const &before = boardHistory[boardHistory.size() - 2];
+  BoardImage const &after = boardHistory[boardHistory.size() - 1];
+  int bW = before.image.size().width / 9;
+  int bH = before.image.size().height / 9;
+  int aW = after.image.size().width / 9;
+  int aH = after.image.size().height / 9;
+  double minSim = numeric_limits<double>::max();
+  double maxSim = numeric_limits<double>::lowest();
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      cv::Mat b(before.image, cv::Rect(bW * x, bH * y, bW, bH));
+      cv::Mat a(after.image, cv::Rect(aW * x, aH * y, aW, aH));
+      double sim = cv::matchShapes(b, a, cv::CONTOURS_MATCH_I1, 0);
+      s.similarity[x][y] = sim;
+      minSim = std::min(minSim, sim);
+      maxSim = std::max(maxSim, sim);
+    }
+  }
+}
+
 Status::Status() {
   position = MakePosition(Handicap::None);
 }
@@ -878,6 +914,7 @@ void Session::run() {
     FindPieces(frame, *s);
     stat.update(*s);
     CreateWarpedBoard(frame, *s, stat);
+    stat.push(s->boardWarped, *s);
     this->s = s;
   }
 }
