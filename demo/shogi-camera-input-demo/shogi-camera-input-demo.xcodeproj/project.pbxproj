@@ -34,6 +34,7 @@
 		940A14EC2B7D6E21006E2D01 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; name = module.modulemap; path = ../../../include/shogi_camera_input/module.modulemap; sourceTree = "<group>"; };
 		940A14EE2B7D7C6E006E2D01 /* CoreAudioTypes.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioTypes.framework; path = System/Library/Frameworks/CoreAudioTypes.framework; sourceTree = SDKROOT; };
 		940A14F22B7DEFF1006E2D01 /* DebugPreview.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DebugPreview.swift; sourceTree = "<group>"; };
+		94BB04FC2B81F78E003FB8B8 /* base64.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = base64.hpp; path = ../../../include/shogi_camera_input/base64.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,6 +81,7 @@
 				940A14BF2B7A9DEB006E2D01 /* Info.plist */,
 				940A14E72B7B2141006E2D01 /* shogi_camera_input.mm */,
 				940A14EA2B7B2152006E2D01 /* shogi_camera_input.cpp */,
+				94BB04FC2B81F78E003FB8B8 /* base64.hpp */,
 				940A14EC2B7D6E21006E2D01 /* module.modulemap */,
 			);
 			path = "shogi-camera-input-demo";
