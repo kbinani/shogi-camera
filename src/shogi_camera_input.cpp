@@ -2,17 +2,17 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/types_c.h>
 #include <opencv2/features2d.hpp>
+#include <opencv2/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/imgproc/types_c.h>
-#include <opencv2/highgui.hpp>
 
 #include <iostream>
 #include <numbers>
 #include <set>
 #include <vector>
 
-#include <shogi_camera_input/shogi_camera_input.hpp>
 #include "base64.hpp"
+#include <shogi_camera_input/shogi_camera_input.hpp>
 
 namespace sci {
 
@@ -195,6 +195,30 @@ std::optional<cv::Vec4f> FitLine(std::vector<cv::Point2f> const &points) {
   cv::Vec4f line;
   cv::fitLine(cv::Mat(points), line, CV_DIST_L2, 0, 0.01, 0.01);
   return line;
+}
+
+// 2 つの画像を同じサイズになるよう変形する
+std::pair<cv::Mat, cv::Mat> Equalilze(cv::Mat const &a, cv::Mat const &b) {
+  using namespace std;
+  if (a.size() == b.size()) {
+    return make_pair(a, b);
+  }
+  int width = std::max(a.size().width, b.size().width);
+  int height = std::max(a.size().height, b.size().height);
+  cv::Size size(width, height);
+  cv::Mat ra;
+  cv::Mat rb;
+  if (size == a.size()) {
+    ra = a;
+  } else {
+    cv::resize(a, ra, size);
+  }
+  if (size == b.size()) {
+    rb = b;
+  } else {
+    cv::resize(b, rb, size);
+  }
+  return make_pair(ra, rb);
 }
 
 void FindContours(cv::Mat const &image, Status &s) {
@@ -766,6 +790,13 @@ void Compare(BoardImage const &before, BoardImage const &after, std::vector<cv::
       }
     }
   }
+}
+
+void Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y) {
+  float t[2][3] = {{1, 0, 0}, {0, 1, 0}};
+  t[0][2] = x;
+  t[1][2] = y;
+  cv::warpAffine(src, dst, cv::Mat(2, 3, CV_32F, t), dst.size(), cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
 }
 } // namespace
 
