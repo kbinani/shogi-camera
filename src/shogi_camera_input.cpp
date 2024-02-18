@@ -714,6 +714,30 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
   cv::warpPerspective(frame, tmp, mtx, cv::Size(width, height));
   cv::cvtColor(tmp, s.boardWarped, CV_RGB2GRAY);
 }
+
+void Compare(BoardImage const& before, BoardImage const& after, std::vector<cv::Point> &buffer, std::array<std::array<double, 9>, 9> *similarity = nullptr) {
+  // 2 枚の盤面画像を比較する. 変動が検出された升目を buffer に格納する.
+  int bW = before.image.size().width / 9;
+  int bH = before.image.size().height / 9;
+  int aW = after.image.size().width / 9;
+  int aH = after.image.size().height / 9;
+  double const minSim = 0;
+  double const maxSim = BoardImage::kStableBoardThreshold;
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      cv::Mat b(before.image, cv::Rect(bW * x, bH * y, bW, bH));
+      cv::Mat a(after.image, cv::Rect(aW * x, aH * y, aW, aH));
+      double sim = cv::matchShapes(b, a, cv::CONTOURS_MATCH_I1, 0);
+      if (similarity) {
+        (*similarity)[x][y] = sim;
+      }
+      double s = std::min((double)1, (sim - minSim) / (maxSim - minSim));
+      if (s > 0.5) {
+        buffer.push_back(cv::Point(x, y));
+      }
+    }
+  }
+}
 } // namespace
 
 #if defined(__APPLE__)
@@ -854,28 +878,93 @@ void Statistics::push(cv::Mat const &board, Status &s) {
   if (boardHistory.size() == 1) {
     return;
   }
-  if (boardHistory.size() > 32) {
-    boardHistory.pop_front();
-  }
+  int constexpr stableThresholdFrames = 8;
   // 盤面の各マスについて, 直前の画像との類似度を計算する. 将棋は 1 手につきたかだか 2 マス変動するはず. もし変動したマスが 3 マス以上なら,
-  // 指が映り込むなどして盤面が正確に検出できなかった可能性がある. 類似度の変動した升目が 2 マス以下なら, 駒の移動 or 駒打ちの検出を試みる.
+  // 指が映り込むなどして盤面が正確に検出できなかった可能性がある.
+  // 直前から変動した升目数が 0 のフレームが stableThresholdFrames フレーム連続した時, stable になったと判定する.
   BoardImage const &before = boardHistory[boardHistory.size() - 2];
   BoardImage const &after = boardHistory[boardHistory.size() - 1];
-  int bW = before.image.size().width / 9;
-  int bH = before.image.size().height / 9;
-  int aW = after.image.size().width / 9;
-  int aH = after.image.size().height / 9;
-  double minSim = numeric_limits<double>::max();
-  double maxSim = numeric_limits<double>::lowest();
-  for (int y = 0; y < 9; y++) {
-    for (int x = 0; x < 9; x++) {
-      cv::Mat b(before.image, cv::Rect(bW * x, bH * y, bW, bH));
-      cv::Mat a(after.image, cv::Rect(aW * x, aH * y, aW, aH));
-      double sim = cv::matchShapes(b, a, cv::CONTOURS_MATCH_I1, 0);
-      s.similarity[x][y] = sim;
-      minSim = std::min(minSim, sim);
-      maxSim = std::max(maxSim, sim);
+  vector<cv::Point> changes;
+  Compare(before, after, changes, &s.similarity);
+  if (!stableBoardHistory.empty()) {
+    auto const& last = stableBoardHistory.back();
+    vector<cv::Point> tmp;
+    Compare(last[2], bi, tmp, &s.similarityAgainstStableBoard);
+  }
+  if (!changes.empty()) {
+    // 変動したマス目が 3 以上なので, 最新のフレームだけ残して捨てる.
+    boardHistory.clear();
+    boardHistory.push_back(bi);
+//    cout << "変動したマス目が 3 以上なので, 最新のフレームだけ残して捨てる. " << endl;
+    return;
+  }
+  if (boardHistory.size() < stableThresholdFrames) {
+    // まだ stable じゃない.
+//    cout << "まだ stable じゃない." << boardHistory.size() << endl;
+    return;
+  }
+  // stable になったと判定する. 直近 3 フレームを stableBoardHistory の候補とする.
+  array<BoardImage, 3> history;
+  for (int i = 0; i < history.size(); i++) {
+    history[i] = boardHistory.back();
+    boardHistory.pop_back();
+  }
+  boardHistory.clear();
+  if (stableBoardHistory.empty()) {
+    // 最初の stable board なので登録するだけ.
+    stableBoardHistory.push_back(history);
+//    cout << "最初の stable board なので登録するだけ." << endl;
+    return;
+  }
+  
+  // 直前の stable board の各フレームと比較して, 変動したマス目が有るかどうか判定する.
+  array<BoardImage, 3> & last = stableBoardHistory.back();
+  vector<vector<cv::Point>> changeset;
+  bool allUnchanged = true;
+  bool tooManyChanges = false;
+  for (int i = 0; i < last.size(); i++) {
+    for (int j = 0; j < history.size(); j++) {
+      auto const& before = last[i];
+      auto const& after = history[j];
+      changes.clear();
+      Compare(before, after, changes);
+      if (!changes.empty()) {
+        allUnchanged = false;
+      }
+      if (changes.size() > 2) {
+        tooManyChanges = true;
+      }
+      changeset.push_back(changes);
     }
+  }
+  if (allUnchanged) {
+    // 最新の盤面と, 前回の stableBoard が同じ. stableBoard を最新に更新するだけ.
+    stableBoardHistory.pop_back();
+    stableBoardHistory.push_back(history);
+    cout << "最新の盤面と, 前回の stableBoard が同じ. stableBoard を最新に更新するだけ." << endl;
+    return;
+  }
+  if (tooManyChanges) {
+    // 盤面の変動が 3 マス以上. まだ stable じゃないと判定して無視する.
+    cout << "盤面の変動が 3 マス以上. まだ stable じゃないと判定して無視する." << endl;
+//    for (auto const& ch : changeset) {
+//      cout << "{";
+//      for (auto const& p : ch) {
+//        cout << "[" << p.x << "," << p.y << "], ";
+//      }
+//      cout << "}" << endl;
+//    }
+    return;
+  }
+  stableBoardHistory.push_back(history);
+  cout << "駒移動の可能性あり" << endl;
+  for (auto const& ch : changeset) {
+    cout << "{";
+    for (auto const& p : ch) {
+      cout << "[" << p.x << "," << p.y << "], ";
+    }
+    cout << "}" << endl;
+    cout.flush();
   }
 }
 
@@ -909,12 +998,16 @@ void Session::run() {
     lock.unlock();
 
     auto s = std::make_shared<Status>();
+    s->stableBoardThreshold = BoardImage::kStableBoardThreshold;
     FindContours(frame, *s);
     FindBoard(frame, *s);
     FindPieces(frame, *s);
     stat.update(*s);
     CreateWarpedBoard(frame, *s, stat);
     stat.push(s->boardWarped, *s);
+    if (!stat.stableBoardHistory.empty()) {
+      s->stableBoard = stat.stableBoardHistory.back()[2].image;
+    }
     this->s = s;
   }
 }

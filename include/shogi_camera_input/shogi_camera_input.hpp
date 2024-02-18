@@ -349,11 +349,17 @@ struct Status {
   Position position;
   // 直前のフレームと比較した時の各マスの類似度
   std::array<std::array<double, 9>, 9> similarity;
+  // 直前の stable board と比較した時の各マスの類似度
+  std::array<std::array<double, 9>, 9> similarityAgainstStableBoard;
+  double stableBoardThreshold;
+  // 最新の stable board
+  std::optional<cv::Mat> stableBoard;
 };
 
 // 盤面画像.
 struct BoardImage {
   cv::Mat image;
+  static constexpr double kStableBoardThreshold = 0.015;
 };
 
 struct Statistics {
@@ -369,6 +375,7 @@ struct Statistics {
   void update(Status const &s);
 
   std::deque<BoardImage> boardHistory;
+  std::deque<std::array<BoardImage, 3>> stableBoardHistory;
   void push(cv::Mat const &board, Status &s);
 };
 

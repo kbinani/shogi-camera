@@ -186,7 +186,10 @@ class DebugView: UIView {
       guard let status else {
         return
       }
-      guard let ptr = sci.Utility.UIImageFromMat(status.boardWarped) else {
+      guard let stableBoard = status.stableBoard.value else {
+        return
+      }
+      guard let ptr = sci.Utility.UIImageFromMat(stableBoard) else {
         return
       }
       let image = Unmanaged<UIImage>.fromOpaque(ptr).takeRetainedValue()
@@ -208,7 +211,7 @@ class DebugView: UIView {
         height: image.size.height * scale)
       ctx.draw(cgImage, in: rect)
       let minSim: CGFloat = 0
-      let maxSim: CGFloat = 0.005
+      let maxSim: CGFloat = status.stableBoardThreshold
       for y in 0..<9 {
         for x in 0..<9 {
           let pw = rect.width / 9
@@ -216,11 +219,19 @@ class DebugView: UIView {
           let px = rect.minX + pw * CGFloat(x)
           let py = rect.minY + ph * CGFloat(y)
           let bar = min((status.similarity[x][y] - minSim) / (maxSim - minSim), 1) * ph
+          let barAgainstStable = min((status.similarityAgainstStableBoard[x][y] - minSim) / (maxSim - minSim), 1) * ph
+          
+          let r = CGRect(x: px, y: py + ph - bar, width: pw * 0.5, height: bar)
           ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
-          let r = CGRect(x: px, y: py + ph - bar, width: pw, height: bar)
           ctx.fill([r])
           ctx.setStrokeColor(UIColor.red.cgColor)
           ctx.stroke(r)
+          
+          let r2 = CGRect(x: px + pw * 0.5, y: py + ph - bar, width: pw * 0.5, height: barAgainstStable)
+          ctx.setFillColor(UIColor.blue.withAlphaComponent(0.2).cgColor)
+          ctx.fill([r2])
+          ctx.setStrokeColor(UIColor.blue.cgColor)
+          ctx.stroke(r2)
         }
       }
     }
