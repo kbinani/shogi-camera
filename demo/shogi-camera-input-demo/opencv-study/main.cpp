@@ -20,17 +20,23 @@ cv::Scalar ScalarFromColor(colormap::Color const &c) {
 } // namespace
 
 int main(int argc, const char *argv[]) {
-  cv::Mat before = cv::imread("frame0.png", cv::IMREAD_GRAYSCALE);
-  cv::Mat after = cv::imread("frame1.png", cv::IMREAD_GRAYSCALE);
-  auto [b, a] = Equalilze(before, after);
+  cv::Mat before = cv::imread(argv[1], cv::IMREAD_GRAYSCALE);
+  cv::Mat after = cv::imread(argv[2], cv::IMREAD_GRAYSCALE);
+  auto [b, a] = Equalize(before, after);
   double sim[9][9];
   double minSim = numeric_limits<double>::max();
   double maxSim = numeric_limits<double>::lowest();
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
-      auto pb = PieceROI(before, x, y);
-      auto pa = PieceROI(after, x, y);
-      double s = cv::matchShapes(pb, pa, cv::CONTOURS_MATCH_I3, 0);
+      auto pb = PieceROI(before, x, y).clone();
+      auto pa = PieceROI(after, x, y).clone();
+      auto [rpb, rpa] = Equalize(pb, pa);
+      Normalize(rpb);
+      Normalize(rpa);
+      cv::Mat diff;
+      cv::absdiff(rpa, rpb, diff);
+      auto sum = cv::sum(diff);
+      double s = sum.val[0] / double(rpb.size().area());
       sim[x][y] = s;
       minSim = std::min(minSim, s);
       maxSim = std::max(maxSim, s);
@@ -42,7 +48,7 @@ int main(int argc, const char *argv[]) {
   Bitblt(b, all, 0, 0);
   Bitblt(a, all, width * 2, 0);
   cv::cvtColor(all, all, cv::COLOR_GRAY2RGB);
-  colormap::MATLAB::Hot cmap;
+  colormap::transform::Seismic cmap;
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
       double s = sim[x][y];

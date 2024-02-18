@@ -188,6 +188,12 @@ cv::Point2d Normalize(cv::Point2d const &a) {
   return a / cv::norm(a);
 }
 
+void Normalize(cv::Mat &a) {
+  double min, max;
+  cv::minMaxLoc(a, &min, &max);
+  a = (a - min) / (max - min);
+}
+
 std::optional<cv::Vec4f> FitLine(std::vector<cv::Point2f> const &points) {
   if (points.size() < 2) {
     return std::nullopt;
@@ -198,7 +204,7 @@ std::optional<cv::Vec4f> FitLine(std::vector<cv::Point2f> const &points) {
 }
 
 // 2 つの画像を同じサイズになるよう変形する
-std::pair<cv::Mat, cv::Mat> Equalilze(cv::Mat const &a, cv::Mat const &b) {
+std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b) {
   using namespace std;
   if (a.size() == b.size()) {
     return make_pair(a, b);
