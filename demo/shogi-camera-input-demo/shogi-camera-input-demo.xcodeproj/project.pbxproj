@@ -18,6 +18,9 @@
 		940A14F32B7DEFF1006E2D01 /* DebugPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 940A14F22B7DEFF1006E2D01 /* DebugPreview.swift */; };
 		94BB05042B81FC81003FB8B8 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 94BB05032B81FC81003FB8B8 /* main.cpp */; };
 		94BB050C2B82010D003FB8B8 /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 94BB050B2B82010D003FB8B8 /* opencv2.framework */; };
+		94BB050D2B8201E6003FB8B8 /* shogi_camera_input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 940A14EA2B7B2152006E2D01 /* shogi_camera_input.cpp */; };
+		94BB05102B8204CA003FB8B8 /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 94BB050F2B8204CA003FB8B8 /* OpenCL.framework */; };
+		94BB05122B820529003FB8B8 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 94BB05112B820529003FB8B8 /* Accelerate.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -51,7 +54,9 @@
 		94BB04FC2B81F78E003FB8B8 /* base64.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = base64.hpp; path = ../../../include/shogi_camera_input/base64.hpp; sourceTree = "<group>"; };
 		94BB05012B81FC81003FB8B8 /* opencv-study */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "opencv-study"; sourceTree = BUILT_PRODUCTS_DIR; };
 		94BB05032B81FC81003FB8B8 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		94BB050B2B82010D003FB8B8 /* opencv2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = opencv2.framework; path = "../../../build/opencv/build/opencv2.framework"; sourceTree = "<group>"; };
+		94BB050B2B82010D003FB8B8 /* opencv2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = opencv2.framework; path = ../../../build/opencv/build/opencv2.framework; sourceTree = "<group>"; };
+		94BB050F2B8204CA003FB8B8 /* OpenCL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenCL.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/OpenCL.framework; sourceTree = DEVELOPER_DIR; };
+		94BB05112B820529003FB8B8 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk/System/Library/Frameworks/Accelerate.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -67,7 +72,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				94BB05122B820529003FB8B8 /* Accelerate.framework in Frameworks */,
 				94BB050C2B82010D003FB8B8 /* opencv2.framework in Frameworks */,
+				94BB05102B8204CA003FB8B8 /* OpenCL.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +125,8 @@
 		940A14ED2B7D7C6E006E2D01 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				94BB05112B820529003FB8B8 /* Accelerate.framework */,
+				94BB050F2B8204CA003FB8B8 /* OpenCL.framework */,
 				940A14EE2B7D7C6E006E2D01 /* CoreAudioTypes.framework */,
 			);
 			name = Frameworks;
@@ -236,6 +245,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				94BB050D2B8201E6003FB8B8 /* shogi_camera_input.cpp in Sources */,
 				94BB05042B81FC81003FB8B8 /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -453,6 +463,7 @@
 				DEVELOPMENT_TEAM = XM695N4A7T;
 				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../../build/opencv/build";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../include";
 				MACOSX_DEPLOYMENT_TARGET = 14.1;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -466,6 +477,7 @@
 				DEVELOPMENT_TEAM = XM695N4A7T;
 				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../../build/opencv/build";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../include";
 				MACOSX_DEPLOYMENT_TARGET = 14.1;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

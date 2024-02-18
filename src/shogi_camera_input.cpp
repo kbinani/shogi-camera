@@ -2,7 +2,6 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/types_c.h>
 #include <opencv2/features2d.hpp>
-#include <opencv2/imgcodecs/ios.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/imgproc/types_c.h>
 #include <opencv2/highgui.hpp>
@@ -769,19 +768,6 @@ void Compare(BoardImage const &before, BoardImage const &after, std::vector<cv::
   }
 }
 } // namespace
-
-#if defined(__APPLE__)
-cv::Mat Utility::MatFromUIImage(void *ptr) {
-  cv::Mat image;
-  UIImageToMat((__bridge UIImage *)ptr, image, true);
-  return image;
-}
-
-void *Utility::UIImageFromMat(cv::Mat const &m) {
-  return (__bridge_retained void *)MatToUIImage(m);
-}
-
-#endif // defined(__APPLE__)
 
 std::optional<cv::Point2f> Contour::direction(float length) const {
   if (auto d = PieceDirection(points); d) {
