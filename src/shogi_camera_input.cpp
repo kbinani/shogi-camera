@@ -710,7 +710,9 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
       cv::Point2f(0, 0),
   });
   cv::Mat mtx = cv::getPerspectiveTransform(stat.preciseOutline->points, dst);
-  cv::warpPerspective(frame, s.boardWarped, mtx, cv::Size(width, height));
+  cv::Mat tmp;
+  cv::warpPerspective(frame, tmp, mtx, cv::Size(width, height));
+  cv::cvtColor(tmp, s.boardWarped, CV_RGB2GRAY);
 }
 } // namespace
 
