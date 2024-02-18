@@ -1,6 +1,7 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/types_c.h>
+#include <opencv2/features2d.hpp>
 #include <opencv2/imgcodecs/ios.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/imgproc/types_c.h>
@@ -715,19 +716,33 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
   cv::cvtColor(tmp, s.boardWarped, CV_RGB2GRAY);
 }
 
-void Compare(BoardImage const& before, BoardImage const& after, std::vector<cv::Point> &buffer, std::array<std::array<double, 9>, 9> *similarity = nullptr) {
+void Compare(BoardImage const &before, BoardImage const &after, std::vector<cv::Point> &buffer, std::array<std::array<double, 9>, 9> *similarity = nullptr) {
+  using namespace std;
+
   // 2 枚の盤面画像を比較する. 変動が検出された升目を buffer に格納する.
-  int bW = before.image.size().width / 9;
-  int bH = before.image.size().height / 9;
-  int aW = after.image.size().width / 9;
-  int aH = after.image.size().height / 9;
+  cv::Mat a = after.image;
+  cv::Mat b = before.image;
+  cv::Size size(std::max(a.size().width, b.size().width), std::max(a.size().height, b.size().height));
+  if (a.size() != size) {
+    cv::Mat out;
+    cv::resize(a, out, size);
+    a = out;
+  }
+  if (b.size() != size) {
+    cv::Mat out;
+    cv::resize(b, out, size);
+    b = out;
+  }
+  int w = size.width / 9;
+  int h = size.height / 9;
   double const minSim = 0;
   double const maxSim = BoardImage::kStableBoardThreshold;
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
-      cv::Mat b(before.image, cv::Rect(bW * x, bH * y, bW, bH));
-      cv::Mat a(after.image, cv::Rect(aW * x, aH * y, aW, aH));
-      double sim = cv::matchShapes(b, a, cv::CONTOURS_MATCH_I1, 0);
+      cv::Mat pb(b, cv::Rect(w * x, h * y, w, h));
+      cv::Mat pa(a, cv::Rect(w * x, h * y, w, h));
+
+      double sim = cv::matchShapes(pb, pa, cv::CONTOURS_MATCH_I1, 0);
       if (similarity) {
         (*similarity)[x][y] = sim;
       }
@@ -737,6 +752,16 @@ void Compare(BoardImage const& before, BoardImage const& after, std::vector<cv::
       }
     }
   }
+}
+
+cv::Mat PieceROI(cv::Mat const &board, int x, int y) {
+  int w = board.size().width;
+  int h = board.size().height;
+  int x0 = (int)round(w / 9.0 * x);
+  int y0 = (int)round(h / 9.0 * y);
+  int x1 = std::min(w, (int)round(w / 9.0 * (x + 1)));
+  int y1 = std::min(h, (int)round(h / 9.0 * (y + 1)));
+  return cv::Mat(board, cv::Rect(x0, y0, x1 - x0, y1 - y0));
 }
 } // namespace
 
@@ -887,7 +912,7 @@ void Statistics::push(cv::Mat const &board, Status &s) {
   vector<cv::Point> changes;
   Compare(before, after, changes, &s.similarity);
   if (!stableBoardHistory.empty()) {
-    auto const& last = stableBoardHistory.back();
+    auto const &last = stableBoardHistory.back();
     vector<cv::Point> tmp;
     Compare(last[2], bi, tmp, &s.similarityAgainstStableBoard);
   }
@@ -895,12 +920,12 @@ void Statistics::push(cv::Mat const &board, Status &s) {
     // 変動したマス目が 3 以上なので, 最新のフレームだけ残して捨てる.
     boardHistory.clear();
     boardHistory.push_back(bi);
-//    cout << "変動したマス目が 3 以上なので, 最新のフレームだけ残して捨てる. " << endl;
+    //    cout << "変動したマス目が 3 以上なので, 最新のフレームだけ残して捨てる. " << endl;
     return;
   }
   if (boardHistory.size() < stableThresholdFrames) {
     // まだ stable じゃない.
-//    cout << "まだ stable じゃない." << boardHistory.size() << endl;
+    //    cout << "まだ stable じゃない." << boardHistory.size() << endl;
     return;
   }
   // stable になったと判定する. 直近 3 フレームを stableBoardHistory の候補とする.
@@ -913,58 +938,173 @@ void Statistics::push(cv::Mat const &board, Status &s) {
   if (stableBoardHistory.empty()) {
     // 最初の stable board なので登録するだけ.
     stableBoardHistory.push_back(history);
-//    cout << "最初の stable board なので登録するだけ." << endl;
+    for (int i = 0; i < history.size(); i++) {
+      book.add(s.position, history[i].image);
+    }
+    //    cout << "最初の stable board なので登録するだけ." << endl;
     return;
   }
-  
-  // 直前の stable board の各フレームと比較して, 変動したマス目が有るかどうか判定する.
-  array<BoardImage, 3> & last = stableBoardHistory.back();
-  vector<vector<cv::Point>> changeset;
-  bool allUnchanged = true;
-  bool tooManyChanges = false;
-  for (int i = 0; i < last.size(); i++) {
-    for (int j = 0; j < history.size(); j++) {
-      auto const& before = last[i];
-      auto const& after = history[j];
-      changes.clear();
-      Compare(before, after, changes);
-      if (!changes.empty()) {
-        allUnchanged = false;
+
+  Position candidate;
+  cout << "--" << endl;
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      cv::Mat roi = PieceROI(board, x, y);
+      if (auto p = book.best(roi); p) {
+        cout << (char const *)StringFromPieceTypeAndStatus(*p).c_str();
+      } else {
+        cout << "？";
       }
-      if (changes.size() > 2) {
-        tooManyChanges = true;
+    }
+    cout << endl;
+  }
+
+  //
+  //  // 直前の stable board の各フレームと比較して, 変動したマス目が有るかどうか判定する.
+  //  array<BoardImage, 3> &last = stableBoardHistory.back();
+  //  vector<vector<cv::Point>> changeset;
+  //  bool allUnchanged = true;
+  //  bool tooManyChanges = false;
+  //  int minChange = 81;
+  //  int maxChange = -1;
+  //  for (int i = 0; i < last.size(); i++) {
+  //    for (int j = 0; j < history.size(); j++) {
+  //      auto const &before = last[i];
+  //      auto const &after = history[j];
+  //      changes.clear();
+  //      Compare(before, after, changes);
+  //      minChange = min(minChange, (int)changes.size());
+  //      maxChange = max(maxChange, (int)changes.size());
+  //      if (!changes.empty()) {
+  //        allUnchanged = false;
+  //      }
+  //      if (changes.size() > 2) {
+  //        tooManyChanges = true;
+  //      }
+  //      changeset.push_back(changes);
+  //    }
+  //  }
+  //  if (allUnchanged) {
+  //    // 最新の盤面と, 前回の stableBoard が同じ. stableBoard を最新に更新するだけ.
+  //    stableBoardHistory.pop_back();
+  //    stableBoardHistory.push_back(history);
+  //    cout << "最新の盤面と, 前回の stableBoard が同じ. stableBoard を最新に更新するだけ." << endl;
+  //    return;
+  //  }
+  //  if (tooManyChanges) {
+  //    cout << "盤面の変動が 3 マス以上. 最新を更新; minChange=" << minChange << "; maxChange=" << maxChange << endl;
+  //    stableBoardHistory.pop_back();
+  //    stableBoardHistory.push_back(history);
+  //    // 盤面の変動が 3 マス以上. まだ stable じゃないと判定して無視する.
+  //    //    cout << "盤面の変動が 3 マス以上. まだ stable じゃないと判定して無視する." << endl;
+  //    //    for (auto const& ch : changeset) {
+  //    //      cout << "{";
+  //    //      for (auto const& p : ch) {
+  //    //        cout << "[" << p.x << "," << p.y << "], ";
+  //    //      }
+  //    //      cout << "}" << endl;
+  //    //    }
+  //    return;
+  //  }
+  //  stableBoardHistory.push_back(history);
+  //  cout << "駒移動の可能性あり" << endl;
+  //  for (auto const &ch : changeset) {
+  //    cout << "{";
+  //    for (auto const &p : ch) {
+  //      cout << "[" << p.x << "," << p.y << "], ";
+  //    }
+  //    cout << "}" << endl;
+  //    cout.flush();
+  //  }
+}
+
+HuMoments PieceHuMomentBook::Moments(cv::Mat const &piece) {
+  cv::Moments moments = cv::moments(piece);
+  HuMoments hm;
+  cv::HuMoments(moments, hm);
+  return hm;
+}
+
+void PieceHuMomentBook::add(Position const &position, cv::Mat const &board) {
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      PieceUnderlyingType p = RemoveColorFromPiece(position.pieces[x][y]);
+      cv::Mat roi = PieceROI(board, x, y);
+      HuMoments hm = Moments(roi);
+      auto &element = store[p];
+      element.push_back(hm);
+      if (element.size() > kMaxBookSize) {
+        element.pop_front();
       }
-      changeset.push_back(changes);
     }
   }
-  if (allUnchanged) {
-    // 最新の盤面と, 前回の stableBoard が同じ. stableBoard を最新に更新するだけ.
-    stableBoardHistory.pop_back();
-    stableBoardHistory.push_back(history);
-    cout << "最新の盤面と, 前回の stableBoard が同じ. stableBoard を最新に更新するだけ." << endl;
-    return;
-  }
-  if (tooManyChanges) {
-    // 盤面の変動が 3 マス以上. まだ stable じゃないと判定して無視する.
-    cout << "盤面の変動が 3 マス以上. まだ stable じゃないと判定して無視する." << endl;
-//    for (auto const& ch : changeset) {
-//      cout << "{";
-//      for (auto const& p : ch) {
-//        cout << "[" << p.x << "," << p.y << "], ";
-//      }
-//      cout << "}" << endl;
-//    }
-    return;
-  }
-  stableBoardHistory.push_back(history);
-  cout << "駒移動の可能性あり" << endl;
-  for (auto const& ch : changeset) {
-    cout << "{";
-    for (auto const& p : ch) {
-      cout << "[" << p.x << "," << p.y << "], ";
+}
+
+std::optional<PieceUnderlyingType> PieceHuMomentBook::best(cv::Mat const &piece) {
+  using namespace std;
+  HuMoments hm = Moments(piece);
+  optional<PieceUnderlyingType> ret;
+  double minimum = numeric_limits<double>::max();
+  for (auto const &it : store) {
+    PieceUnderlyingType key = it.first;
+    for (HuMoments const &t : it.second) {
+      double s = Compare(hm, t);
+      if (ret) {
+        if (s < minimum) {
+          minimum = s;
+          ret = key;
+        }
+      } else {
+        minimum = s;
+        ret = key;
+      }
     }
-    cout << "}" << endl;
-    cout.flush();
+  }
+  return ret;
+}
+
+double PieceHuMomentBook::Compare(HuMoments const &ma, HuMoments const &mb) {
+  int sma, smb;
+  double eps = 1.e-5;
+  double result = 0;
+  bool anyA = false, anyB = false;
+
+  for (int i = 0; i < 7; i++) {
+    double ama = fabs(ma[i]);
+    double amb = fabs(mb[i]);
+
+    if (ama > 0) {
+      anyA = true;
+    }
+    if (amb > 0) {
+      anyB = true;
+    }
+
+    if (ma[i] > 0) {
+      sma = 1;
+    } else if (ma[i] < 0) {
+      sma = -1;
+    } else {
+      sma = 0;
+    }
+    if (mb[i] > 0) {
+      smb = 1;
+    } else if (mb[i] < 0) {
+      smb = -1;
+    } else {
+      smb = 0;
+    }
+
+    if (ama > eps && amb > eps) {
+      ama = 1. / (sma * log10(ama));
+      amb = 1. / (smb * log10(amb));
+      result += fabs(-ama + amb);
+    }
+  }
+  if (anyA != anyB) {
+    return std::numeric_limits<double>::max();
+  } else {
+    return result;
   }
 }
 

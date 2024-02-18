@@ -41,6 +41,47 @@ inline Piece MakePiece(Color color, PieceType type, PieceStatus status = PieceSt
   return static_cast<PieceUnderlyingType>(color) | static_cast<PieceUnderlyingType>(type) | static_cast<PieceUnderlyingType>(status);
 }
 
+inline PieceUnderlyingType RemoveColorFromPiece(Piece p) {
+  return p & 0b11111;
+}
+
+inline std::u8string StringFromPieceTypeAndStatus(PieceUnderlyingType p) {
+  auto i = RemoveColorFromPiece(p);
+  switch (i) {
+  case static_cast<PieceUnderlyingType>(PieceType::Empty):
+    return u8"　";
+  case static_cast<PieceUnderlyingType>(PieceType::King):
+    return u8"玉";
+  case static_cast<PieceUnderlyingType>(PieceType::Rook):
+    return u8"飛";
+  case static_cast<PieceUnderlyingType>(PieceType::Bishop):
+    return u8"角";
+  case static_cast<PieceUnderlyingType>(PieceType::Gold):
+    return u8"金";
+  case static_cast<PieceUnderlyingType>(PieceType::Silver):
+    return u8"銀";
+  case static_cast<PieceUnderlyingType>(PieceType::Knight):
+    return u8"桂";
+  case static_cast<PieceUnderlyingType>(PieceType::Lance):
+    return u8"香";
+  case static_cast<PieceUnderlyingType>(PieceType::Pawn):
+    return u8"歩";
+  case static_cast<PieceUnderlyingType>(PieceType::Rook) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
+    return u8"龍";
+  case static_cast<PieceUnderlyingType>(PieceType::Bishop) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
+    return u8"馬";
+  case static_cast<PieceUnderlyingType>(PieceType::Silver) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
+    return u8"全";
+  case static_cast<PieceUnderlyingType>(PieceType::Knight) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
+    return u8"圭";
+  case static_cast<PieceUnderlyingType>(PieceType::Lance) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
+    return u8"杏";
+  case static_cast<PieceUnderlyingType>(PieceType::Pawn) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
+    return u8"と";
+  }
+  return u8"？";
+}
+
 // 盤面
 struct Position {
   Piece pieces[9][9]; // [筋][段]
@@ -362,6 +403,23 @@ struct BoardImage {
   static constexpr double kStableBoardThreshold = 0.015;
 };
 
+using HuMoments = std::array<double, 7>;
+// 各駒の画像の, HuMoment を集めたもの. HuMoment は回転に対して不変なので手番は区別しない. PieceType | PieceStatus のみ取り扱う.
+struct PieceHuMomentBook {
+  std::map<PieceUnderlyingType, std::deque<HuMoments>> store;
+
+  // 盤面画像と, その時の局面を元に book を更新する.
+  void add(Position const &position, cv::Mat const &board);
+
+  // 駒画像から最も似ている駒の種類を調べる.
+  std::optional<PieceUnderlyingType> best(cv::Mat const &piece);
+
+  static HuMoments Moments(cv::Mat const &piece);
+  static double Compare(HuMoments const &a, HuMoments const &b);
+
+  static constexpr int kMaxBookSize = 128;
+};
+
 struct Statistics {
   std::deque<float> squareAreaHistory;
   std::optional<float> squareArea;
@@ -377,6 +435,8 @@ struct Statistics {
   std::deque<BoardImage> boardHistory;
   std::deque<std::array<BoardImage, 3>> stableBoardHistory;
   void push(cv::Mat const &board, Status &s);
+
+  PieceHuMomentBook book;
 };
 
 class Session {
