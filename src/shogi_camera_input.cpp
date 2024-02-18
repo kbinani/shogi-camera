@@ -695,15 +695,19 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
   }
   // 台形補正. キャプチャ画像と同じ面積で, アスペクト比が Status.aspectRatio と等しいサイズとなるような台形補正済み画像を作る.
   double area = *stat.squareArea * 81;
+  if (area > frame.size().area()) {
+    // キャプチャ画像より盤面が広いことはありえない.
+    return;
+  }
   // a = w/h, w = a * h
   // area = w * h = a * h^2, h = sqrt(area/a), w = sqrt(area * a)
   int width = (int)round(sqrt(area * (*stat.aspectRatio)));
   int height = (int)round(sqrt(area / (*stat.aspectRatio)));
   vector<cv::Point2f> dst({
-      cv::Point2f(0, 0),
       cv::Point2f(width, 0),
       cv::Point2f(width, height),
       cv::Point2f(0, height),
+      cv::Point2f(0, 0),
   });
   cv::Mat mtx = cv::getPerspectiveTransform(stat.preciseOutline->points, dst);
   cv::warpPerspective(frame, s.boardWarped, mtx, cv::Size(width, height));

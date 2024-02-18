@@ -237,6 +237,7 @@ class DebugView: UIView {
     self.session = .init()
 
     let imageView = UIImageView(frame: .zero)
+    imageView.contentMode = .scaleAspectFit
     addSubview(imageView)
     self.imageView = imageView
 
