@@ -31,8 +31,14 @@ int main(int argc, const char *argv[]) {
       auto pb = PieceROI(before, x, y).clone();
       auto pa = PieceROI(after, x, y).clone();
       auto [rpb, rpa] = Equalize(pb, pa);
-      Normalize(rpb);
-      Normalize(rpa);
+      double minB, maxB;
+      cv::minMaxLoc(rpb, &minB, &maxB);
+      double minA, maxA;
+      cv::minMaxLoc(rpa, &minA, &maxA);
+      double minimum = std::min(minA, minB);
+      double maximum = std::max(maxA, maxB);
+      rpa = (rpa - minimum) / (maximum - minimum);
+      rpb = (rpb - minimum) / (maximum - minimum);
       cv::Mat diff;
       cv::absdiff(rpa, rpb, diff);
       auto sum = cv::sum(diff);
