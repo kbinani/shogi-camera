@@ -349,6 +349,19 @@ struct Status {
   Position position;
 };
 
+struct Statistics {
+  std::deque<float> squareAreaHistory;
+  std::optional<float> squareArea;
+
+  std::deque<float> aspectRatioHistory;
+  std::optional<float> aspectRatio;
+
+  std::deque<Contour> preciseOutlineHistory;
+  std::optional<Contour> preciseOutline;
+
+  void update(Status const &s);
+};
+
 class Session {
 public:
   Session();
@@ -370,6 +383,7 @@ private:
   std::mutex mut;
   std::deque<cv::Mat> queue;
   std::shared_ptr<Status> s;
+  Statistics stat;
 };
 
 class Utility {

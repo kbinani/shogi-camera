@@ -685,23 +685,28 @@ void FindPieces(cv::Mat const &frame, Status &s) {
       }
     }
   }
+}
 
-  if (s.preciseOutline) {
-    // 台形補正. キャプチャ画像と同じ面積で, アスペクト比が Status.aspectRatio と等しいサイズとなるような台形補正済み画像を作る.
-    double area = s.squareArea * 81;
-    // a = w/h, w = a * h
-    // area = w * h = a * h^2, h = sqrt(area/a), w = sqrt(area * a)
-    int width = (int)round(sqrt(area * s.aspectRatio));
-    int height = (int)round(sqrt(area / s.aspectRatio));
-    vector<cv::Point2f> dst({
-        cv::Point2f(0, 0),
-        cv::Point2f(width, 0),
-        cv::Point2f(width, height),
-        cv::Point2f(0, height),
-    });
-    cv::Mat mtx = cv::getPerspectiveTransform(s.preciseOutline->points, dst);
-    cv::warpPerspective(frame, s.boardWarped, mtx, cv::Size(width, height));
+void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) {
+  using namespace std;
+  optional<Contour> preciseOutline = stat.preciseOutline;
+  if (!stat.preciseOutline || !stat.aspectRatio || !stat.squareArea) {
+    return;
   }
+  // 台形補正. キャプチャ画像と同じ面積で, アスペクト比が Status.aspectRatio と等しいサイズとなるような台形補正済み画像を作る.
+  double area = *stat.squareArea * 81;
+  // a = w/h, w = a * h
+  // area = w * h = a * h^2, h = sqrt(area/a), w = sqrt(area * a)
+  int width = (int)round(sqrt(area * (*stat.aspectRatio)));
+  int height = (int)round(sqrt(area / (*stat.aspectRatio)));
+  vector<cv::Point2f> dst({
+      cv::Point2f(0, 0),
+      cv::Point2f(width, 0),
+      cv::Point2f(width, height),
+      cv::Point2f(0, height),
+  });
+  cv::Mat mtx = cv::getPerspectiveTransform(stat.preciseOutline->points, dst);
+  cv::warpPerspective(frame, s.boardWarped, mtx, cv::Size(width, height));
 }
 } // namespace
 
@@ -770,6 +775,68 @@ std::shared_ptr<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const 
   return ret;
 }
 
+void Statistics::update(Status const &s) {
+  int constexpr maxHistory = 32;
+  if (s.squareArea > 0) {
+    squareAreaHistory.push_back(s.squareArea);
+    if (squareAreaHistory.size() > maxHistory) {
+      squareAreaHistory.pop_front();
+    }
+    int count = 0;
+    float sum = 0;
+    for (float v : squareAreaHistory) {
+      if (v > 0) {
+        sum += v;
+        count++;
+      }
+    }
+    if (count > 0) {
+      squareArea = sum / count;
+    }
+  }
+  if (s.aspectRatio > 0) {
+    aspectRatioHistory.push_back(s.aspectRatio);
+    if (aspectRatioHistory.size() > maxHistory) {
+      aspectRatioHistory.pop_front();
+    }
+    int count = 0;
+    float sum = 0;
+    for (float v : aspectRatioHistory) {
+      if (v > 0) {
+        sum += v;
+        count++;
+      }
+    }
+    if (count > 0) {
+      aspectRatio = sum / count;
+    }
+  }
+  if (s.preciseOutline) {
+    preciseOutlineHistory.push_back(*s.preciseOutline);
+    if (preciseOutlineHistory.size() > maxHistory) {
+      preciseOutlineHistory.pop_front();
+    }
+    Contour sum;
+    sum.points.resize(4);
+    fill_n(sum.points.begin(), 4, cv::Point2f(0, 0));
+    int count = 0;
+    for (auto const &v : preciseOutlineHistory) {
+      if (v.points.size() != 4) {
+        continue;
+      }
+      for (int i = 0; i < 4; i++) {
+        sum.points[i] += v.points[i];
+      }
+      count++;
+    }
+    for (int i = 0; i < 4; i++) {
+      sum.points[i] = sum.points[i] / count;
+    }
+    sum.area = fabs(cv::contourArea(sum.points));
+    preciseOutline = sum;
+  }
+}
+
 Status::Status() {
   position = MakePosition(Handicap::None);
 }
@@ -803,6 +870,8 @@ void Session::run() {
     FindContours(frame, *s);
     FindBoard(frame, *s);
     FindPieces(frame, *s);
+    stat.update(*s);
+    CreateWarpedBoard(frame, *s, stat);
     this->s = s;
   }
 }
