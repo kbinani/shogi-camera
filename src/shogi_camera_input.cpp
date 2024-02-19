@@ -1154,6 +1154,14 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
       cv::rotate(history[i].image, rotated, cv::ROTATE_180);
       history[i].image = rotated;
     }
+    for (int i = 0; i < stableBoardHistory.size(); i++) {
+      auto &sbh = stableBoardHistory[i];
+      for (int j = 0; j < sbh.size(); j++) {
+        cv::Mat rotated;
+        cv::rotate(sbh[j].image, rotated, cv::ROTATE_180);
+        sbh[j].image = rotated;
+      }
+    }
     rotate = true;
   }
   stableBoardHistory.push_back(history);
