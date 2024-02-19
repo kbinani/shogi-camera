@@ -163,23 +163,21 @@ class DebugView: UIView {
       let width = self.bounds.width
       let height = self.bounds.height
       let scale = min(width / image.size.width, height / image.size.height)
-      ctx.translateBy(x: 0, y: height)
-      ctx.scaleBy(x: 1, y: -1)
       let rect = CGRect(
         x: width * 0.5 - image.size.width * 0.5 * scale,
         y: height * 0.5 - image.size.height * 0.5 * scale, width: image.size.width * scale,
         height: image.size.height * scale)
-      ctx.draw(cgImage, in: rect)
-      var minSim: CGFloat = CGFloat.infinity
-      var maxSim: CGFloat = -CGFloat.infinity
-      for y in 0..<9 {
-        for x in 0..<9 {
-          minSim = min(minSim, status.similarity[x][y])
-          maxSim = max(maxSim, status.similarity[x][y])
+      do {
+        ctx.saveGState()
+        defer {
+          ctx.restoreGState()
         }
+        ctx.translateBy(x: 0, y: height)
+        ctx.scaleBy(x: 1, y: -1)
+        ctx.draw(cgImage, in: rect)
       }
-      minSim = 0
-      maxSim = status.stableBoardMaxSimilarity
+      let minSim: CGFloat = 0
+      let maxSim: CGFloat = status.stableBoardMaxSimilarity
       for y in 0..<9 {
         for x in 0..<9 {
           let pw = rect.width / 9
@@ -187,7 +185,7 @@ class DebugView: UIView {
           let px = rect.minX + pw * CGFloat(x)
           let py = rect.minY + ph * CGFloat(y)
           let bar = min((status.similarity[x][y] - minSim) / (maxSim - minSim), 1) * ph
-          let barAgainstStable =
+          let sbar =
             min((status.similarityAgainstStableBoard[x][y] - minSim) / (maxSim - minSim), 1) * ph
 
           let r = CGRect(x: px, y: py + ph - bar, width: pw * 0.5, height: bar)
@@ -196,8 +194,7 @@ class DebugView: UIView {
           ctx.setStrokeColor(UIColor.red.cgColor)
           ctx.stroke(r)
 
-          let r2 = CGRect(
-            x: px + pw * 0.5, y: py + ph - bar, width: pw * 0.5, height: barAgainstStable)
+          let r2 = CGRect(x: px + pw * 0.5, y: py + ph - sbar, width: pw * 0.5, height: sbar)
           ctx.setFillColor(UIColor.blue.withAlphaComponent(0.2).cgColor)
           ctx.fill([r2])
           ctx.setStrokeColor(UIColor.blue.cgColor)
