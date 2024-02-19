@@ -790,6 +790,17 @@ void Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y) {
   t[1][2] = y;
   cv::warpAffine(src, dst, cv::Mat(2, 3, CV_32F, t), dst.size(), cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
 }
+
+void PrintAsBase64(cv::Mat const &image, std::string const &title) {
+  using namespace std;
+  vector<uchar> buffer;
+  cv::imencode(".png", image, buffer);
+  string cbuffer;
+  copy(buffer.begin(), buffer.end(), back_inserter(cbuffer));
+  cout << "== " << title << endl;
+  cout << base64::to_base64(cbuffer) << endl;
+  cout << "--" << endl;
+}
 } // namespace
 
 std::optional<cv::Point2f> Contour::direction(float length) const {
@@ -1018,71 +1029,77 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   stableBoardHistory.push_back(history);
   //  cout << "駒移動の可能性あり; stableBoardHistory.size()=" << stableBoardHistory.size() << endl;
   vector<Move> candidates;
-  for (auto const &ch : changeset) {
-    if (ch.size() == 1) {
-      cout << "TODO: 駒打ち" << endl;
-      // TODO: 駒打ちの場合
-    } else if (ch.size() == 2) {
-      // from と to どちらも駒がある場合 => from が to の駒を取る
-      // to が空きマス, from が手番の駒 => 駒の移動
-      // それ以外 => エラー
-      Piece p0 = g.position.pieces[ch[0].x][ch[0].y];
-      Piece p1 = g.position.pieces[ch[1].x][ch[1].y];
-      if (p0 != 0 && p1 != 0) {
-        if (ColorFromPiece(p0) == ColorFromPiece(p1)) {
-          cout << "自分の駒を自分で取っている" << endl;
-          break;
-        }
-        Move mv;
-        mv.color = color;
-        if (ColorFromPiece(p0) == color) {
-          // p0 の駒が p1 の駒を取った.
+  int k = 0;
+  for (int i = 0; i < last.size(); i++) {
+    for (int j = 0; j < history.size(); j++) {
+      auto const &ch = changeset[k++];
+      if (ch.size() == 1) {
+        cout << "TODO: 駒打ち" << endl;
+        PrintAsBase64(last[i].image, "last[" + to_string(i) + "]");
+        PrintAsBase64(history[j].image, "history[" + to_string(j) + "]");
+        // TODO: 駒打ちの場合
+      } else if (ch.size() == 2) {
+        // from と to どちらも駒がある場合 => from が to の駒を取る
+        // to が空きマス, from が手番の駒 => 駒の移動
+        // それ以外 => エラー
+        Piece p0 = g.position.pieces[ch[0].x][ch[0].y];
+        Piece p1 = g.position.pieces[ch[1].x][ch[1].y];
+        if (p0 != 0 && p1 != 0) {
+          if (ColorFromPiece(p0) == ColorFromPiece(p1)) {
+            cout << "自分の駒を自分で取っている" << endl;
+            break;
+          }
+          Move mv;
+          mv.color = color;
+          if (ColorFromPiece(p0) == color) {
+            // p0 の駒が p1 の駒を取った.
+            mv.from = MakeSquare(ch[0].x, ch[0].y);
+            mv.to = MakeSquare(ch[1].x, ch[1].y);
+            mv.piece = p0;
+            mv.newHand = PieceTypeFromPiece(p1);
+            if (!IsPromotedPiece(p0)) {
+              // TODO: 成りを検出
+              mv.promote = false;
+            }
+          } else {
+            // p1 の駒が p0 の駒を取った.
+            mv.from = MakeSquare(ch[1].x, ch[1].y);
+            mv.to = MakeSquare(ch[0].x, ch[0].y);
+            mv.piece = p1;
+            mv.newHand = PieceTypeFromPiece(p0);
+            if (!IsPromotedPiece(p1)) {
+              // TODO: 成りを検出
+              mv.promote = false;
+            }
+          }
+          candidates.push_back(mv);
+        } else if (p0) {
+          // p0 の駒が p1 に移動
+          Move mv;
+          mv.color = color;
           mv.from = MakeSquare(ch[0].x, ch[0].y);
           mv.to = MakeSquare(ch[1].x, ch[1].y);
           mv.piece = p0;
-          mv.newHand = PieceTypeFromPiece(p1);
           if (!IsPromotedPiece(p0)) {
             // TODO: 成りを検出
             mv.promote = false;
           }
-        } else {
-          // p1 の駒が p0 の駒を取った.
+          candidates.push_back(mv);
+        } else if (p1) {
+          // p1 の駒が p0 に移動
+          Move mv;
+          mv.color = color;
           mv.from = MakeSquare(ch[1].x, ch[1].y);
           mv.to = MakeSquare(ch[0].x, ch[0].y);
           mv.piece = p1;
-          mv.newHand = PieceTypeFromPiece(p0);
           if (!IsPromotedPiece(p1)) {
             // TODO: 成りを検出
             mv.promote = false;
           }
+          candidates.push_back(mv);
+        } else {
+          cout << "認識できない駒移動" << endl;
         }
-        candidates.push_back(mv);
-      } else if (p0) {
-        // p0 の駒が p1 に移動
-        Move mv;
-        mv.color = color;
-        mv.from = MakeSquare(ch[0].x, ch[0].y);
-        mv.to = MakeSquare(ch[1].x, ch[1].y);
-        mv.piece = p0;
-        if (!IsPromotedPiece(p0)) {
-          // TODO: 成りを検出
-          mv.promote = false;
-        }
-        candidates.push_back(mv);
-      } else if (p1) {
-        // p1 の駒が p0 に移動
-        Move mv;
-        mv.color = color;
-        mv.from = MakeSquare(ch[1].x, ch[1].y);
-        mv.to = MakeSquare(ch[0].x, ch[0].y);
-        mv.piece = p1;
-        if (!IsPromotedPiece(p1)) {
-          // TODO: 成りを検出
-          mv.promote = false;
-        }
-        candidates.push_back(mv);
-      } else {
-        cout << "認識できない駒移動" << endl;
       }
     }
   }
@@ -1123,6 +1140,41 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   }
   cout << (char const *)StringFromMove(mv, lastMoveTo).c_str() << endl;
   g.moves.push_back(mv);
+  g.apply(mv);
+}
+
+void Game::apply(Move const &mv) {
+  if (mv.from) {
+    position.pieces[mv.from->file][mv.from->rank] = 0;
+  }
+  if (mv.promote && !IsPromotedPiece(mv.piece)) {
+    position.pieces[mv.to.file][mv.to.rank] = Promote(mv.piece);
+  } else {
+    position.pieces[mv.to.file][mv.to.rank] = mv.piece;
+  }
+  if (mv.newHand) {
+    if (mv.color == Color::Black) {
+      handBlack.push_back(*mv.newHand);
+    } else {
+      handWhite.push_back(*mv.newHand);
+    }
+  }
+  std::cout << "==================" << std::endl;
+  std::cout << (char const *)DebugStringFromPosition(position).c_str();
+  std::cout << "------------------" << std::endl;
+}
+
+std::u8string DebugStringFromPosition(Position const &p) {
+  using namespace std;
+  u8string ret;
+  for (int y = 0; y < 9; y++) {
+    u8string row;
+    for (int x = 0; x < 9; x++) {
+      row += ShortStringFromPieceTypeAndStatus(RemoveColorFromPiece(p.pieces[x][y]));
+    }
+    ret += row + u8"\n";
+  }
+  return ret;
 }
 
 Status::Status() {

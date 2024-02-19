@@ -36,45 +36,45 @@ class Reader {
     let time: TimeInterval
   }
   private let positions: [Position] = [
-    .init(square: (0, 0), time: 1.648),
-    .init(square: (0, 1), time: 2.751),
-    .init(square: (0, 2), time: 3.907),
-    .init(square: (0, 3), time: 5.063),
-    .init(square: (0, 4), time: 6.285),
-    .init(square: (0, 5), time: 7.335),
-    .init(square: (0, 6), time: 8.438),
-    .init(square: (0, 7), time: 9.501),
-    .init(square: (0, 8), time: 10.683),
+    .init(square: (8, 0), time: 1.648),
+    .init(square: (8, 1), time: 2.751),
+    .init(square: (8, 2), time: 3.907),
+    .init(square: (8, 3), time: 5.063),
+    .init(square: (8, 4), time: 6.285),
+    .init(square: (8, 5), time: 7.335),
+    .init(square: (8, 6), time: 8.438),
+    .init(square: (8, 7), time: 9.501),
+    .init(square: (8, 8), time: 10.683),
 
-    .init(square: (1, 0), time: 11.560),
-    .init(square: (1, 1), time: 12.690),
-    .init(square: (1, 2), time: 13.700),
-    .init(square: (1, 3), time: 14.670),
-    .init(square: (1, 4), time: 15.693),
-    .init(square: (1, 5), time: 16.596),
-    .init(square: (1, 6), time: 17.580),
-    .init(square: (1, 7), time: 17.563),
-    .init(square: (1, 8), time: 19.626),
+    .init(square: (7, 0), time: 11.560),
+    .init(square: (7, 1), time: 12.690),
+    .init(square: (7, 2), time: 13.700),
+    .init(square: (7, 3), time: 14.670),
+    .init(square: (7, 4), time: 15.693),
+    .init(square: (7, 5), time: 16.596),
+    .init(square: (7, 6), time: 17.580),
+    .init(square: (7, 7), time: 17.563),
+    .init(square: (7, 8), time: 19.626),
 
-    .init(square: (2, 0), time: 20.476),
-    .init(square: (2, 1), time: 21.579),
-    .init(square: (2, 2), time: 22.682),
-    .init(square: (2, 3), time: 23.652),
-    .init(square: (2, 4), time: 24.728),
-    .init(square: (2, 5), time: 25.672),
-    .init(square: (2, 6), time: 26.721),
-    .init(square: (2, 7), time: 27.758),
-    .init(square: (2, 8), time: 28.874),
+    .init(square: (6, 0), time: 20.476),
+    .init(square: (6, 1), time: 21.579),
+    .init(square: (6, 2), time: 22.682),
+    .init(square: (6, 3), time: 23.652),
+    .init(square: (6, 4), time: 24.728),
+    .init(square: (6, 5), time: 25.672),
+    .init(square: (6, 6), time: 26.721),
+    .init(square: (6, 7), time: 27.758),
+    .init(square: (6, 8), time: 28.874),
 
-    .init(square: (3, 0), time: 29.818),
-    .init(square: (3, 1), time: 30.967),
-    .init(square: (3, 2), time: 31.904),
-    .init(square: (3, 3), time: 32.860),
-    .init(square: (3, 4), time: 33.897),
-    .init(square: (3, 5), time: 34.787),
-    .init(square: (3, 6), time: 35.784),
-    .init(square: (3, 7), time: 36.754),
-    .init(square: (3, 8), time: 37.830),
+    .init(square: (5, 0), time: 29.818),
+    .init(square: (5, 1), time: 30.967),
+    .init(square: (5, 2), time: 31.904),
+    .init(square: (5, 3), time: 32.860),
+    .init(square: (5, 4), time: 33.897),
+    .init(square: (5, 5), time: 34.787),
+    .init(square: (5, 6), time: 35.784),
+    .init(square: (5, 7), time: 36.754),
+    .init(square: (5, 8), time: 37.830),
 
     .init(square: (4, 0), time: 38.680),
     .init(square: (4, 1), time: 39.690),
@@ -86,45 +86,45 @@ class Reader {
     .init(square: (4, 7), time: 45.178),
     .init(square: (4, 8), time: 46.175),
 
-    .init(square: (5, 0), time: 47.025),
-    .init(square: (5, 1), time: 48.101),
-    .init(square: (5, 2), time: 49.124),
-    .init(square: (5, 3), time: 50.081),
-    .init(square: (5, 4), time: 51.104),
-    .init(square: (5, 5), time: 51.995),
-    .init(square: (5, 6), time: 52.965),
-    .init(square: (5, 7), time: 53.895),
-    .init(square: (5, 8), time: 54.905),
+    .init(square: (3, 0), time: 47.025),
+    .init(square: (3, 1), time: 48.101),
+    .init(square: (3, 2), time: 49.124),
+    .init(square: (3, 3), time: 50.081),
+    .init(square: (3, 4), time: 51.104),
+    .init(square: (3, 5), time: 51.995),
+    .init(square: (3, 6), time: 52.965),
+    .init(square: (3, 7), time: 53.895),
+    .init(square: (3, 8), time: 54.905),
 
-    .init(square: (6, 0), time: 55.821),
-    .init(square: (6, 1), time: 56.884),
-    .init(square: (6, 2), time: 57.947),
-    .init(square: (6, 3), time: 58.944),
-    .init(square: (6, 4), time: 59.980),
-    .init(square: (6, 5), time: 60.964),
-    .init(square: (6, 6), time: 61.974),
-    .init(square: (6, 7), time: 62.957),
-    .init(square: (6, 8), time: 64.007),
+    .init(square: (2, 0), time: 55.821),
+    .init(square: (2, 1), time: 56.884),
+    .init(square: (2, 2), time: 57.947),
+    .init(square: (2, 3), time: 58.944),
+    .init(square: (2, 4), time: 59.980),
+    .init(square: (2, 5), time: 60.964),
+    .init(square: (2, 6), time: 61.974),
+    .init(square: (2, 7), time: 62.957),
+    .init(square: (2, 8), time: 64.007),
 
-    .init(square: (7, 0), time: 64.897),
-    .init(square: (7, 1), time: 66.026),
-    .init(square: (7, 2), time: 67.089),
-    .init(square: (7, 3), time: 68.113),
-    .init(square: (7, 4), time: 69.176),
-    .init(square: (7, 5), time: 70.172),
-    .init(square: (7, 6), time: 71.209),
-    .init(square: (7, 7), time: 72.245),
-    .init(square: (7, 8), time: 73.321),
+    .init(square: (1, 0), time: 64.897),
+    .init(square: (1, 1), time: 66.026),
+    .init(square: (1, 2), time: 67.089),
+    .init(square: (1, 3), time: 68.113),
+    .init(square: (1, 4), time: 69.176),
+    .init(square: (1, 5), time: 70.172),
+    .init(square: (1, 6), time: 71.209),
+    .init(square: (1, 7), time: 72.245),
+    .init(square: (1, 8), time: 73.321),
 
-    .init(square: (8, 0), time: 74.331),
-    .init(square: (8, 1), time: 75.474),
-    .init(square: (8, 2), time: 76.577),
-    .init(square: (8, 3), time: 77.560),
-    .init(square: (8, 4), time: 78.636),
-    .init(square: (8, 5), time: 79.593),
-    .init(square: (8, 6), time: 80.643),
-    .init(square: (8, 7), time: 81.666),
-    .init(square: (8, 8), time: 82.756),
+    .init(square: (0, 0), time: 74.331),
+    .init(square: (0, 1), time: 75.474),
+    .init(square: (0, 2), time: 76.577),
+    .init(square: (0, 3), time: 77.560),
+    .init(square: (0, 4), time: 78.636),
+    .init(square: (0, 5), time: 79.593),
+    .init(square: (0, 6), time: 80.643),
+    .init(square: (0, 7), time: 81.666),
+    .init(square: (0, 8), time: 82.756),
 
     .init(square: (9, 0), time: 83.712),
   ]
@@ -167,8 +167,8 @@ class Reader {
       frameCount: .init((endColor - startColor) * rate), at: nil)
     var offset = endColor - startColor
 
-    var startSquare = self.positions[0].time
-    var endSquare = self.positions[1].time
+    var startSquare: TimeInterval?
+    var endSquare: TimeInterval?
     for i in 0..<self.positions.count - 1 {
       let p = self.positions[i]
       if p.square.file == Int(move.to.file.rawValue) && p.square.rank == Int(move.to.rank.rawValue)
@@ -178,24 +178,32 @@ class Reader {
         break
       }
     }
-    node.scheduleSegment(
-      file, startingFrame: .init(offset + startSquare * rate),
-      frameCount: .init((endSquare - startSquare) * rate), at: nil)
-    offset += endSquare - startSquare
+    if let startSquare, let endSquare {
+      node.scheduleSegment(
+        file, startingFrame: .init(offset + startSquare * rate),
+        frameCount: .init((endSquare - startSquare) * rate), at: nil)
+      offset += endSquare - startSquare
+    } else {
+      print("マス目読み上げ用ボイスが搭載されていない: file=", move.to.file.rawValue, "rank=", move.to.rank.rawValue)
+    }
 
-    var startPiece = self.pieces[0].time
-    var endPiece = self.pieces[1].time
+    var startPiece: TimeInterval?
+    var endPiece: TimeInterval?
     for i in 0..<self.pieces.count - 1 {
       let p = self.pieces[i]
-      if p.piece == move.piece {
+      if p.piece == sci.RemoveColorFromPiece(move.piece) {
         startPiece = p.time
         endPiece = self.pieces[i + 1].time
         break
       }
     }
-    node.scheduleSegment(
-      file, startingFrame: .init(offset + startPiece * rate),
-      frameCount: .init((endPiece - startPiece) * rate), at: nil)
-    offset += endPiece - startPiece
+    if let startPiece, let endPiece {
+      node.scheduleSegment(
+        file, startingFrame: .init(offset + startPiece * rate),
+        frameCount: .init((endPiece - startPiece) * rate), at: nil)
+      offset += endPiece - startPiece
+    } else {
+      print("駒読み上げ用ボイスが搭載されていない: ", move.piece)
+    }
   }
 }

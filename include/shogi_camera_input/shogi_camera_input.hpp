@@ -15,8 +15,8 @@ using PieceUnderlyingType = uint32_t;
 enum class PieceType : PieceUnderlyingType {
   Empty = 0, // 升目に駒が無いことを表す時に使う
   King = 0b0001,
-  Rook = 0b0010,
-  Bishop = 0b0011,
+  Rook = 0b0010,   // 飛車
+  Bishop = 0b0011, // 角
   Gold = 0b0100,
   Silver = 0b0101,
   Knight = 0b0110,
@@ -60,6 +60,10 @@ inline PieceType PieceTypeFromPiece(Piece p) {
 
 inline bool IsPromotedPiece(Piece p) {
   return (p & 0b10000) == 0b10000;
+}
+
+inline Piece Promote(Piece p) {
+  return p | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
 }
 
 inline std::u8string ShortStringFromPieceTypeAndStatus(PieceUnderlyingType p) {
@@ -141,6 +145,8 @@ struct Position {
   Piece pieces[9][9]; // [筋][段]
 };
 
+std::u8string DebugStringFromPosition(Position const &p);
+
 // ハンデ
 enum class Handicap {
   None,
@@ -173,8 +179,8 @@ inline Position MakePosition(Handicap h) {
   p.pieces[2][8] = p.pieces[6][8] = MakePiece(Color::Black, PieceType::Silver);
   p.pieces[3][8] = p.pieces[5][8] = MakePiece(Color::Black, PieceType::Gold);
   p.pieces[4][8] = MakePiece(Color::Black, PieceType::King);
-  p.pieces[1][7] = MakePiece(Color::Black, PieceType::Rook);
-  p.pieces[7][7] = MakePiece(Color::Black, PieceType::Bishop);
+  p.pieces[7][7] = MakePiece(Color::Black, PieceType::Rook);
+  p.pieces[1][7] = MakePiece(Color::Black, PieceType::Bishop);
   return p;
 }
 
@@ -200,15 +206,15 @@ inline Board MakeBoard(Handicap h) {
 #endif
 // 筋. 右が File1, 左が File9
 enum File : int32_t {
-  File1 = 0,
-  File2,
-  File3,
-  File4,
-  File5,
-  File6,
-  File7,
+  File9 = 0,
   File8,
-  File9,
+  File7,
+  File6,
+  File5,
+  File4,
+  File3,
+  File2,
+  File1,
 };
 
 inline std::u8string StringFromFile(File f) {
@@ -283,7 +289,7 @@ struct Square {
 
 // 左上(９一)を [0, 0], 右下(１九)を [8, 8] とした時の x, y を元に Square を作る.
 inline Square MakeSquare(int x, int y) {
-  return Square(static_cast<File>(8 - x), static_cast<Rank>(y));
+  return Square(static_cast<File>(x), static_cast<Rank>(y));
 }
 
 inline bool operator==(Square const &a, Square const &b) {
@@ -408,6 +414,10 @@ inline std::u8string StringFromMove(Move const &mv, std::optional<Square> last) 
   return ret;
 }
 
+inline std::u8string StringFromMove(Move const &mv) {
+  return StringFromMove(mv, std::nullopt);
+}
+
 inline double Distance(cv::Point const &a, cv::Point const &b) {
   double dx = a.x - b.x;
   double dy = a.y - b.y;
@@ -477,10 +487,14 @@ struct PieceContour {
 struct Game {
   Position position;
   std::vector<Move> moves;
+  std::deque<PieceType> handBlack;
+  std::deque<PieceType> handWhite;
 
   Game() {
     position = MakePosition(Handicap::None);
   }
+
+  void apply(Move const &move);
 };
 
 struct Status {
@@ -531,7 +545,7 @@ struct Status {
 // 盤面画像.
 struct BoardImage {
   cv::Mat image;
-  static constexpr double kStableBoardMaxSimilarity = 0.03;
+  static constexpr double kStableBoardMaxSimilarity = 0.04;
   static constexpr double kStableBoardThreshold = kStableBoardMaxSimilarity * 0.5;
 };
 
