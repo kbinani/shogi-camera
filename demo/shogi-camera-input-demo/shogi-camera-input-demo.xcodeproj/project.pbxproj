@@ -18,6 +18,8 @@
 		940A14F32B7DEFF1006E2D01 /* DebugPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 940A14F22B7DEFF1006E2D01 /* DebugPreview.swift */; };
 		946220072B82FA780094B015 /* voice.wav in Resources */ = {isa = PBXBuildFile; fileRef = 946220062B82FA780094B015 /* voice.wav */; };
 		946220092B832FED0094B015 /* Reader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 946220082B832FED0094B015 /* Reader.swift */; };
+		9462200B2B8331AF0094B015 /* ShogiCameraInput+Utility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9462200A2B8331AF0094B015 /* ShogiCameraInput+Utility.swift */; };
+		9462200D2B8331E20094B015 /* OpenCV+Utility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9462200C2B8331E20094B015 /* OpenCV+Utility.swift */; };
 		94BB05042B81FC81003FB8B8 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 94BB05032B81FC81003FB8B8 /* main.cpp */; };
 		94BB050C2B82010D003FB8B8 /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 94BB050B2B82010D003FB8B8 /* opencv2.framework */; };
 		94BB05102B8204CA003FB8B8 /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 94BB050F2B8204CA003FB8B8 /* OpenCL.framework */; };
@@ -55,6 +57,8 @@
 		940A14F22B7DEFF1006E2D01 /* DebugPreview.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DebugPreview.swift; sourceTree = "<group>"; };
 		946220062B82FA780094B015 /* voice.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = voice.wav; path = ../../../res/voice/voice.wav; sourceTree = "<group>"; };
 		946220082B832FED0094B015 /* Reader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Reader.swift; sourceTree = "<group>"; };
+		9462200A2B8331AF0094B015 /* ShogiCameraInput+Utility.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ShogiCameraInput+Utility.swift"; sourceTree = "<group>"; };
+		9462200C2B8331E20094B015 /* OpenCV+Utility.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "OpenCV+Utility.swift"; sourceTree = "<group>"; };
 		94BB04FC2B81F78E003FB8B8 /* base64.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = base64.hpp; path = ../../../include/shogi_camera_input/base64.hpp; sourceTree = "<group>"; };
 		94BB05012B81FC81003FB8B8 /* opencv-study */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "opencv-study"; sourceTree = BUILT_PRODUCTS_DIR; };
 		94BB05032B81FC81003FB8B8 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
@@ -126,6 +130,8 @@
 				940A14EC2B7D6E21006E2D01 /* module.modulemap */,
 				946220062B82FA780094B015 /* voice.wav */,
 				946220082B832FED0094B015 /* Reader.swift */,
+				9462200A2B8331AF0094B015 /* ShogiCameraInput+Utility.swift */,
+				9462200C2B8331E20094B015 /* OpenCV+Utility.swift */,
 			);
 			path = "shogi-camera-input-demo";
 			sourceTree = "<group>";
@@ -243,6 +249,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9462200B2B8331AF0094B015 /* ShogiCameraInput+Utility.swift in Sources */,
+				9462200D2B8331E20094B015 /* OpenCV+Utility.swift in Sources */,
 				946220092B832FED0094B015 /* Reader.swift in Sources */,
 				940A14B62B7A9DE9006E2D01 /* ViewController.swift in Sources */,
 				940A14F32B7DEFF1006E2D01 /* DebugPreview.swift in Sources */,

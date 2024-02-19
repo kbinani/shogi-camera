@@ -134,24 +134,24 @@ class Reader {
     let time: TimeInterval
   }
   private let pieces: [Piece] = [
-    .init(piece: sci.PieceType.Pawn.rawValue, time: 83.739),
-    .init(piece: sci.PieceType.Lance.rawValue, time: 84.310),
-    .init(piece: sci.PieceType.Knight.rawValue, time: 85.094),
-    .init(piece: sci.PieceType.Silver.rawValue, time: 85.918),
-    .init(piece: sci.PieceType.Gold.rawValue, time: 86.542),
-    .init(piece: sci.PieceType.Bishop.rawValue, time: 87.061),
-    .init(piece: sci.PieceType.Rook.rawValue, time: 87.738),
-    .init(piece: sci.PieceType.King.rawValue, time: 88.456),
-    .init(piece: sci.PieceType.Pawn.rawValue + sci.PieceStatus.Promoted.rawValue, time: 89.173),
-    .init(piece: sci.PieceType.Lance.rawValue + sci.PieceStatus.Promoted.rawValue, time: 89.904),
-    .init(piece: sci.PieceType.Knight.rawValue + sci.PieceStatus.Promoted.rawValue, time: 90.834),
-    .init(piece: sci.PieceType.Silver.rawValue + sci.PieceStatus.Promoted.rawValue, time: 91.725),
-    .init(piece: sci.PieceType.Bishop.rawValue + sci.PieceStatus.Promoted.rawValue, time: 92.602),
-    .init(piece: sci.PieceType.Rook.rawValue + sci.PieceStatus.Promoted.rawValue, time: 93.266),
+    .init(piece: PieceType.Pawn.rawValue, time: 83.739),
+    .init(piece: PieceType.Lance.rawValue, time: 84.310),
+    .init(piece: PieceType.Knight.rawValue, time: 85.094),
+    .init(piece: PieceType.Silver.rawValue, time: 85.918),
+    .init(piece: PieceType.Gold.rawValue, time: 86.542),
+    .init(piece: PieceType.Bishop.rawValue, time: 87.061),
+    .init(piece: PieceType.Rook.rawValue, time: 87.738),
+    .init(piece: PieceType.King.rawValue, time: 88.456),
+    .init(piece: PieceType.Pawn.rawValue + PieceStatus.Promoted.rawValue, time: 89.173),
+    .init(piece: PieceType.Lance.rawValue + PieceStatus.Promoted.rawValue, time: 89.904),
+    .init(piece: PieceType.Knight.rawValue + PieceStatus.Promoted.rawValue, time: 90.834),
+    .init(piece: PieceType.Silver.rawValue + PieceStatus.Promoted.rawValue, time: 91.725),
+    .init(piece: PieceType.Bishop.rawValue + PieceStatus.Promoted.rawValue, time: 92.602),
+    .init(piece: PieceType.Rook.rawValue + PieceStatus.Promoted.rawValue, time: 93.266),
     .init(piece: 9999, time: 93.266),
   ]
 
-  func play(move: sci.Move) {
+  func play(move: Move) {
     let startColor: Double
     let endColor: Double
     if move.color == .Black {
