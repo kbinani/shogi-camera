@@ -1177,20 +1177,25 @@ void Game::apply(Move const &mv) {
       handWhite.push_back(*mv.newHand);
     }
   }
-  std::cout << "==================" << std::endl;
+  std::cout << "=======================" << std::endl;
   std::cout << (char const *)DebugStringFromPosition(position).c_str();
-  std::cout << "------------------" << std::endl;
+  std::cout << "-----------------------" << std::endl;
 }
 
 std::u8string DebugStringFromPosition(Position const &p) {
   using namespace std;
   u8string ret;
   for (int y = 0; y < 9; y++) {
-    u8string row;
     for (int x = 0; x < 9; x++) {
-      row += ShortStringFromPieceTypeAndStatus(RemoveColorFromPiece(p.pieces[x][y]));
+      auto piece = p.pieces[x][y];
+      if (ColorFromPiece(piece) == Color::White) {
+        ret += u8"v";
+      } else {
+        ret += u8" ";
+      }
+      ret += ShortStringFromPieceTypeAndStatus(RemoveColorFromPiece(piece));
     }
-    ret += row + u8"\n";
+    ret += u8"\n";
   }
   return ret;
 }
