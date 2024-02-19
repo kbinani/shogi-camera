@@ -285,6 +285,10 @@ struct Square {
   Square(File file, Rank rank) : file(file), rank(rank) {}
   File file;
   Rank rank;
+
+  Square rotated() const {
+    return Square(static_cast<File>(8 - file), static_cast<Rank>(8 - rank));
+  }
 };
 
 // 左上(９一)を [0, 0], 右下(１九)を [8, 8] とした時の x, y を元に Square を作る.
@@ -564,6 +568,8 @@ struct Statistics {
   std::deque<BoardImage> boardHistory;
   std::deque<std::array<BoardImage, 3>> stableBoardHistory;
   void push(cv::Mat const &board, Status &s, Game &g);
+  // 盤面画像を180度回転してから盤面認識処理すべき場合に true.
+  bool rotate = false;
 };
 
 class Session {

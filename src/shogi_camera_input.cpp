@@ -734,9 +734,15 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
       cv::Point2f(0, 0),
   });
   cv::Mat mtx = cv::getPerspectiveTransform(stat.preciseOutline->points, dst);
-  cv::Mat tmp;
-  cv::warpPerspective(frame, tmp, mtx, cv::Size(width, height));
-  cv::cvtColor(tmp, s.boardWarped, CV_RGB2GRAY);
+  cv::Mat tmp1;
+  cv::warpPerspective(frame, tmp1, mtx, cv::Size(width, height));
+  if (stat.rotate) {
+    cv::Mat tmp2;
+    cv::rotate(tmp1, tmp2, cv::ROTATE_180);
+    cv::cvtColor(tmp2, s.boardWarped, CV_RGB2GRAY);
+  } else {
+    cv::cvtColor(tmp1, s.boardWarped, CV_RGB2GRAY);
+  }
 }
 
 cv::Mat PieceROI(cv::Mat const &board, int x, int y, float shrink = 1) {
@@ -1026,8 +1032,6 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   // index 番目の手.
   size_t const index = g.moves.size();
   Color const color = ColorFromIndex(index);
-  stableBoardHistory.push_back(history);
-  //  cout << "駒移動の可能性あり; stableBoardHistory.size()=" << stableBoardHistory.size() << endl;
   vector<Move> candidates;
   int k = 0;
   for (int i = 0; i < last.size(); i++) {
@@ -1139,6 +1143,20 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     cout << "検出結果が複数に分かれた. 投票で最も多かった検出結果を採用" << endl;
   }
   cout << (char const *)StringFromMove(mv, lastMoveTo).c_str() << endl;
+  if (g.moves.empty() && mv.to.rank < 5) {
+    // キャプチャした画像で先手が上になっている. 以後 180 度回転して処理する.
+    if (mv.from) {
+      mv.from = mv.from->rotated();
+    }
+    mv.to = mv.to.rotated();
+    for (int i = 0; i < history.size(); i++) {
+      cv::Mat rotated;
+      cv::rotate(history[i].image, rotated, cv::ROTATE_180);
+      history[i].image = rotated;
+    }
+    rotate = true;
+  }
+  stableBoardHistory.push_back(history);
   g.moves.push_back(mv);
   g.apply(mv);
 }
