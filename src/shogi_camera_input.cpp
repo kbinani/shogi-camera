@@ -950,16 +950,16 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     boardHistory.pop_back();
   }
   boardHistory.clear();
-//  static int framecount = 0;
-//  {
-//    vector<uchar> buffer;
-//    cv::imencode(".png", history[0].image, buffer);
-//    string cbuffer;
-//    copy(buffer.begin(), buffer.end(), back_inserter(cbuffer));
-//    cout << "-- " << framecount << endl;
-//    framecount++;
-//    cout << base64::to_base64(cbuffer) << endl;
-//  }
+  //  static int framecount = 0;
+  //  {
+  //    vector<uchar> buffer;
+  //    cv::imencode(".png", history[0].image, buffer);
+  //    string cbuffer;
+  //    copy(buffer.begin(), buffer.end(), back_inserter(cbuffer));
+  //    cout << "-- " << framecount << endl;
+  //    framecount++;
+  //    cout << base64::to_base64(cbuffer) << endl;
+  //  }
   if (stableBoardHistory.empty()) {
     // 最初の stable board なので登録するだけ.
     stableBoardHistory.push_back(history);
@@ -994,11 +994,11 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     // 最新の盤面と, 前回の stableBoard が同じ. stableBoard を最新に更新するだけ.
     stableBoardHistory.pop_back();
     stableBoardHistory.push_back(history);
-//    cout << "最新の盤面と, 前回の stableBoard が同じ. stableBoard を最新に更新するだけ." << endl;
+    //    cout << "最新の盤面と, 前回の stableBoard が同じ. stableBoard を最新に更新するだけ." << endl;
     return;
   }
   if (tooManyChanges) {
-//    cout << "盤面の変動が 3 マス以上. 最新を更新; minChange=" << minChange << "; maxChange=" << maxChange << endl;
+    //    cout << "盤面の変動が 3 マス以上. 最新を更新; minChange=" << minChange << "; maxChange=" << maxChange << endl;
     stableBoardHistory.pop_back();
     stableBoardHistory.push_back(history);
     // 盤面の変動が 3 マス以上. まだ stable じゃないと判定して無視する.
@@ -1016,12 +1016,12 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   size_t const index = g.moves.size();
   Color const color = ColorFromIndex(index);
   stableBoardHistory.push_back(history);
-//  cout << "駒移動の可能性あり; stableBoardHistory.size()=" << stableBoardHistory.size() << endl;
+  //  cout << "駒移動の可能性あり; stableBoardHistory.size()=" << stableBoardHistory.size() << endl;
   vector<Move> candidates;
   for (auto const &ch : changeset) {
     if (ch.size() == 1) {
       cout << "TODO: 駒打ち" << endl;
-      //TODO: 駒打ちの場合
+      // TODO: 駒打ちの場合
     } else if (ch.size() == 2) {
       // from と to どちらも駒がある場合 => from が to の駒を取る
       // to が空きマス, from が手番の駒 => 駒の移動
@@ -1042,7 +1042,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
           mv.piece = p0;
           mv.newHand = PieceTypeFromPiece(p1);
           if (!IsPromotedPiece(p0)) {
-            //TODO: 成りを検出
+            // TODO: 成りを検出
             mv.promote = false;
           }
         } else {
@@ -1052,7 +1052,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
           mv.piece = p1;
           mv.newHand = PieceTypeFromPiece(p0);
           if (!IsPromotedPiece(p1)) {
-            //TODO: 成りを検出
+            // TODO: 成りを検出
             mv.promote = false;
           }
         }
@@ -1065,7 +1065,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
         mv.to = MakeSquare(ch[1].x, ch[1].y);
         mv.piece = p0;
         if (!IsPromotedPiece(p0)) {
-          //TODO: 成りを検出
+          // TODO: 成りを検出
           mv.promote = false;
         }
         candidates.push_back(mv);
@@ -1077,7 +1077,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
         mv.to = MakeSquare(ch[0].x, ch[0].y);
         mv.piece = p1;
         if (!IsPromotedPiece(p1)) {
-          //TODO: 成りを検出
+          // TODO: 成りを検出
           mv.promote = false;
         }
         candidates.push_back(mv);
@@ -1114,14 +1114,14 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     mv = candidates[0];
   } else {
     // なんらか検出結果を出さないと破綻する. 最も投票数の多かった検出結果を返すことにする.
-    sort(vote.begin(), vote.end(), [](auto const& l, auto const& r) {return l.second < r.second; });
+    sort(vote.begin(), vote.end(), [](auto const &l, auto const &r) { return l.second < r.second; });
     mv = vote[0].first;
-    for (auto const& it : vote) {
-      cout << "candidate: " << (char const*)StringFromMove(it.first, lastMoveTo).c_str() << endl;
+    for (auto const &it : vote) {
+      cout << "candidate: " << (char const *)StringFromMove(it.first, lastMoveTo).c_str() << endl;
     }
     cout << "検出結果が複数に分かれた. 投票で最も多かった検出結果を採用" << endl;
   }
-  cout << (char const*)StringFromMove(mv, lastMoveTo).c_str() << endl;
+  cout << (char const *)StringFromMove(mv, lastMoveTo).c_str() << endl;
   g.moves.push_back(mv);
 }
 

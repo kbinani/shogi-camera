@@ -286,7 +286,7 @@ inline Square MakeSquare(int x, int y) {
   return Square(static_cast<File>(8 - x), static_cast<Rank>(y));
 }
 
-inline bool operator==(Square const& a, Square const& b) {
+inline bool operator==(Square const &a, Square const &b) {
   return a.file == b.file && a.rank == b.rank;
 }
 
@@ -368,7 +368,7 @@ struct Move {
   std::optional<PieceType> newHand;
 };
 
-inline bool operator==(Move const& a, Move const& b) {
+inline bool operator==(Move const &a, Move const &b) {
   if (a.color != b.color) {
     return false;
   }
@@ -384,7 +384,7 @@ inline bool operator==(Move const& a, Move const& b) {
   return a.promote == b.promote;
 }
 
-inline std::u8string StringFromMove(Move const& mv, std::optional<Square> last) {
+inline std::u8string StringFromMove(Move const &mv, std::optional<Square> last) {
   std::u8string ret;
   if (mv.color == Color::Black) {
     ret += u8"▲";
@@ -400,7 +400,7 @@ inline std::u8string StringFromMove(Move const& mv, std::optional<Square> last) 
   if (mv.promote) {
     ret += u8"成";
   } else {
-    //TODO: 不成
+    // TODO: 不成
   }
   if (!mv.from) {
     ret += u8"打";
