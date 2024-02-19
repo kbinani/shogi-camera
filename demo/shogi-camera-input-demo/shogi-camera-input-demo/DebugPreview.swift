@@ -186,7 +186,9 @@ class DebugView: UIView {
       guard let status else {
         return
       }
-      let board = status.boardWarped
+      guard let board = status.stableBoard.value else {
+        return
+      }
       guard let ptr = sci.Utility.UIImageFromMat(board) else {
         return
       }
@@ -217,7 +219,7 @@ class DebugView: UIView {
         }
       }
       minSim = 0
-      maxSim = status.stableBoardThreshold
+      maxSim = status.stableBoardMaxSimilarity
       for y in 0..<9 {
         for x in 0..<9 {
           let pw = rect.width / 9

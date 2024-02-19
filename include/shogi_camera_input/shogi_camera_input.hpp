@@ -35,17 +35,34 @@ enum class Color : PieceUnderlyingType {
   White = 0b100000, // 後手
 };
 
+// 0 を先手の最初の手として, i 番目の手がどちらの手番か.
+inline Color ColorFromIndex(size_t i) {
+  return i % 2 == 0 ? Color::Black : Color::White;
+}
+
 using Piece = PieceUnderlyingType; // PieceType | PieceStatus | Color;
 
 inline Piece MakePiece(Color color, PieceType type, PieceStatus status = PieceStatus::Default) {
   return static_cast<PieceUnderlyingType>(color) | static_cast<PieceUnderlyingType>(type) | static_cast<PieceUnderlyingType>(status);
 }
 
+inline Color ColorFromPiece(Piece p) {
+  return static_cast<Color>(p & 0b100000);
+}
+
 inline PieceUnderlyingType RemoveColorFromPiece(Piece p) {
   return p & 0b11111;
 }
 
-inline std::u8string StringFromPieceTypeAndStatus(PieceUnderlyingType p) {
+inline PieceType PieceTypeFromPiece(Piece p) {
+  return static_cast<PieceType>(p & 0b1111);
+}
+
+inline bool IsPromotedPiece(Piece p) {
+  return (p & 0b10000) == 0b10000;
+}
+
+inline std::u8string ShortStringFromPieceTypeAndStatus(PieceUnderlyingType p) {
   auto i = RemoveColorFromPiece(p);
   switch (i) {
   case static_cast<PieceUnderlyingType>(PieceType::Empty):
@@ -78,6 +95,43 @@ inline std::u8string StringFromPieceTypeAndStatus(PieceUnderlyingType p) {
     return u8"杏";
   case static_cast<PieceUnderlyingType>(PieceType::Pawn) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
     return u8"と";
+  }
+  return u8"？";
+}
+
+inline std::u8string LongStringFromPieceTypeAndStatus(PieceUnderlyingType p) {
+  auto i = RemoveColorFromPiece(p);
+  switch (i) {
+  case static_cast<PieceUnderlyingType>(PieceType::Empty):
+    return u8"　";
+  case static_cast<PieceUnderlyingType>(PieceType::King):
+    return u8"玉";
+  case static_cast<PieceUnderlyingType>(PieceType::Rook):
+    return u8"飛";
+  case static_cast<PieceUnderlyingType>(PieceType::Bishop):
+    return u8"角";
+  case static_cast<PieceUnderlyingType>(PieceType::Gold):
+    return u8"金";
+  case static_cast<PieceUnderlyingType>(PieceType::Silver):
+    return u8"銀";
+  case static_cast<PieceUnderlyingType>(PieceType::Knight):
+    return u8"桂";
+  case static_cast<PieceUnderlyingType>(PieceType::Lance):
+    return u8"香";
+  case static_cast<PieceUnderlyingType>(PieceType::Pawn):
+    return u8"歩";
+  case static_cast<PieceUnderlyingType>(PieceType::Rook) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
+    return u8"龍";
+  case static_cast<PieceUnderlyingType>(PieceType::Bishop) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
+    return u8"馬";
+  case static_cast<PieceUnderlyingType>(PieceType::Silver) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
+    return u8"成銀";
+  case static_cast<PieceUnderlyingType>(PieceType::Knight) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
+    return u8"成桂";
+  case static_cast<PieceUnderlyingType>(PieceType::Lance) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
+    return u8"成香";
+  case static_cast<PieceUnderlyingType>(PieceType::Pawn) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted):
+    return u8"と金";
   }
   return u8"？";
 }
@@ -227,6 +281,19 @@ struct Square {
   Rank rank;
 };
 
+// 左上(９一)を [0, 0], 右下(１九)を [8, 8] とした時の x, y を元に Square を作る.
+inline Square MakeSquare(int x, int y) {
+  return Square(static_cast<File>(8 - x), static_cast<Rank>(y));
+}
+
+inline bool operator==(Square const& a, Square const& b) {
+  return a.file == b.file && a.rank == b.rank;
+}
+
+inline std::u8string StringFromSquare(Square s) {
+  return StringFromFile(s.file) + StringFromRank(s.rank);
+}
+
 inline std::optional<Square> TrimSquarePartFromString(std::u8string &inout) {
   std::u8string s = inout;
   static std::map<std::u8string, int32_t> const sMap = {
@@ -286,6 +353,59 @@ inline std::optional<Square> TrimSquarePartFromString(std::u8string &inout) {
 inline std::optional<Square> SquareFromString(std::u8string const &s) {
   std::u8string cp = s;
   return TrimSquarePartFromString(cp);
+}
+
+struct Move {
+  Color color;
+  // 移動した駒.
+  Piece piece;
+  // from == nullopt の場合は駒打ち.
+  std::optional<Square> from;
+  Square to;
+  // 成る場合に true
+  bool promote;
+  // 相手の駒を取った場合, その駒の種類
+  std::optional<PieceType> newHand;
+};
+
+inline bool operator==(Move const& a, Move const& b) {
+  if (a.color != b.color) {
+    return false;
+  }
+  if ((bool)a.from != (bool)b.from) {
+    return false;
+  }
+  if (a.from && b.from) {
+    return *a.from == *b.from;
+  }
+  if (a.to != b.to) {
+    return false;
+  }
+  return a.promote == b.promote;
+}
+
+inline std::u8string StringFromMove(Move const& mv, std::optional<Square> last) {
+  std::u8string ret;
+  if (mv.color == Color::Black) {
+    ret += u8"▲";
+  } else {
+    ret += u8"▽";
+  }
+  if (last && mv.to == *last) {
+    ret += u8"同";
+  } else {
+    ret += StringFromSquare(mv.to);
+  }
+  ret += LongStringFromPieceTypeAndStatus(mv.piece);
+  if (mv.promote) {
+    ret += u8"成";
+  } else {
+    //TODO: 不成
+  }
+  if (!mv.from) {
+    ret += u8"打";
+  }
+  return ret;
 }
 
 inline double Distance(cv::Point const &a, cv::Point const &b) {
@@ -354,6 +474,15 @@ struct PieceContour {
   static std::shared_ptr<PieceContour> Make(std::vector<cv::Point2f> const &points);
 };
 
+struct Game {
+  Position position;
+  std::vector<Move> moves;
+
+  Game() {
+    position = MakePosition(Handicap::None);
+  }
+};
+
 struct Status {
   Status();
 
@@ -387,12 +516,14 @@ struct Status {
   // 台形補正済みの盤面画像
   cv::Mat boardWarped;
 
-  Position position;
+  // 試合の最新状況. Session.game のコピー.
+  Game game;
   // 直前のフレームと比較した時の各マスの類似度
   std::array<std::array<double, 9>, 9> similarity;
   // 直前の stable board と比較した時の各マスの類似度
   std::array<std::array<double, 9>, 9> similarityAgainstStableBoard;
   double stableBoardThreshold;
+  double stableBoardMaxSimilarity;
   // 最新の stable board
   std::optional<cv::Mat> stableBoard;
 };
@@ -400,24 +531,8 @@ struct Status {
 // 盤面画像.
 struct BoardImage {
   cv::Mat image;
-  static constexpr double kStableBoardThreshold = 0.02;
-};
-
-using HuMoments = std::array<double, 7>;
-// 各駒の画像の, HuMoment を集めたもの. HuMoment は回転に対して不変なので手番は区別しない. PieceType | PieceStatus のみ取り扱う.
-struct PieceHuMomentBook {
-  std::map<PieceUnderlyingType, std::deque<HuMoments>> store;
-
-  // 盤面画像と, その時の局面を元に book を更新する.
-  void add(Position const &position, cv::Mat const &board);
-
-  // 駒画像から最も似ている駒の種類を調べる.
-  std::optional<PieceUnderlyingType> best(cv::Mat const &piece);
-
-  static HuMoments Moments(cv::Mat const &piece);
-  static double Compare(HuMoments const &a, HuMoments const &b);
-
-  static constexpr int kMaxBookSize = 128;
+  static constexpr double kStableBoardMaxSimilarity = 0.03;
+  static constexpr double kStableBoardThreshold = kStableBoardMaxSimilarity * 0.5;
 };
 
 struct Statistics {
@@ -434,9 +549,7 @@ struct Statistics {
 
   std::deque<BoardImage> boardHistory;
   std::deque<std::array<BoardImage, 3>> stableBoardHistory;
-  void push(cv::Mat const &board, Status &s);
-
-  PieceHuMomentBook book;
+  void push(cv::Mat const &board, Status &s, Game &g);
 };
 
 class Session {
@@ -461,6 +574,7 @@ private:
   std::deque<cv::Mat> queue;
   std::shared_ptr<Status> s;
   Statistics stat;
+  Game game;
 };
 
 class Utility {
