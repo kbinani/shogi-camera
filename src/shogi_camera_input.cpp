@@ -1164,6 +1164,29 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
 void Game::apply(Move const &mv) {
   if (mv.from) {
     position.pieces[mv.from->file][mv.from->rank] = 0;
+  } else {
+    PieceType type = PieceTypeFromPiece(mv.piece);
+    bool ok = false;
+    if (mv.color == Color::Black) {
+      for (auto it = handBlack.begin(); it != handBlack.end(); it++) {
+        if (*it == type) {
+          handBlack.erase(it);
+          ok = true;
+          break;
+        }
+      }
+    } else {
+      for (auto it = handWhite.begin(); it != handWhite.end(); it++) {
+        if (*it == type) {
+          handWhite.erase(it);
+          ok = true;
+          break;
+        }
+      }
+    }
+    if (!ok) {
+      std::cout << "存在しない持ち駒を打った" << std::endl;
+    }
   }
   if (mv.promote && !IsPromotedPiece(mv.piece)) {
     position.pieces[mv.to.file][mv.to.rank] = Promote(mv.piece);
