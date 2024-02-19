@@ -400,7 +400,7 @@ struct Status {
 // 盤面画像.
 struct BoardImage {
   cv::Mat image;
-  static constexpr double kStableBoardThreshold = 0.015;
+  static constexpr double kStableBoardThreshold = 0.02;
 };
 
 using HuMoments = std::array<double, 7>;

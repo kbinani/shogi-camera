@@ -186,10 +186,8 @@ class DebugView: UIView {
       guard let status else {
         return
       }
-      guard let stableBoard = status.stableBoard.value else {
-        return
-      }
-      guard let ptr = sci.Utility.UIImageFromMat(stableBoard) else {
+      let board = status.boardWarped
+      guard let ptr = sci.Utility.UIImageFromMat(board) else {
         return
       }
       let image = Unmanaged<UIImage>.fromOpaque(ptr).takeRetainedValue()
@@ -212,13 +210,12 @@ class DebugView: UIView {
       ctx.draw(cgImage, in: rect)
       var minSim: CGFloat = CGFloat.infinity
       var maxSim: CGFloat = -CGFloat.infinity
-      //      for y in 0..<9 {
-      //        for x in 0..<9 {
-      //          minSim = min(minSim, status.similarity[x][y])
-      //          maxSim = max(maxSim, status.similarity[x][y])
-      //        }
-      //      }
-      //      print(minSim, maxSim)
+      for y in 0..<9 {
+        for x in 0..<9 {
+          minSim = min(minSim, status.similarity[x][y])
+          maxSim = max(maxSim, status.similarity[x][y])
+        }
+      }
       minSim = 0
       maxSim = status.stableBoardThreshold
       for y in 0..<9 {

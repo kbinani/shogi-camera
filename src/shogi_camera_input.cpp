@@ -214,16 +214,8 @@ std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b) {
   cv::Size size(width, height);
   cv::Mat ra;
   cv::Mat rb;
-  if (size == a.size()) {
-    ra = a;
-  } else {
-    cv::resize(a, ra, size);
-  }
-  if (size == b.size()) {
-    rb = b;
-  } else {
-    cv::resize(b, rb, size);
-  }
+  cv::resize(a, ra, size);
+  cv::resize(b, rb, size);
   return make_pair(ra, rb);
 }
 
@@ -765,33 +757,32 @@ void Compare(BoardImage const &before, BoardImage const &after, std::vector<cv::
   using namespace std;
 
   // 2 枚の盤面画像を比較する. 変動が検出された升目を buffer に格納する.
-  cv::Mat a = after.image;
-  cv::Mat b = before.image;
-  cv::Size size(std::max(a.size().width, b.size().width), std::max(a.size().height, b.size().height));
-  if (a.size() != size) {
-    cv::Mat out;
-    cv::resize(a, out, size);
-    a = out;
-  }
-  if (b.size() != size) {
-    cv::Mat out;
-    cv::resize(b, out, size);
-    b = out;
-  }
-  double const minSim = 0;
-  double const maxSim = BoardImage::kStableBoardThreshold;
+
+  buffer.clear();
+  auto [b, a] = Equalize(before.image, after.image);
+  double minSim = numeric_limits<double>::max();
+  double maxSim = numeric_limits<double>::lowest();
+  double sim[9][9];
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
-      float shrink = 0.8; // マス目の境界付近の変動を拾わないよう, 範囲を調べて駒画像を取得する.
-      cv::Mat pb = PieceROI(b, x, y, shrink);
-      cv::Mat pa = PieceROI(a, x, y, shrink);
-
-      double sim = cv::matchShapes(pb, pa, cv::CONTOURS_MATCH_I1, 0);
+      cv::Mat pb = PieceROI(b, x, y).clone();
+      cv::Mat pa = PieceROI(a, x, y).clone();
+      cv::adaptiveThreshold(pb, pb, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+      cv::adaptiveThreshold(pa, pa, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+      double s = cv::matchShapes(pb, pa, cv::CONTOURS_MATCH_I1, 0);
+      minSim = std::min(minSim, s);
+      maxSim = std::max(maxSim, s);
+      sim[x][y] = s;
       if (similarity) {
-        (*similarity)[x][y] = sim;
+        (*similarity)[x][y] = s;
       }
-      double s = std::min((double)1, (sim - minSim) / (maxSim - minSim));
-      if (s > 0.5) {
+    }
+  }
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      double s = sim[x][y];
+      double v = std::min((double)1, (s - minSim) / (maxSim - minSim));
+      if (v > 0.5) {
         buffer.push_back(cv::Point(x, y));
       }
     }
@@ -940,6 +931,7 @@ void Statistics::push(cv::Mat const &board, Status &s) {
   BoardImage const &after = boardHistory[boardHistory.size() - 1];
   vector<cv::Point> changes;
   Compare(before, after, changes, &s.similarity);
+  cout << "changes.size()=" << changes.size() << endl;
   if (!stableBoardHistory.empty()) {
     auto const &last = stableBoardHistory.back();
     vector<cv::Point> tmp;

@@ -28,33 +28,42 @@ int main(int argc, const char *argv[]) {
   double maxSim = numeric_limits<double>::lowest();
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
-      auto pb = PieceROI(before, x, y).clone();
-      auto pa = PieceROI(after, x, y).clone();
-      auto [rpb, rpa] = Equalize(pb, pa);
-      double minB, maxB;
-      cv::minMaxLoc(rpb, &minB, &maxB);
-      double minA, maxA;
-      cv::minMaxLoc(rpa, &minA, &maxA);
-      double minimum = std::min(minA, minB);
-      double maximum = std::max(maxA, maxB);
-      rpa = (rpa - minimum) / (maximum - minimum);
-      rpb = (rpb - minimum) / (maximum - minimum);
-      cv::Mat diff;
-      cv::absdiff(rpa, rpb, diff);
-      auto sum = cv::sum(diff);
-      double s = sum.val[0] / double(rpb.size().area());
+      auto pb = PieceROI(b, x, y);
+      auto pa = PieceROI(a, x, y);
+      //      if (x == 0 && y == 0) {
+      cv::adaptiveThreshold(pb, pb, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+      cv::adaptiveThreshold(pa, pa, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+      //      }
+      //      auto [rpb, rpa] = Equalize(pb, pa);
+      //      Normalize(rpb);
+      //      Normalize(rpa);
+      double s = cv::matchShapes(pb, pa, cv::CONTOURS_MATCH_I1, 0);
       sim[x][y] = s;
       minSim = std::min(minSim, s);
       maxSim = std::max(maxSim, s);
     }
   }
+  cout << "minSim=" << minSim << "; maxSim=" << maxSim << endl;
+
   int width = b.size().width;
   int height = b.size().height;
+  //  cv::Mat mid(cv::Size(width, height), CV_8UC3, cv::Scalar(255, 255, 255, 255));
+  //  vector<vector<cv::Point>> cBefore;
+  //  FindContoursSimple(b, cBefore);
+  //  vector<vector<cv::Point>> cAfter;
+  //  FindContoursSimple(a, cAfter);
+  //  cv::cvtColor(a, a, cv::COLOR_GRAY2RGB);
+  //  cv::cvtColor(b, b, cv::COLOR_GRAY2RGB);
+  //  cv::drawContours(b, cBefore, -1, cv::Scalar(255, 0, 0));
+  //  cv::drawContours(a, cAfter, -1, cv::Scalar(0, 255, 0));
+
   cv::Mat all(cv::Size(width * 3, height), CV_8UC3, cv::Scalar(255, 255, 255, 255));
+  //  cv::threshold(b, b, 0, 255, cv::THRESH_OTSU);
+  //  cv::threshold(a, a, 0, 255, cv::THRESH_OTSU);
   Bitblt(b, all, 0, 0);
   Bitblt(a, all, width * 2, 0);
   cv::cvtColor(all, all, cv::COLOR_GRAY2RGB);
-  colormap::transform::Seismic cmap;
+  colormap::MATLAB::Jet cmap;
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
       double s = sim[x][y];
