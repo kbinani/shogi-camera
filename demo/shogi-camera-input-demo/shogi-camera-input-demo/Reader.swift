@@ -4,7 +4,6 @@ import ShogiCameraInput
 class Reader {
   private let engine = AVAudioEngine()
   private let node = AVAudioPlayerNode()
-  private var buffer: AVAudioPCMBuffer!
   private var file: AVAudioFile!
 
   init?() {
@@ -12,17 +11,7 @@ class Reader {
       return nil
     }
     do {
-      let file = try AVAudioFile(forReading: voice)
-      guard
-        let buffer = AVAudioPCMBuffer(
-          pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length))
-      else {
-        return
-      }
-      self.file = file
-      try file.read(into: buffer)
-      self.buffer = buffer
-
+      file = try AVAudioFile(forReading: voice)
       let session = AVAudioSession.sharedInstance()
       try session.setCategory(.playAndRecord)
       try session.setActive(true)
