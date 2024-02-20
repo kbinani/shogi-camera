@@ -962,6 +962,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     return;
   }
   int constexpr stableThresholdFrames = 8;
+  int constexpr stableThresholdMoves = 5;
   // 盤面の各マスについて, 直前の画像との類似度を計算する. 将棋は 1 手につきたかだか 2 マス変動するはず. もし変動したマスが 3 マス以上なら,
   // 指が映り込むなどして盤面が正確に検出できなかった可能性がある.
   // 直前から変動した升目数が 0 のフレームが stableThresholdFrames フレーム連続した時, stable になったと判定する.
@@ -1026,6 +1027,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
         return;
       } else if (changes.size() > 2) {
         // 変化箇所が 3 以上ある場合, 将棋の駒以外の変化が盤面に現れているので無視.
+        // TODO: まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
         return;
       }
       minChange = min(minChange, (int)changes.size());
@@ -1132,7 +1134,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     }
   }
   moveCandidateHistory.push_back(*move);
-  if (moveCandidateHistory.size() < 5) {
+  if (moveCandidateHistory.size() < stableThresholdMoves) {
     // stable と判定するにはまだ足りない.
     return;
   }
@@ -1146,6 +1148,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     lastMoveTo = g.moves.back().to;
   }
   cout << (char const *)StringFromMove(*move, lastMoveTo).c_str() << endl;
+  // 初手なら画像の上下どちらが先手側か判定する.
   if (g.moves.empty() && move->to.rank < 5) {
     // キャプチャした画像で先手が上になっている. 以後 180 度回転して処理する.
     if (move->from) {
