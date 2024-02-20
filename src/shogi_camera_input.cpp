@@ -759,7 +759,17 @@ cv::Mat PieceROI(cv::Mat const &board, int x, int y, float shrink = 1) {
   return cv::Mat(board, cv::Rect(x0, y0, x1 - x0, y1 - y0));
 }
 
-void Compare(BoardImage const &before, BoardImage const &after, std::vector<cv::Point> &buffer, std::array<std::array<double, 9>, 9> *similarity = nullptr) {
+struct LessCvPoint {
+  constexpr bool operator()(cv::Point const &a, cv::Point const &b) const {
+    if (a.x == b.x) {
+      return a.y < b.y;
+    } else {
+      return a.x < b.x;
+    }
+  }
+};
+
+void Compare(BoardImage const &before, BoardImage const &after, std::set<cv::Point, LessCvPoint> &buffer, std::array<std::array<double, 9>, 9> *similarity = nullptr) {
   using namespace std;
 
   // 2 枚の盤面画像を比較する. 変動が検出された升目を buffer に格納する.
@@ -784,7 +794,7 @@ void Compare(BoardImage const &before, BoardImage const &after, std::vector<cv::
     for (int x = 0; x < 9; x++) {
       double s = sim[x][y];
       if (s > BoardImage::kStableBoardThreshold) {
-        buffer.push_back(cv::Point(x, y));
+        buffer.insert(cv::Point(x, y));
       }
     }
   }
@@ -806,6 +816,22 @@ void PrintAsBase64(cv::Mat const &image, std::string const &title) {
   cout << "== " << title << endl;
   cout << base64::to_base64(cbuffer) << endl;
   cout << "--" << endl;
+}
+
+template <class T, class L>
+bool IsIdentical(std::set<T, L> const &a, std::set<T, L> const &b) {
+  if (a.size() != b.size()) {
+    return false;
+  }
+  if (a.empty()) {
+    return true;
+  }
+  for (auto const &i : a) {
+    if (b.find(i) == b.end()) {
+      return false;
+    }
+  }
+  return true;
 }
 } // namespace
 
@@ -941,20 +967,22 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   // 直前から変動した升目数が 0 のフレームが stableThresholdFrames フレーム連続した時, stable になったと判定する.
   BoardImage const &before = boardHistory[boardHistory.size() - 2];
   BoardImage const &after = boardHistory[boardHistory.size() - 1];
-  vector<cv::Point> changes;
+  set<cv::Point, LessCvPoint> changes;
   Compare(before, after, changes, &s.similarity);
   if (!stableBoardHistory.empty()) {
     auto const &last = stableBoardHistory.back();
-    vector<cv::Point> tmp;
+    set<cv::Point, LessCvPoint> tmp;
     Compare(last[2], bi, tmp, &s.similarityAgainstStableBoard);
   }
   if (!changes.empty()) {
     // 変動したマス目が 3 以上なので, 最新のフレームだけ残して捨てる.
     boardHistory.clear();
     boardHistory.push_back(bi);
+    moveCandidateHistory.clear();
     //    cout << "変動したマス目が 3 以上なので, 最新のフレームだけ残して捨てる. " << endl;
     return;
   }
+  // 直前の stable board がある場合, stable board と
   if (boardHistory.size() < stableThresholdFrames) {
     // まだ stable じゃない.
     //    cout << "まだ stable じゃない." << boardHistory.size() << endl;
@@ -966,7 +994,6 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     history[i] = boardHistory.back();
     boardHistory.pop_back();
   }
-  boardHistory.clear();
   //  static int framecount = 0;
   //  {
   //    vector<uchar> buffer;
@@ -980,175 +1007,151 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   if (stableBoardHistory.empty()) {
     // 最初の stable board なので登録するだけ.
     stableBoardHistory.push_back(history);
+    boardHistory.clear();
     return;
   }
-
   // 直前の stable board の各フレームと比較して, 変動したマス目が有るかどうか判定する.
   array<BoardImage, 3> &last = stableBoardHistory.back();
-  vector<vector<cv::Point>> changeset;
-  bool allUnchanged = true;
-  bool tooManyChanges = false;
   int minChange = 81;
   int maxChange = -1;
+  vector<set<cv::Point, LessCvPoint>> changeset;
   for (int i = 0; i < last.size(); i++) {
     for (int j = 0; j < history.size(); j++) {
       auto const &before = last[i];
       auto const &after = history[j];
       changes.clear();
       Compare(before, after, changes);
+      if (changes.size() == 0) {
+        // 直前の stable board と比べて変化箇所が無い場合は無視.
+        return;
+      } else if (changes.size() > 2) {
+        // 変化箇所が 3 以上ある場合, 将棋の駒以外の変化が盤面に現れているので無視.
+        return;
+      }
       minChange = min(minChange, (int)changes.size());
       maxChange = max(maxChange, (int)changes.size());
-      if (!changes.empty()) {
-        allUnchanged = false;
-      }
-      if (changes.size() > 2) {
-        tooManyChanges = true;
-      }
       changeset.push_back(changes);
     }
   }
-  if (allUnchanged) {
-    // 最新の盤面と, 前回の stableBoard が同じ. stableBoard を最新に更新するだけ.
-    stableBoardHistory.pop_back();
-    stableBoardHistory.push_back(history);
-    //    cout << "最新の盤面と, 前回の stableBoard が同じ. stableBoard を最新に更新するだけ." << endl;
+  if (changeset.empty() || minChange != maxChange) {
+    // 有効な変化が発見できなかった
     return;
   }
-  if (tooManyChanges) {
-    //    cout << "盤面の変動が 3 マス以上. 最新を更新; minChange=" << minChange << "; maxChange=" << maxChange << endl;
-    stableBoardHistory.pop_back();
-    stableBoardHistory.push_back(history);
-    // 盤面の変動が 3 マス以上. まだ stable じゃないと判定して無視する.
-    //    cout << "盤面の変動が 3 マス以上. まだ stable じゃないと判定して無視する." << endl;
-    //    for (auto const& ch : changeset) {
-    //      cout << "{";
-    //      for (auto const& p : ch) {
-    //        cout << "[" << p.x << "," << p.y << "], ";
-    //      }
-    //      cout << "}" << endl;
-    //    }
-    return;
+  // changeset 内の変化位置が全て同じ部分を指しているか確認する. 違っていれば stable とはみなせない.
+  for (int i = 1; i < changeset.size(); i++) {
+    if (!IsIdentical(changeset[0], changeset[i])) {
+      return;
+    }
   }
   // index 番目の手.
   size_t const index = g.moves.size();
   Color const color = ColorFromIndex(index);
-  vector<Move> candidates;
-  int k = 0;
-  for (int i = 0; i < last.size(); i++) {
-    for (int j = 0; j < history.size(); j++) {
-      auto const &ch = changeset[k++];
-      if (ch.size() == 1) {
-        cout << "TODO: 駒打ち" << endl;
-        PrintAsBase64(last[i].image, "last[" + to_string(i) + "]");
-        PrintAsBase64(history[j].image, "history[" + to_string(j) + "]");
-        // TODO: 駒打ちの場合
-      } else if (ch.size() == 2) {
-        // from と to どちらも駒がある場合 => from が to の駒を取る
-        // to が空きマス, from が手番の駒 => 駒の移動
-        // それ以外 => エラー
-        Piece p0 = g.position.pieces[ch[0].x][ch[0].y];
-        Piece p1 = g.position.pieces[ch[1].x][ch[1].y];
-        if (p0 != 0 && p1 != 0) {
-          if (ColorFromPiece(p0) == ColorFromPiece(p1)) {
-            cout << "自分の駒を自分で取っている" << endl;
-            break;
-          }
-          Move mv;
-          mv.color = color;
-          if (ColorFromPiece(p0) == color) {
-            // p0 の駒が p1 の駒を取った.
-            mv.from = MakeSquare(ch[0].x, ch[0].y);
-            mv.to = MakeSquare(ch[1].x, ch[1].y);
-            mv.piece = p0;
-            mv.newHand = PieceTypeFromPiece(p1);
-            if (!IsPromotedPiece(p0)) {
-              // TODO: 成りを検出
-              mv.promote = false;
-            }
-          } else {
-            // p1 の駒が p0 の駒を取った.
-            mv.from = MakeSquare(ch[1].x, ch[1].y);
-            mv.to = MakeSquare(ch[0].x, ch[0].y);
-            mv.piece = p1;
-            mv.newHand = PieceTypeFromPiece(p0);
-            if (!IsPromotedPiece(p1)) {
-              // TODO: 成りを検出
-              mv.promote = false;
-            }
-          }
-          candidates.push_back(mv);
-        } else if (p0) {
-          // p0 の駒が p1 に移動
-          Move mv;
-          mv.color = color;
-          mv.from = MakeSquare(ch[0].x, ch[0].y);
-          mv.to = MakeSquare(ch[1].x, ch[1].y);
+  set<cv::Point, LessCvPoint> const &ch = changeset.front();
+  optional<Move> move;
+  if (ch.size() == 1) {
+    cout << "TODO: 駒打ち" << endl;
+    PrintAsBase64(last.back().image, "last");
+    PrintAsBase64(history.back().image, "history");
+    // TODO: 駒打ちの場合
+  } else if (ch.size() == 2) {
+    // from と to どちらも駒がある場合 => from が to の駒を取る
+    // to が空きマス, from が手番の駒 => 駒の移動
+    // それ以外 => エラー
+    auto it = ch.begin();
+    cv::Point ch0 = *it;
+    it++;
+    cv::Point ch1 = *it;
+    Piece p0 = g.position.pieces[ch0.x][ch0.y];
+    Piece p1 = g.position.pieces[ch1.x][ch1.y];
+    if (p0 != 0 && p1 != 0) {
+      if (ColorFromPiece(p0) == ColorFromPiece(p1)) {
+        cout << "自分の駒を自分で取っている" << endl;
+      } else {
+        Move mv;
+        mv.color = color;
+        if (ColorFromPiece(p0) == color) {
+          // p0 の駒が p1 の駒を取った.
+          mv.from = MakeSquare(ch0.x, ch0.y);
+          mv.to = MakeSquare(ch1.x, ch1.y);
           mv.piece = p0;
+          mv.newHand = PieceTypeFromPiece(p1);
           if (!IsPromotedPiece(p0)) {
             // TODO: 成りを検出
             mv.promote = false;
           }
-          candidates.push_back(mv);
-        } else if (p1) {
-          // p1 の駒が p0 に移動
-          Move mv;
-          mv.color = color;
-          mv.from = MakeSquare(ch[1].x, ch[1].y);
-          mv.to = MakeSquare(ch[0].x, ch[0].y);
+        } else {
+          // p1 の駒が p0 の駒を取った.
+          mv.from = MakeSquare(ch1.x, ch1.y);
+          mv.to = MakeSquare(ch0.x, ch0.y);
           mv.piece = p1;
+          mv.newHand = PieceTypeFromPiece(p0);
           if (!IsPromotedPiece(p1)) {
             // TODO: 成りを検出
             mv.promote = false;
           }
-          candidates.push_back(mv);
-        } else {
-          cout << "認識できない駒移動" << endl;
         }
+        move = mv;
       }
+    } else if (p0) {
+      // p0 の駒が p1 に移動
+      Move mv;
+      mv.color = color;
+      mv.from = MakeSquare(ch0.x, ch0.y);
+      mv.to = MakeSquare(ch1.x, ch1.y);
+      mv.piece = p0;
+      if (!IsPromotedPiece(p0)) {
+        // TODO: 成りを検出
+        mv.promote = false;
+      }
+      move = mv;
+    } else if (p1) {
+      // p1 の駒が p0 に移動
+      Move mv;
+      mv.color = color;
+      mv.from = MakeSquare(ch1.x, ch1.y);
+      mv.to = MakeSquare(ch0.x, ch0.y);
+      mv.piece = p1;
+      if (!IsPromotedPiece(p1)) {
+        // TODO: 成りを検出
+        mv.promote = false;
+      }
+      move = mv;
+    } else {
+      cout << "認識できない駒移動" << endl;
     }
   }
-  if (candidates.empty()) {
+  if (!move) {
     cout << "検出できなかった" << endl;
     return;
   }
+  for (Move const &m : moveCandidateHistory) {
+    if (m != *move) {
+      moveCandidateHistory.clear();
+      moveCandidateHistory.push_back(*move);
+      return;
+    }
+  }
+  moveCandidateHistory.push_back(*move);
+  if (moveCandidateHistory.size() < 5) {
+    // stable と判定するにはまだ足りない.
+    return;
+  }
+
+  // move が確定した
+  moveCandidateHistory.clear();
+  stableBoardHistory.clear();
+
   optional<Square> lastMoveTo;
   if (!g.moves.empty()) {
     lastMoveTo = g.moves.back().to;
   }
-  vector<pair<Move, int>> vote;
-  for (int i = 0; i < candidates.size(); i++) {
-    Move c = candidates[i];
-    bool found = false;
-    for (int j = 0; j < vote.size(); j++) {
-      if (vote[j].first == c) {
-        found = true;
-        vote[j].second += 1;
-        break;
-      }
-    }
-    if (!found) {
-      vote.push_back(make_pair(candidates[i], 1));
-    }
-  }
-  Move mv;
-  if (vote.size() == 1) {
-    mv = candidates[0];
-  } else {
-    // なんらか検出結果を出さないと破綻する. 最も投票数の多かった検出結果を返すことにする.
-    sort(vote.begin(), vote.end(), [](auto const &l, auto const &r) { return l.second < r.second; });
-    mv = vote[0].first;
-    for (auto const &it : vote) {
-      cout << "candidate: " << (char const *)StringFromMove(it.first, lastMoveTo).c_str() << endl;
-    }
-    cout << "検出結果が複数に分かれた. 投票で最も多かった検出結果を採用" << endl;
-  }
-  cout << (char const *)StringFromMove(mv, lastMoveTo).c_str() << endl;
-  if (g.moves.empty() && mv.to.rank < 5) {
+  cout << (char const *)StringFromMove(*move, lastMoveTo).c_str() << endl;
+  if (g.moves.empty() && move->to.rank < 5) {
     // キャプチャした画像で先手が上になっている. 以後 180 度回転して処理する.
-    if (mv.from) {
-      mv.from = mv.from->rotated();
+    if (move->from) {
+      move->from = move->from->rotated();
     }
-    mv.to = mv.to.rotated();
+    move->to = move->to.rotated();
     for (int i = 0; i < history.size(); i++) {
       cv::Mat rotated;
       cv::rotate(history[i].image, rotated, cv::ROTATE_180);
@@ -1165,8 +1168,8 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     rotate = true;
   }
   stableBoardHistory.push_back(history);
-  g.moves.push_back(mv);
-  g.apply(mv);
+  g.moves.push_back(*move);
+  g.apply(*move);
 }
 
 void Game::apply(Move const &mv) {

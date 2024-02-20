@@ -570,6 +570,8 @@ struct Statistics {
   void push(cv::Mat const &board, Status &s, Game &g);
   // 盤面画像を180度回転してから盤面認識処理すべき場合に true.
   bool rotate = false;
+
+  std::deque<Move> moveCandidateHistory;
 };
 
 class Session {
