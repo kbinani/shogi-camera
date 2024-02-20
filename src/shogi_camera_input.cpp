@@ -1083,29 +1083,37 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
         move = mv;
       }
     } else if (p0) {
-      // p0 の駒が p1 に移動
-      Move mv;
-      mv.color = color;
-      mv.from = MakeSquare(ch0.x, ch0.y);
-      mv.to = MakeSquare(ch1.x, ch1.y);
-      mv.piece = p0;
-      if (!IsPromotedPiece(p0)) {
-        // TODO: 成りを検出
-        mv.promote = false;
+      if (ColorFromPiece(p0) == color) {
+        // p0 の駒が p1 に移動
+        Move mv;
+        mv.color = color;
+        mv.from = MakeSquare(ch0.x, ch0.y);
+        mv.to = MakeSquare(ch1.x, ch1.y);
+        mv.piece = p0;
+        if (!IsPromotedPiece(p0)) {
+          // TODO: 成りを検出
+          mv.promote = false;
+        }
+        move = mv;
+      } else {
+        cout << "相手の駒を動かしている" << endl;
       }
-      move = mv;
     } else if (p1) {
-      // p1 の駒が p0 に移動
-      Move mv;
-      mv.color = color;
-      mv.from = MakeSquare(ch1.x, ch1.y);
-      mv.to = MakeSquare(ch0.x, ch0.y);
-      mv.piece = p1;
-      if (!IsPromotedPiece(p1)) {
-        // TODO: 成りを検出
-        mv.promote = false;
+      if (ColorFromPiece(p1) == color) {
+        // p1 の駒が p0 に移動
+        Move mv;
+        mv.color = color;
+        mv.from = MakeSquare(ch1.x, ch1.y);
+        mv.to = MakeSquare(ch0.x, ch0.y);
+        mv.piece = p1;
+        if (!IsPromotedPiece(p1)) {
+          // TODO: 成りを検出
+          mv.promote = false;
+        }
+        move = mv;
+      } else {
+        cout << "相手の駒を動かしている" << endl;
       }
-      move = mv;
     }
   }
   if (!move) {
