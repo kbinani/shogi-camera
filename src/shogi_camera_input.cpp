@@ -757,18 +757,6 @@ cv::Mat PieceROI(cv::Mat const &board, int x, int y, float shrink = 1) {
   return cv::Mat(board, cv::Rect(x0, y0, x1 - x0, y1 - y0));
 }
 
-struct LessCvPoint {
-  constexpr bool operator()(cv::Point const &a, cv::Point const &b) const {
-    if (a.x == b.x) {
-      return a.y < b.y;
-    } else {
-      return a.x < b.x;
-    }
-  }
-};
-
-using CvPointSet = std::set<cv::Point, LessCvPoint>;
-
 void Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, std::array<std::array<double, 9>, 9> *similarity = nullptr) {
   using namespace std;
 
@@ -997,6 +985,9 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     // 最初の stable board なので登録するだけ.
     stableBoardHistory.push_back(history);
     boardHistory.clear();
+    if (true) {
+      PrintAsBase64(board, "");
+    }
     return;
   }
   // 直前の stable board の各フレームと比較して, 変動したマス目が有るかどうか判定する.
@@ -1037,90 +1028,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   size_t const index = g.moves.size();
   Color const color = ColorFromIndex(index);
   CvPointSet const &ch = changeset.front();
-  optional<Move> move;
-  if (ch.size() == 1) {
-    auto &hand = g.hand(color);
-    if (hand.empty()) {
-      cout << "持ち駒が無いので駒打ちは検出できない" << endl;
-    } else {
-      cout << "TODO: 駒打ち" << endl;
-      PrintAsBase64(last.back().image, "last");
-      PrintAsBase64(history.back().image, "history");
-      // TODO: 駒打ちの場合
-    }
-  } else if (ch.size() == 2) {
-    // from と to どちらも駒がある場合 => from が to の駒を取る
-    // to が空きマス, from が手番の駒 => 駒の移動
-    // それ以外 => エラー
-    auto it = ch.begin();
-    cv::Point ch0 = *it;
-    it++;
-    cv::Point ch1 = *it;
-    Piece p0 = g.position.pieces[ch0.x][ch0.y];
-    Piece p1 = g.position.pieces[ch1.x][ch1.y];
-    if (p0 != 0 && p1 != 0) {
-      if (ColorFromPiece(p0) == ColorFromPiece(p1)) {
-        cout << "自分の駒を自分で取っている" << endl;
-      } else {
-        Move mv;
-        mv.color = color;
-        if (g.moves.empty() || ColorFromPiece(p0) == color) {
-          // p0 の駒が p1 の駒を取った.
-          mv.from = MakeSquare(ch0.x, ch0.y);
-          mv.to = MakeSquare(ch1.x, ch1.y);
-          mv.piece = p0;
-          mv.newHand = PieceTypeFromPiece(p1);
-          if (!IsPromotedPiece(p0)) {
-            // TODO: 成りを検出
-            mv.promote = false;
-          }
-        } else {
-          // p1 の駒が p0 の駒を取った.
-          mv.from = MakeSquare(ch1.x, ch1.y);
-          mv.to = MakeSquare(ch0.x, ch0.y);
-          mv.piece = p1;
-          mv.newHand = PieceTypeFromPiece(p0);
-          if (!IsPromotedPiece(p1)) {
-            // TODO: 成りを検出
-            mv.promote = false;
-          }
-        }
-        move = mv;
-      }
-    } else if (p0) {
-      if (g.moves.empty() || ColorFromPiece(p0) == color) {
-        // p0 の駒が p1 に移動
-        Move mv;
-        mv.color = color;
-        mv.from = MakeSquare(ch0.x, ch0.y);
-        mv.to = MakeSquare(ch1.x, ch1.y);
-        mv.piece = p0;
-        if (!IsPromotedPiece(p0)) {
-          // TODO: 成りを検出
-          mv.promote = false;
-        }
-        move = mv;
-      } else {
-        cout << "相手の駒を動かしている" << endl;
-      }
-    } else if (p1) {
-      if (g.moves.empty() || ColorFromPiece(p1) == color) {
-        // p1 の駒が p0 に移動
-        Move mv;
-        mv.color = color;
-        mv.from = MakeSquare(ch1.x, ch1.y);
-        mv.to = MakeSquare(ch0.x, ch0.y);
-        mv.piece = p1;
-        if (!IsPromotedPiece(p1)) {
-          // TODO: 成りを検出
-          mv.promote = false;
-        }
-        move = mv;
-      } else {
-        cout << "相手の駒を動かしている" << endl;
-      }
-    }
-  }
+  optional<Move> move = Statistics::Detect(ch, g.position, g.moves, color, g.hand(color));
   if (!move) {
     return;
   }
@@ -1163,6 +1071,92 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   stableBoardHistory.push_back(history);
   g.moves.push_back(*move);
   g.apply(*move);
+}
+
+std::optional<Move> Statistics::Detect(CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand) {
+  using namespace std;
+  optional<Move> move;
+  if (changes.size() == 1) {
+    if (hand.empty()) {
+      cout << "持ち駒が無いので駒打ちは検出できない" << endl;
+    } else {
+      // TODO: 駒打ちの場合
+      cout << "TODO: 駒打ち" << endl;
+    }
+  } else if (changes.size() == 2) {
+    // from と to どちらも駒がある場合 => from が to の駒を取る
+    // to が空きマス, from が手番の駒 => 駒の移動
+    // それ以外 => エラー
+    auto it = changes.begin();
+    cv::Point ch0 = *it;
+    it++;
+    cv::Point ch1 = *it;
+    Piece p0 = position.pieces[ch0.x][ch0.y];
+    Piece p1 = position.pieces[ch1.x][ch1.y];
+    if (p0 != 0 && p1 != 0) {
+      if (ColorFromPiece(p0) == ColorFromPiece(p1)) {
+        cout << "自分の駒を自分で取っている" << endl;
+      } else {
+        Move mv;
+        mv.color = color;
+        if (moves.empty() || ColorFromPiece(p0) == color) {
+          // p0 の駒が p1 の駒を取った.
+          mv.from = MakeSquare(ch0.x, ch0.y);
+          mv.to = MakeSquare(ch1.x, ch1.y);
+          mv.piece = p0;
+          mv.newHand = PieceTypeFromPiece(p1);
+          if (!IsPromotedPiece(p0)) {
+            // TODO: 成りを検出
+            mv.promote = false;
+          }
+        } else {
+          // p1 の駒が p0 の駒を取った.
+          mv.from = MakeSquare(ch1.x, ch1.y);
+          mv.to = MakeSquare(ch0.x, ch0.y);
+          mv.piece = p1;
+          mv.newHand = PieceTypeFromPiece(p0);
+          if (!IsPromotedPiece(p1)) {
+            // TODO: 成りを検出
+            mv.promote = false;
+          }
+        }
+        move = mv;
+      }
+    } else if (p0) {
+      if (moves.empty() || ColorFromPiece(p0) == color) {
+        // p0 の駒が p1 に移動
+        Move mv;
+        mv.color = color;
+        mv.from = MakeSquare(ch0.x, ch0.y);
+        mv.to = MakeSquare(ch1.x, ch1.y);
+        mv.piece = p0;
+        if (!IsPromotedPiece(p0)) {
+          // TODO: 成りを検出
+          mv.promote = false;
+        }
+        move = mv;
+      } else {
+        cout << "相手の駒を動かしている" << endl;
+      }
+    } else if (p1) {
+      if (moves.empty() || ColorFromPiece(p1) == color) {
+        // p1 の駒が p0 に移動
+        Move mv;
+        mv.color = color;
+        mv.from = MakeSquare(ch1.x, ch1.y);
+        mv.to = MakeSquare(ch0.x, ch0.y);
+        mv.piece = p1;
+        if (!IsPromotedPiece(p1)) {
+          // TODO: 成りを検出
+          mv.promote = false;
+        }
+        move = mv;
+      } else {
+        cout << "相手の駒を動かしている" << endl;
+      }
+    }
+  }
+  return move;
 }
 
 void Game::apply(Move const &mv) {

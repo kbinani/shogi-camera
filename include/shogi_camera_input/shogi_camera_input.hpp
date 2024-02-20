@@ -561,6 +561,18 @@ struct BoardImage {
   static constexpr double kStableBoardThreshold = kStableBoardMaxSimilarity * 0.5;
 };
 
+struct LessCvPoint {
+  constexpr bool operator()(cv::Point const &a, cv::Point const &b) const {
+    if (a.x == b.x) {
+      return a.y < b.y;
+    } else {
+      return a.x < b.x;
+    }
+  }
+};
+
+using CvPointSet = std::set<cv::Point, LessCvPoint>;
+
 struct Statistics {
   std::deque<float> squareAreaHistory;
   std::optional<float> squareArea;
@@ -580,6 +592,8 @@ struct Statistics {
   bool rotate = false;
 
   std::deque<Move> moveCandidateHistory;
+
+  static std::optional<Move> Detect(CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand);
 };
 
 class Session {
