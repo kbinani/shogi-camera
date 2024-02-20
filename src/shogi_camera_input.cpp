@@ -1039,10 +1039,15 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   CvPointSet const &ch = changeset.front();
   optional<Move> move;
   if (ch.size() == 1) {
-    cout << "TODO: 駒打ち" << endl;
-    PrintAsBase64(last.back().image, "last");
-    PrintAsBase64(history.back().image, "history");
-    // TODO: 駒打ちの場合
+    auto &hand = g.hand(color);
+    if (hand.empty()) {
+      cout << "持ち駒が無いので駒打ちは検出できない" << endl;
+    } else {
+      cout << "TODO: 駒打ち" << endl;
+      PrintAsBase64(last.back().image, "last");
+      PrintAsBase64(history.back().image, "history");
+      // TODO: 駒打ちの場合
+    }
   } else if (ch.size() == 2) {
     // from と to どちらも駒がある場合 => from が to の駒を取る
     // to が空きマス, from が手番の駒 => 駒の移動
@@ -1174,21 +1179,12 @@ void Game::apply(Move const &mv) {
   } else {
     PieceType type = PieceTypeFromPiece(mv.piece);
     bool ok = false;
-    if (mv.color == Color::Black) {
-      for (auto it = handBlack.begin(); it != handBlack.end(); it++) {
-        if (*it == type) {
-          handBlack.erase(it);
-          ok = true;
-          break;
-        }
-      }
-    } else {
-      for (auto it = handWhite.begin(); it != handWhite.end(); it++) {
-        if (*it == type) {
-          handWhite.erase(it);
-          ok = true;
-          break;
-        }
+    auto &hd = hand(mv.color);
+    for (auto it = hd.begin(); it != hd.end(); it++) {
+      if (*it == type) {
+        hd.erase(it);
+        ok = true;
+        break;
       }
     }
     if (!ok) {
