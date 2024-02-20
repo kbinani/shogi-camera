@@ -1064,7 +1064,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
       } else {
         Move mv;
         mv.color = color;
-        if (ColorFromPiece(p0) == color) {
+        if (g.moves.empty() || ColorFromPiece(p0) == color) {
           // p0 の駒が p1 の駒を取った.
           mv.from = MakeSquare(ch0.x, ch0.y);
           mv.to = MakeSquare(ch1.x, ch1.y);
@@ -1088,7 +1088,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
         move = mv;
       }
     } else if (p0) {
-      if (ColorFromPiece(p0) == color) {
+      if (g.moves.empty() || ColorFromPiece(p0) == color) {
         // p0 の駒が p1 に移動
         Move mv;
         mv.color = color;
@@ -1104,7 +1104,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
         cout << "相手の駒を動かしている" << endl;
       }
     } else if (p1) {
-      if (ColorFromPiece(p1) == color) {
+      if (g.moves.empty() || ColorFromPiece(p1) == color) {
         // p1 の駒が p0 に移動
         Move mv;
         mv.color = color;
@@ -1139,7 +1139,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
 
   // move が確定した
   moveCandidateHistory.clear();
-  stableBoardHistory.clear();
+  boardHistory.clear();
 
   optional<Square> lastMoveTo;
   if (!g.moves.empty()) {
@@ -1157,14 +1157,6 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
       cv::Mat rotated;
       cv::rotate(history[i].image, rotated, cv::ROTATE_180);
       history[i].image = rotated;
-    }
-    for (int i = 0; i < stableBoardHistory.size(); i++) {
-      auto &sbh = stableBoardHistory[i];
-      for (int j = 0; j < sbh.size(); j++) {
-        cv::Mat rotated;
-        cv::rotate(sbh[j].image, rotated, cv::ROTATE_180);
-        sbh[j].image = rotated;
-      }
     }
     rotate = true;
   }

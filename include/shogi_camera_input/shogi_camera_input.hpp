@@ -500,7 +500,7 @@ struct Game {
 
   void apply(Move const &move);
 
-  set::deque<PieceType> &hand(Color color) {
+  std::deque<PieceType> &hand(Color color) {
     if (color == Color::Black) {
       return handBlack;
     } else {
