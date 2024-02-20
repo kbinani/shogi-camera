@@ -439,8 +439,6 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         double squareDirection = ra.get();
         cv::Vec4f axis(cos(squareDirection), sin(squareDirection), center.x, center.y);
         vector<cv::Point2f> centers;
-        //        set<shared_ptr<Contour>> cSquares;
-        //        set<shared_ptr<PieceContour>> cPieces;
         for (auto const &sq : s.squares) {
           cv::Point2f c = sq->mean();
           if (sq == square) {
@@ -769,7 +767,9 @@ struct LessCvPoint {
   }
 };
 
-void Compare(BoardImage const &before, BoardImage const &after, std::set<cv::Point, LessCvPoint> &buffer, std::array<std::array<double, 9>, 9> *similarity = nullptr) {
+using CvPointSet = std::set<cv::Point, LessCvPoint>;
+
+void Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, std::array<std::array<double, 9>, 9> *similarity = nullptr) {
   using namespace std;
 
   // 2 枚の盤面画像を比較する. 変動が検出された升目を buffer に格納する.
@@ -968,25 +968,23 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   // 直前から変動した升目数が 0 のフレームが stableThresholdFrames フレーム連続した時, stable になったと判定する.
   BoardImage const &before = boardHistory[boardHistory.size() - 2];
   BoardImage const &after = boardHistory[boardHistory.size() - 1];
-  set<cv::Point, LessCvPoint> changes;
+  CvPointSet changes;
   Compare(before, after, changes, &s.similarity);
   if (!stableBoardHistory.empty()) {
     auto const &last = stableBoardHistory.back();
-    set<cv::Point, LessCvPoint> tmp;
+    CvPointSet tmp;
     Compare(last[2], bi, tmp, &s.similarityAgainstStableBoard);
   }
   if (!changes.empty()) {
-    // 変動したマス目が 3 以上なので, 最新のフレームだけ残して捨てる.
+    // 変動したマス目が検出されているので, 最新のフレームだけ残して捨てる.
     boardHistory.clear();
     boardHistory.push_back(bi);
     moveCandidateHistory.clear();
-    //    cout << "変動したマス目が 3 以上なので, 最新のフレームだけ残して捨てる. " << endl;
     return;
   }
   // 直前の stable board がある場合, stable board と
   if (boardHistory.size() < stableThresholdFrames) {
     // まだ stable じゃない.
-    //    cout << "まだ stable じゃない." << boardHistory.size() << endl;
     return;
   }
   // stable になったと判定する. 直近 3 フレームを stableBoardHistory の候補とする.
@@ -995,16 +993,6 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     history[i] = boardHistory.back();
     boardHistory.pop_back();
   }
-  //  static int framecount = 0;
-  //  {
-  //    vector<uchar> buffer;
-  //    cv::imencode(".png", history[0].image, buffer);
-  //    string cbuffer;
-  //    copy(buffer.begin(), buffer.end(), back_inserter(cbuffer));
-  //    cout << "-- " << framecount << endl;
-  //    framecount++;
-  //    cout << base64::to_base64(cbuffer) << endl;
-  //  }
   if (stableBoardHistory.empty()) {
     // 最初の stable board なので登録するだけ.
     stableBoardHistory.push_back(history);
@@ -1015,7 +1003,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   array<BoardImage, 3> &last = stableBoardHistory.back();
   int minChange = 81;
   int maxChange = -1;
-  vector<set<cv::Point, LessCvPoint>> changeset;
+  vector<CvPointSet> changeset;
   for (int i = 0; i < last.size(); i++) {
     for (int j = 0; j < history.size(); j++) {
       auto const &before = last[i];
@@ -1048,7 +1036,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   // index 番目の手.
   size_t const index = g.moves.size();
   Color const color = ColorFromIndex(index);
-  set<cv::Point, LessCvPoint> const &ch = changeset.front();
+  CvPointSet const &ch = changeset.front();
   optional<Move> move;
   if (ch.size() == 1) {
     cout << "TODO: 駒打ち" << endl;
@@ -1118,12 +1106,9 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
         mv.promote = false;
       }
       move = mv;
-    } else {
-      cout << "認識できない駒移動" << endl;
     }
   }
   if (!move) {
-    cout << "検出できなかった" << endl;
     return;
   }
   for (Move const &m : moveCandidateHistory) {
@@ -1214,9 +1199,9 @@ void Game::apply(Move const &mv) {
       handWhite.push_back(*mv.newHand);
     }
   }
-  std::cout << "=======================" << std::endl;
+  std::cout << "========================" << std::endl;
   std::cout << (char const *)DebugStringFromPosition(position).c_str();
-  std::cout << "-----------------------" << std::endl;
+  std::cout << "------------------------" << std::endl;
 }
 
 std::u8string DebugStringFromPosition(Position const &p) {
