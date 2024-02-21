@@ -407,13 +407,12 @@ inline std::u8string StringFromMove(Move const &mv, std::optional<Square> last) 
   } else {
     ret += StringFromSquare(mv.to);
   }
-  ret += LongStringFromPieceTypeAndStatus(mv.piece);
   if (mv.promote_ == true) {
-    ret += u8"成";
+    ret += LongStringFromPieceTypeAndStatus(static_cast<PieceUnderlyingType>(PieceTypeFromPiece(mv.piece))) + u8"成";
   } else if (mv.promote_ == false) {
-    ret += u8"不成";
+    ret += LongStringFromPieceTypeAndStatus(mv.piece) + u8"不成";
   } else {
-    // TODO: 不成
+    ret += LongStringFromPieceTypeAndStatus(mv.piece);
   }
   if (!mv.from) {
     ret += u8"打";
