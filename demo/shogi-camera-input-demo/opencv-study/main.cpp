@@ -22,60 +22,41 @@ cv::Scalar ScalarFromColor(colormap::Color const &c) {
 int main(int argc, const char *argv[]) {
   cv::Mat before = cv::imread(argv[1], cv::IMREAD_GRAYSCALE);
   cv::Mat after = cv::imread(argv[2], cv::IMREAD_GRAYSCALE);
-  auto [b, a] = Equalize(before, after);
-  double sim[9][9];
-  double minSim = numeric_limits<double>::max();
-  double maxSim = numeric_limits<double>::lowest();
-  for (int y = 0; y < 9; y++) {
-    for (int x = 0; x < 9; x++) {
-      auto pb = PieceROI(b, x, y);
-      auto pa = PieceROI(a, x, y);
-      //      if (x == 0 && y == 0) {
-      cv::adaptiveThreshold(pb, pb, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
-      cv::adaptiveThreshold(pa, pa, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
-      //      }
-      //      auto [rpb, rpa] = Equalize(pb, pa);
-      //      Normalize(rpb);
-      //      Normalize(rpa);
-      double s = cv::matchShapes(pb, pa, cv::CONTOURS_MATCH_I1, 0);
-      sim[x][y] = s;
-      minSim = std::min(minSim, s);
-      maxSim = std::max(maxSim, s);
-    }
-  }
-  cout << "minSim=" << minSim << "; maxSim=" << maxSim << endl;
+  auto [a, b] = Equalize(after, before);
 
-  int width = b.size().width;
-  int height = b.size().height;
-  //  cv::Mat mid(cv::Size(width, height), CV_8UC3, cv::Scalar(255, 255, 255, 255));
-  //  vector<vector<cv::Point>> cBefore;
-  //  FindContoursSimple(b, cBefore);
-  //  vector<vector<cv::Point>> cAfter;
-  //  FindContoursSimple(a, cAfter);
-  //  cv::cvtColor(a, a, cv::COLOR_GRAY2RGB);
-  //  cv::cvtColor(b, b, cv::COLOR_GRAY2RGB);
-  //  cv::drawContours(b, cBefore, -1, cv::Scalar(255, 0, 0));
-  //  cv::drawContours(a, cAfter, -1, cv::Scalar(0, 255, 0));
+  int x = 7;
+  int y = 1;
+  auto bp = PieceROI(b, 1, 7).clone();
+  auto ap = PieceROI(a, 1, 7).clone();
+  //  cv::adaptiveThreshold(ap, ap, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+  //  cv::adaptiveThreshold(bp, bp, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+  double sim = Similarity(bp, ap, 5, 0.5);
+  cout << sim << endl;
 
-  cv::Mat all(cv::Size(width * 3, height), CV_8UC3, cv::Scalar(255, 255, 255, 255));
-  //  cv::threshold(b, b, 0, 255, cv::THRESH_OTSU);
-  //  cv::threshold(a, a, 0, 255, cv::THRESH_OTSU);
+  int width = a.size().width;
+  int height = a.size().height;
+  cv::Mat all(cv::Size(width * 3, height), CV_8UC4, cv::Scalar(255, 255, 255, 255));
   Bitblt(b, all, 0, 0);
   Bitblt(a, all, width * 2, 0);
+
+  Bitblt(bp, all, width, 0);
+  Bitblt(ap, all, width + bp.size().width, 0);
+  //  {
+  //    double theta = 30.0;// 180.0f * std::numbers::pi;
+  //    float t[2][3] = {{1, 0, 0}, {0, 1, 0}};
+  //    t[0][0] = cos(theta);
+  //    t[0][1] =
+  //    t[0][2] = 0;
+  //    t[1][2] = 0;
+  //    cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(a71.size().width * 0.5f, a71.size().height * 0.5f), theta, 1);
+  //    cout << "tx=" << m.at<double>(0, 2) << "; ty=" << m.at<double>(1, 2) << endl;
+  //    cv::Mat rotated;
+  ////    cv::warpAffine(a71, rotated, cv::Mat(2, 3, CV_32F, t), rotated.size(), cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
+  //    cv::warpAffine(a71, rotated, m, a71 .size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+  //    Bitblt(rotated, all, width, 0);
+  //    Bitblt(a71, all, width + a71.size().width, 0);
+  //  }
   cv::cvtColor(all, all, cv::COLOR_GRAY2RGB);
-  colormap::MATLAB::Jet cmap;
-  for (int y = 0; y < 9; y++) {
-    for (int x = 0; x < 9; x++) {
-      double s = sim[x][y];
-      double v = (s - minSim) / (maxSim - minSim);
-      auto color = cmap.getColor(v);
-      int x0 = x * width / 9;
-      int x1 = (x + 1) * width / 9;
-      int y0 = y * height / 9;
-      int y1 = (y + 1) * height / 9;
-      cv::rectangle(all, cv::Rect(width + x0, y0, x1 - x0, y1 - y0), ScalarFromColor(color), -1);
-    }
-  }
   cv::imshow("preview", all);
   cv::waitKey();
   return 0;

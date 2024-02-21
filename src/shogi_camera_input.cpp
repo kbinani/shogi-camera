@@ -216,7 +216,7 @@ std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b) {
   cv::Mat rb;
   cv::resize(a, ra, size);
   cv::resize(b, rb, size);
-  return make_pair(ra, rb);
+  return make_pair(ra.clone(), rb.clone());
 }
 
 void FindContours(cv::Mat const &image, Status &s) {
@@ -821,6 +821,66 @@ bool IsIdentical(std::set<T, L> const &a, std::set<T, L> const &b) {
   }
   return true;
 }
+
+// 2 枚の画像を比較する. right を ±degrees 度, x と y 方向にそれぞれ ±width*translationRatio, ±height*translationRatio 移動して画像の一致度を計算し, 最大の一致度を返す.
+double Similarity(cv::Mat const &left, cv::Mat const &right, int degrees = 5, float translationRatio = 0.5f) {
+  auto [a, b] = Equalize(left, right);
+  int w = a.size().width;
+  int h = a.size().height;
+  int cx = w / 2;
+  int cy = h / 2;
+  int dx = (int)round(w * translationRatio);
+  int dy = (int)round(h * translationRatio);
+  float minSum = std::numeric_limits<float>::max();
+  int minDegrees;
+  int minDx;
+  int minDy;
+  for (int t = -degrees; t <= degrees; t++) {
+    cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
+    cv::Mat rotated;
+    cv::warpAffine(a, rotated, m, a.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+
+    for (int iy = -dy; iy <= dy; iy++) {
+      for (int ix = -dx; ix <= dx; ix++) {
+        float sum = 0;
+        for (int j = 0; j < h; j++) {
+          for (int i = 0; i < w; i++) {
+            if (0 <= i + ix && i + ix < w && 0 <= j + iy && j + iy < h) {
+              float diff = b.at<uint8_t>(i, j) - rotated.at<uint8_t>(i + ix, j + iy);
+              sum += diff * diff;
+            } else {
+              float diff = b.at<uint8_t>(i, j);
+              sum += diff * diff;
+            }
+          }
+        }
+        if (minSum > sum) {
+          minSum = sum;
+          minDx = ix;
+          minDy = iy;
+          minDegrees = t;
+        }
+        minSum = std::min(minSum, sum);
+      }
+    }
+  }
+
+  return 1 - minSum / (w * h * 255.0 * 255.0);
+}
+
+bool IsPromoted(cv::Mat const &pieceBefore, cv::Mat const &pieceAfter) {
+  double sim = Similarity(pieceBefore, pieceAfter);
+  return sim < 0.98;
+}
+
+// 手番 color の駒が from から to に移動したとき, 成れる条件かどうか.
+bool CanPromote(Square from, Square to, Color color) {
+  if (color == Color::Black) {
+    return from.rank <= Rank::Rank3 || to.rank <= Rank::Rank3;
+  } else {
+    return from.rank >= Rank::Rank7 || to.rank >= Rank::Rank7;
+  }
+}
 } // namespace
 
 std::optional<cv::Point2f> Contour::direction(float length) const {
@@ -1028,7 +1088,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   size_t const index = g.moves.size();
   Color const color = ColorFromIndex(index);
   CvPointSet const &ch = changeset.front();
-  optional<Move> move = Statistics::Detect(ch, g.position, g.moves, color, g.hand(color));
+  optional<Move> move = Statistics::Detect(last.back().image, board, ch, g.position, g.moves, color, g.hand(color));
   if (!move) {
     return;
   }
@@ -1073,15 +1133,67 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   g.apply(*move);
 }
 
-std::optional<Move> Statistics::Detect(CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand) {
+std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand) {
   using namespace std;
   optional<Move> move;
   if (changes.size() == 1) {
-    if (hand.empty()) {
-      cout << "持ち駒が無いので駒打ちは検出できない" << endl;
+    cv::Point ch = *changes.begin();
+    Piece p = position.pieces[ch.x][ch.y];
+    if (p == 0) {
+      // 変化したマスが空きなのでこの手は駒打ち.
+      if (hand.empty()) {
+        cout << "持ち駒が無いので駒打ちは検出できない" << endl;
+      } else if (hand.size() == 1) {
+        Move mv;
+        mv.color = color;
+        mv.to = MakeSquare(ch.x, ch.y);
+        mv.piece = MakePiece(color, *hand.begin());
+        move = mv;
+      } else {
+        // TODO: 駒打ちで複数候補がある場合
+        cout << "TODO: 駒打ち" << endl;
+      }
     } else {
-      // TODO: 駒打ちの場合
-      cout << "TODO: 駒打ち" << endl;
+      // 相手の駒がいるマス全てについて, 直前のマス画像との類似度を調べる. 類似度が最も低かったマスを, 取られた駒の居たマスとする.
+      double minSim = numeric_limits<double>::max();
+      optional<Square> minSquare;
+      auto [before, after] = Equalize(boardBefore, boardAfter);
+      for (int y = 0; y < 9; y++) {
+        for (int x = 0; x < 9; x++) {
+          auto piece = position.pieces[x][y];
+          if (piece == 0 || ColorFromPiece(piece) == color) {
+            continue;
+          }
+          auto bp = PieceROI(before, x, y);
+          auto ap = PieceROI(after, x, y);
+          double sim = Similarity(bp, ap);
+          if (minSim > sim) {
+            minSim = sim;
+            minSquare = MakeSquare(x, y);
+          }
+        }
+      }
+      if (minSquare) {
+        Move mv;
+        mv.color = color;
+        mv.from = MakeSquare(ch.x, ch.y);
+        mv.to = *minSquare;
+        mv.newHand = PieceTypeFromPiece(position.pieces[minSquare->file][minSquare->rank]);
+        if (!IsPromotedPiece(p) && CanPromote(*mv.from, mv.to, color)) {
+          auto bp = PieceROI(before, ch.x, ch.y);
+          auto ap = PieceROI(after, minSquare->file, minSquare->rank);
+          if (IsPromoted(bp, ap)) {
+            mv.piece = Promote(p);
+          } else {
+            mv.piece = p;
+          }
+        } else {
+          mv.piece = p;
+        }
+        move = mv;
+      } else {
+        cout << "取った駒を検出できなかった" << endl;
+      }
     }
   } else if (changes.size() == 2) {
     // from と to どちらも駒がある場合 => from が to の駒を取る

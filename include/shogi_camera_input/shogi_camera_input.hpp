@@ -4,6 +4,7 @@
 
 #include <deque>
 #include <map>
+#include <set>
 #include <string>
 #include <thread>
 
@@ -593,7 +594,7 @@ struct Statistics {
 
   std::deque<Move> moveCandidateHistory;
 
-  static std::optional<Move> Detect(CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand);
+  static std::optional<Move> Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand);
 };
 
 class Session {
