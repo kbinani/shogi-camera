@@ -150,6 +150,31 @@ class Reader {
     .init(piece: PieceType.Rook.rawValue + PieceStatus.Promoted.rawValue, time: 93.266),
     .init(piece: 9999, time: 93.266),
   ]
+  enum Action: UInt32 {
+    case Promote
+    case NoPromote
+    case Right
+    case Left
+    case Up
+    case Down
+    case Lateral  // 寄る
+    case Nearest  // 直ぐ
+  }
+  struct ActionVoice {
+    let action: UInt32
+    let time: TimeInterval
+  }
+  private let actions: [ActionVoice] = [
+    .init(action: Action.Promote.rawValue, time: 93.903),
+    .init(action: Action.NoPromote.rawValue, time: 94.513),
+    .init(action: Action.Right.rawValue, time: 95.293),
+    .init(action: Action.Left.rawValue, time: 95.931),
+    .init(action: Action.Up.rawValue, time: 96.711),
+    .init(action: Action.Down.rawValue, time: 97.434),
+    .init(action: Action.Lateral.rawValue, time: 98.073),
+    .init(action: Action.Nearest.rawValue, time: 98.654),
+    .init(action: 9999, time: 99.236),
+  ]
 
   func play(move: Move) {
     let startColor: Double
@@ -187,11 +212,13 @@ class Reader {
       print("マス目読み上げ用ボイスが搭載されていない: file=", move.to.file.rawValue, "rank=", move.to.rank.rawValue)
     }
 
+    let piece =
+      move.promote_.value == true ? sci.PieceTypeFromPiece(move.piece).rawValue : move.piece
     var startPiece: TimeInterval?
     var endPiece: TimeInterval?
     for i in 0..<self.pieces.count - 1 {
       let p = self.pieces[i]
-      if p.piece == sci.RemoveColorFromPiece(move.piece) {
+      if p.piece == sci.RemoveColorFromPiece(piece) {
         startPiece = p.time
         endPiece = self.pieces[i + 1].time
         break
@@ -204,6 +231,26 @@ class Reader {
       offset += endPiece - startPiece
     } else {
       print("駒読み上げ用ボイスが搭載されていない: ", move.piece)
+    }
+    if let promote = move.promote_.value {
+      let action: Action = promote ? .Promote : .NoPromote
+      var startAction: TimeInterval?
+      var endAction: TimeInterval?
+      for i in 0..<self.actions.count - 1 {
+        let a = self.actions[i]
+        if a.action == action.rawValue {
+          startAction = a.time
+          endAction = self.actions[i + 1].time
+        }
+      }
+      if let startAction, let endAction {
+        node.scheduleSegment(
+          file, startingFrame: .init(offset + startAction * rate),
+          frameCount: .init((endAction - startAction) * rate), at: nil)
+        offset += endAction - startAction
+      } else {
+        print("アクション用のボイスが無い")
+      }
     }
   }
 }

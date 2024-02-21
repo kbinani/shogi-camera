@@ -373,8 +373,8 @@ struct Move {
   // from == nullopt の場合は駒打ち.
   std::optional<Square> from;
   Square to;
-  // 成る場合に true
-  bool promote;
+  // 成る場合に true, 不成の場合に false, 変更なしの場合 nullopt
+  std::optional<bool> promote_;
   // 相手の駒を取った場合, その駒の種類
   std::optional<PieceType> newHand;
 };
@@ -392,7 +392,7 @@ inline bool operator==(Move const &a, Move const &b) {
   if (a.to != b.to) {
     return false;
   }
-  return a.promote == b.promote;
+  return a.promote_ == b.promote_;
 }
 
 inline std::u8string StringFromMove(Move const &mv, std::optional<Square> last) {
@@ -408,8 +408,10 @@ inline std::u8string StringFromMove(Move const &mv, std::optional<Square> last) 
     ret += StringFromSquare(mv.to);
   }
   ret += LongStringFromPieceTypeAndStatus(mv.piece);
-  if (mv.promote) {
+  if (mv.promote_ == true) {
     ret += u8"成";
+  } else if (mv.promote_ == false) {
+    ret += u8"不成";
   } else {
     // TODO: 不成
   }

@@ -1184,8 +1184,10 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           auto ap = PieceROI(after, minSquare->file, minSquare->rank);
           if (IsPromoted(bp, ap)) {
             mv.piece = Promote(p);
+            mv.promote_ = true;
           } else {
             mv.piece = p;
+            mv.promote_ = false;
           }
         } else {
           mv.piece = p;
@@ -1217,9 +1219,17 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           mv.to = MakeSquare(ch1.x, ch1.y);
           mv.piece = p0;
           mv.newHand = PieceTypeFromPiece(p1);
-          if (!IsPromotedPiece(p0)) {
-            // TODO: 成りを検出
-            mv.promote = false;
+          if (!IsPromotedPiece(p0) && CanPromote(*mv.from, mv.to, color)) {
+            auto [before, after] = Equalize(boardBefore, boardAfter);
+            auto bp = PieceROI(before, mv.from->file, mv.from->rank);
+            auto ap = PieceROI(after, mv.to.file, mv.to.rank);
+            if (IsPromoted(bp, ap)) {
+              mv.piece = Promote(p0);
+              mv.promote_ = true;
+            } else {
+              mv.piece = p0;
+              mv.promote_ = false;
+            }
           }
         } else {
           // p1 の駒が p0 の駒を取った.
@@ -1227,9 +1237,17 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           mv.to = MakeSquare(ch0.x, ch0.y);
           mv.piece = p1;
           mv.newHand = PieceTypeFromPiece(p0);
-          if (!IsPromotedPiece(p1)) {
-            // TODO: 成りを検出
-            mv.promote = false;
+          if (!IsPromotedPiece(p1) && CanPromote(*mv.from, mv.to, color)) {
+            auto [before, after] = Equalize(boardBefore, boardAfter);
+            auto bp = PieceROI(before, mv.from->file, mv.from->rank);
+            auto ap = PieceROI(after, mv.to.file, mv.to.rank);
+            if (IsPromoted(bp, ap)) {
+              mv.piece = Promote(p1);
+              mv.promote_ = true;
+            } else {
+              mv.piece = p1;
+              mv.promote_ = false;
+            }
           }
         }
         move = mv;
@@ -1242,9 +1260,17 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.from = MakeSquare(ch0.x, ch0.y);
         mv.to = MakeSquare(ch1.x, ch1.y);
         mv.piece = p0;
-        if (!IsPromotedPiece(p0)) {
-          // TODO: 成りを検出
-          mv.promote = false;
+        if (!IsPromotedPiece(p0) && CanPromote(*mv.from, mv.to, color)) {
+          auto [before, after] = Equalize(boardBefore, boardAfter);
+          auto bp = PieceROI(before, mv.from->file, mv.from->rank);
+          auto ap = PieceROI(after, mv.to.file, mv.to.rank);
+          if (IsPromoted(bp, ap)) {
+            mv.piece = Promote(p0);
+            mv.promote_ = true;
+          } else {
+            mv.piece = p0;
+            mv.promote_ = false;
+          }
         }
         move = mv;
       } else {
@@ -1258,9 +1284,17 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.from = MakeSquare(ch1.x, ch1.y);
         mv.to = MakeSquare(ch0.x, ch0.y);
         mv.piece = p1;
-        if (!IsPromotedPiece(p1)) {
-          // TODO: 成りを検出
-          mv.promote = false;
+        if (!IsPromotedPiece(p1) && CanPromote(*mv.from, mv.to, color)) {
+          auto [before, after] = Equalize(boardBefore, boardAfter);
+          auto bp = PieceROI(before, mv.from->file, mv.from->rank);
+          auto ap = PieceROI(after, mv.to.file, mv.to.rank);
+          if (IsPromoted(bp, ap)) {
+            mv.piece = Promote(p1);
+            mv.promote_ = true;
+          } else {
+            mv.piece = p1;
+            mv.promote_ = false;
+          }
         }
         move = mv;
       } else {
@@ -1289,7 +1323,7 @@ void Game::apply(Move const &mv) {
       std::cout << "存在しない持ち駒を打った" << std::endl;
     }
   }
-  if (mv.promote && !IsPromotedPiece(mv.piece)) {
+  if (mv.promote_ == true && !IsPromotedPiece(mv.piece)) {
     position.pieces[mv.to.file][mv.to.rank] = Promote(mv.piece);
   } else {
     position.pieces[mv.to.file][mv.to.rank] = mv.piece;
