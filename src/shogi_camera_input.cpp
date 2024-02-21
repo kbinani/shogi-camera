@@ -1,17 +1,10 @@
-#include <opencv2/calib3d.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/core/types_c.h>
+#include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/imgproc/types_c.h>
+#include <opencv2/imgproc.hpp>
 
 #include <iostream>
 #include <numbers>
-#include <set>
-#include <vector>
 
-#include "base64.hpp"
 #include <shogi_camera_input/shogi_camera_input.hpp>
 
 namespace sci {
@@ -199,24 +192,8 @@ std::optional<cv::Vec4f> FitLine(std::vector<cv::Point2f> const &points) {
     return std::nullopt;
   }
   cv::Vec4f line;
-  cv::fitLine(cv::Mat(points), line, CV_DIST_L2, 0, 0.01, 0.01);
+  cv::fitLine(cv::Mat(points), line, cv::DIST_L2, 0, 0.01, 0.01);
   return line;
-}
-
-// 2 つの画像を同じサイズになるよう変形する
-std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b) {
-  using namespace std;
-  if (a.size() == b.size()) {
-    return make_pair(a.clone(), b.clone());
-  }
-  int width = std::max(a.size().width, b.size().width);
-  int height = std::max(a.size().height, b.size().height);
-  cv::Size size(width, height);
-  cv::Mat ra;
-  cv::Mat rb;
-  cv::resize(a, ra, size);
-  cv::resize(b, rb, size);
-  return make_pair(ra.clone(), rb.clone());
 }
 
 void FindContours(cv::Mat const &image, Status &s) {
@@ -226,7 +203,7 @@ void FindContours(cv::Mat const &image, Status &s) {
   s.pieces.clear();
 
   cv::Mat timg(image);
-  cv::cvtColor(image, timg, CV_RGB2GRAY);
+  cv::cvtColor(image, timg, cv::COLOR_RGB2GRAY);
 
   cv::Size size = image.size();
   s.width = size.width;
@@ -642,7 +619,7 @@ void FindPieces(cv::Mat const &frame, Status &s) {
       }
       if (points.size() > 1) {
         cv::Vec4f v;
-        cv::fitLine(cv::Mat(points), v, CV_DIST_L2, 0, 0.01, 0.01);
+        cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
         top = v;
       }
     }
@@ -656,7 +633,7 @@ void FindPieces(cv::Mat const &frame, Status &s) {
       }
       if (points.size() > 1) {
         cv::Vec4f v;
-        cv::fitLine(cv::Mat(points), v, CV_DIST_L2, 0, 0.01, 0.01);
+        cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
         bottom = v;
       }
     }
@@ -670,7 +647,7 @@ void FindPieces(cv::Mat const &frame, Status &s) {
       }
       if (points.size() > 1) {
         cv::Vec4f v;
-        cv::fitLine(cv::Mat(points), v, CV_DIST_L2, 0, 0.01, 0.01);
+        cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
         left = v;
       }
     }
@@ -684,7 +661,7 @@ void FindPieces(cv::Mat const &frame, Status &s) {
       }
       if (points.size() > 1) {
         cv::Vec4f v;
-        cv::fitLine(cv::Mat(points), v, CV_DIST_L2, 0, 0.01, 0.01);
+        cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
         right = v;
       }
     }
@@ -737,168 +714,9 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
   if (stat.rotate) {
     cv::Mat tmp2;
     cv::rotate(tmp1, tmp2, cv::ROTATE_180);
-    cv::cvtColor(tmp2, s.boardWarped, CV_RGB2GRAY);
+    cv::cvtColor(tmp2, s.boardWarped, cv::COLOR_RGB2GRAY);
   } else {
-    cv::cvtColor(tmp1, s.boardWarped, CV_RGB2GRAY);
-  }
-}
-
-cv::Mat PieceROI(cv::Mat const &board, int x, int y, float shrink = 1) {
-  int w = board.size().width;
-  int h = board.size().height;
-  double sw = w / 9.0;
-  double sh = h / 9.0;
-  double cx = sw * (x + 0.5);
-  double cy = sh * (y + 0.5);
-  int x0 = (int)round(cx - sw * 0.5 * shrink);
-  int y0 = (int)round(cy - sh * 0.5 * shrink);
-  int x1 = std::min(w, (int)round(cx + sw * 0.5 * shrink));
-  int y1 = std::min(h, (int)round(cy + sh * 0.5 * shrink));
-  return cv::Mat(board, cv::Rect(x0, y0, x1 - x0, y1 - y0));
-}
-
-void Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, std::array<std::array<double, 9>, 9> *similarity = nullptr) {
-  using namespace std;
-
-  // 2 枚の盤面画像を比較する. 変動が検出された升目を buffer に格納する.
-
-  buffer.clear();
-  auto [b, a] = Equalize(before.image, after.image);
-  double sim[9][9];
-  for (int y = 0; y < 9; y++) {
-    for (int x = 0; x < 9; x++) {
-      cv::Mat pb = PieceROI(b, x, y).clone();
-      cv::Mat pa = PieceROI(a, x, y).clone();
-      cv::adaptiveThreshold(pb, pb, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
-      cv::adaptiveThreshold(pa, pa, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
-      double s = cv::matchShapes(pb, pa, cv::CONTOURS_MATCH_I1, 0);
-      sim[x][y] = s;
-      if (similarity) {
-        (*similarity)[x][y] = s;
-      }
-    }
-  }
-  for (int y = 0; y < 9; y++) {
-    for (int x = 0; x < 9; x++) {
-      double s = sim[x][y];
-      if (s > BoardImage::kStableBoardThreshold) {
-        buffer.insert(cv::Point(x, y));
-      }
-    }
-  }
-}
-
-void Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y) {
-  float t[2][3] = {{1, 0, 0}, {0, 1, 0}};
-  t[0][2] = x;
-  t[1][2] = y;
-  cv::warpAffine(src, dst, cv::Mat(2, 3, CV_32F, t), dst.size(), cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
-}
-
-void PrintAsBase64(cv::Mat const &image, std::string const &title) {
-  using namespace std;
-  vector<uchar> buffer;
-  cv::imencode(".png", image, buffer);
-  string cbuffer;
-  copy(buffer.begin(), buffer.end(), back_inserter(cbuffer));
-  cout << "== " << title << endl;
-  cout << base64::to_base64(cbuffer) << endl;
-  cout << "--" << endl;
-}
-
-template <class T, class L>
-bool IsIdentical(std::set<T, L> const &a, std::set<T, L> const &b) {
-  if (a.size() != b.size()) {
-    return false;
-  }
-  if (a.empty()) {
-    return true;
-  }
-  for (auto const &i : a) {
-    if (b.find(i) == b.end()) {
-      return false;
-    }
-  }
-  return true;
-}
-
-// 2 枚の画像を比較する. right を ±degrees 度, x と y 方向にそれぞれ ±width*translationRatio, ±height*translationRatio 移動して画像の一致度を計算し, 最大の一致度を返す.
-double Similarity(cv::Mat const &left, cv::Mat const &right, int degrees = 5, float translationRatio = 0.5f) {
-  auto [a, b] = Equalize(left, right);
-  cv::adaptiveThreshold(b, b, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
-  cv::adaptiveThreshold(a, a, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
-  int w = a.size().width;
-  int h = a.size().height;
-  int cx = w / 2;
-  int cy = h / 2;
-  int dx = (int)round(w * translationRatio);
-  int dy = (int)round(h * translationRatio);
-  float minSum = std::numeric_limits<float>::max();
-  int minDegrees;
-  int minDx;
-  int minDy;
-  for (int t = -degrees; t <= degrees; t++) {
-    cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
-    cv::Mat rotated;
-    cv::warpAffine(a, rotated, m, a.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
-
-    for (int iy = -dy; iy <= dy; iy++) {
-      for (int ix = -dx; ix <= dx; ix++) {
-        float sum = 0;
-        for (int j = 0; j < h; j++) {
-          for (int i = 0; i < w; i++) {
-            if (0 <= i + ix && i + ix < w && 0 <= j + iy && j + iy < h) {
-              float diff = b.at<uint8_t>(i, j) - rotated.at<uint8_t>(i + ix, j + iy);
-              sum += diff * diff;
-            } else {
-              float diff = b.at<uint8_t>(i, j);
-              sum += diff * diff;
-            }
-          }
-        }
-        if (minSum > sum) {
-          minSum = sum;
-          minDx = ix;
-          minDy = iy;
-          minDegrees = t;
-        }
-        minSum = std::min(minSum, sum);
-      }
-    }
-  }
-
-  return 1 - minSum / (w * h * 255.0 * 255.0);
-}
-
-bool IsPromoted(cv::Mat const &pieceBefore, cv::Mat const &pieceAfter) {
-  double sim = Similarity(pieceBefore, pieceAfter);
-  std::cout << __FUNCTION__ << "; sim=" << sim << std::endl;
-  return sim < 0.7;
-}
-
-// 手番 color の駒が from から to に移動したとき, 成れる条件かどうか.
-bool CanPromote(Square from, Square to, Color color) {
-  if (color == Color::Black) {
-    return from.rank <= Rank::Rank3 || to.rank <= Rank::Rank3;
-  } else {
-    return from.rank >= Rank::Rank7 || to.rank >= Rank::Rank7;
-  }
-}
-
-void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter) {
-  if (!mv.from || IsPromotedPiece(mv.piece)) {
-    return;
-  }
-  if (!CanPromote(*mv.from, mv.to, mv.color)) {
-    return;
-  }
-  auto bp = PieceROI(boardBefore, mv.from->file, mv.from->rank);
-  auto ap = PieceROI(boardAfter, mv.to.file, mv.to.rank);
-  if (IsPromoted(bp, ap)) {
-    mv.piece = Promote(mv.piece);
-    mv.promote_ = true;
-  } else {
-    mv.promote_ = false;
+    cv::cvtColor(tmp1, s.boardWarped, cv::COLOR_RGB2GRAY);
   }
 }
 } // namespace
@@ -954,425 +772,6 @@ std::shared_ptr<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const 
   ret->aspectRatio = cv::norm(bottom1 - bottom2) / cv::norm(apex - midBottom);
 
   return ret;
-}
-
-void Statistics::update(Status const &s) {
-  int constexpr maxHistory = 32;
-  if (s.squareArea > 0) {
-    squareAreaHistory.push_back(s.squareArea);
-    if (squareAreaHistory.size() > maxHistory) {
-      squareAreaHistory.pop_front();
-    }
-    int count = 0;
-    float sum = 0;
-    for (float v : squareAreaHistory) {
-      if (v > 0) {
-        sum += v;
-        count++;
-      }
-    }
-    if (count > 0) {
-      squareArea = sum / count;
-    }
-  }
-  if (s.aspectRatio > 0) {
-    aspectRatioHistory.push_back(s.aspectRatio);
-    if (aspectRatioHistory.size() > maxHistory) {
-      aspectRatioHistory.pop_front();
-    }
-    int count = 0;
-    float sum = 0;
-    for (float v : aspectRatioHistory) {
-      if (v > 0) {
-        sum += v;
-        count++;
-      }
-    }
-    if (count > 0) {
-      aspectRatio = sum / count;
-    }
-  }
-  if (s.preciseOutline) {
-    preciseOutlineHistory.push_back(*s.preciseOutline);
-    if (preciseOutlineHistory.size() > maxHistory) {
-      preciseOutlineHistory.pop_front();
-    }
-    Contour sum;
-    sum.points.resize(4);
-    fill_n(sum.points.begin(), 4, cv::Point2f(0, 0));
-    int count = 0;
-    for (auto const &v : preciseOutlineHistory) {
-      if (v.points.size() != 4) {
-        continue;
-      }
-      for (int i = 0; i < 4; i++) {
-        sum.points[i] += v.points[i];
-      }
-      count++;
-    }
-    for (int i = 0; i < 4; i++) {
-      sum.points[i] = sum.points[i] / count;
-    }
-    sum.area = fabs(cv::contourArea(sum.points));
-    preciseOutline = sum;
-  }
-}
-
-void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
-  using namespace std;
-  if (board.size().area() <= 0) {
-    return;
-  }
-  BoardImage bi;
-  bi.image = board;
-  boardHistory.push_back(bi);
-  if (boardHistory.size() == 1) {
-    return;
-  }
-  int constexpr stableThresholdFrames = 3;
-  int constexpr stableThresholdMoves = 3;
-  // 盤面の各マスについて, 直前の画像との類似度を計算する. 将棋は 1 手につきたかだか 2 マス変動するはず. もし変動したマスが 3 マス以上なら,
-  // 指が映り込むなどして盤面が正確に検出できなかった可能性がある.
-  // 直前から変動した升目数が 0 のフレームが stableThresholdFrames フレーム連続した時, stable になったと判定する.
-  BoardImage const &before = boardHistory[boardHistory.size() - 2];
-  BoardImage const &after = boardHistory[boardHistory.size() - 1];
-  CvPointSet changes;
-  Compare(before, after, changes, &s.similarity);
-  if (!stableBoardHistory.empty()) {
-    auto const &last = stableBoardHistory.back();
-    CvPointSet tmp;
-    Compare(last[2], bi, tmp, &s.similarityAgainstStableBoard);
-  }
-  if (!changes.empty()) {
-    // 変動したマス目が検出されているので, 最新のフレームだけ残して捨てる.
-    boardHistory.clear();
-    boardHistory.push_back(bi);
-    moveCandidateHistory.clear();
-    return;
-  }
-  // 直前の stable board がある場合, stable board と
-  if (boardHistory.size() < stableThresholdFrames) {
-    // まだ stable じゃない.
-    return;
-  }
-  // stable になったと判定する. 直近 3 フレームを stableBoardHistory の候補とする.
-  array<BoardImage, 3> history;
-  for (int i = 0; i < history.size(); i++) {
-    history[i] = boardHistory.back();
-    boardHistory.pop_back();
-  }
-  if (stableBoardHistory.empty()) {
-    // 最初の stable board なので登録するだけ.
-    stableBoardHistory.push_back(history);
-    boardHistory.clear();
-    book.update(g.position, board);
-    if (false) {
-      PrintAsBase64(board, "");
-    }
-    return;
-  }
-  // 直前の stable board の各フレームと比較して, 変動したマス目が有るかどうか判定する.
-  array<BoardImage, 3> &last = stableBoardHistory.back();
-  int minChange = 81;
-  int maxChange = -1;
-  vector<CvPointSet> changeset;
-  for (int i = 0; i < last.size(); i++) {
-    for (int j = 0; j < history.size(); j++) {
-      auto const &before = last[i];
-      auto const &after = history[j];
-      changes.clear();
-      Compare(before, after, changes);
-      if (changes.size() == 0) {
-        // 直前の stable board と比べて変化箇所が無い場合は無視.
-        return;
-      } else if (changes.size() > 2) {
-        // 変化箇所が 3 以上ある場合, 将棋の駒以外の変化が盤面に現れているので無視.
-        // TODO: まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
-        return;
-      }
-      minChange = min(minChange, (int)changes.size());
-      maxChange = max(maxChange, (int)changes.size());
-      changeset.push_back(changes);
-    }
-  }
-  if (changeset.empty() || minChange != maxChange) {
-    // 有効な変化が発見できなかった
-    return;
-  }
-  // changeset 内の変化位置が全て同じ部分を指しているか確認する. 違っていれば stable とはみなせない.
-  for (int i = 1; i < changeset.size(); i++) {
-    if (!IsIdentical(changeset[0], changeset[i])) {
-      return;
-    }
-  }
-  // index 番目の手.
-  size_t const index = g.moves.size();
-  Color const color = ColorFromIndex(index);
-  CvPointSet const &ch = changeset.front();
-  optional<Move> move = Statistics::Detect(last.back().image, board, ch, g.position, g.moves, color, g.hand(color), book);
-  if (!move) {
-    return;
-  }
-  for (Move const &m : moveCandidateHistory) {
-    if (m != *move) {
-      moveCandidateHistory.clear();
-      moveCandidateHistory.push_back(*move);
-      return;
-    }
-  }
-  moveCandidateHistory.push_back(*move);
-  if (moveCandidateHistory.size() < stableThresholdMoves) {
-    // stable と判定するにはまだ足りない.
-    return;
-  }
-
-  // move が確定した
-  moveCandidateHistory.clear();
-  boardHistory.clear();
-
-  optional<Square> lastMoveTo;
-  if (!g.moves.empty()) {
-    lastMoveTo = g.moves.back().to;
-  }
-  cout << (char const *)StringFromMove(*move, lastMoveTo).c_str() << endl;
-  // 初手なら画像の上下どちらが先手側か判定する.
-  if (g.moves.empty() && move->to.rank < 5) {
-    // キャプチャした画像で先手が上になっている. 以後 180 度回転して処理する.
-    if (move->from) {
-      move->from = move->from->rotated();
-    }
-    move->to = move->to.rotated();
-    for (int i = 0; i < history.size(); i++) {
-      cv::Mat rotated;
-      cv::rotate(history[i].image, rotated, cv::ROTATE_180);
-      history[i].image = rotated;
-    }
-    rotate = true;
-  }
-  stableBoardHistory.push_back(history);
-  g.moves.push_back(*move);
-  g.apply(*move);
-  book.update(g.position, board);
-}
-
-std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand, PieceBook const &book) {
-  using namespace std;
-  optional<Move> move;
-  auto [before, after] = Equalize(boardBefore, boardAfter);
-  if (changes.size() == 1) {
-    cv::Point ch = *changes.begin();
-    Piece p = position.pieces[ch.x][ch.y];
-    if (p == 0) {
-      // 変化したマスが空きなのでこの手は駒打ち.
-      if (hand.empty()) {
-        cout << "持ち駒が無いので駒打ちは検出できない" << endl;
-      } else if (hand.size() == 1) {
-        Move mv;
-        mv.color = color;
-        mv.to = MakeSquare(ch.x, ch.y);
-        mv.piece = MakePiece(color, *hand.begin());
-        move = mv;
-      } else {
-        double maxSim = 0;
-        std::optional<Piece> maxSimPiece;
-        cv::Mat roi = PieceROI(boardAfter, ch.x, ch.y).clone();
-        book.each(color, [&](Piece piece, cv::Mat const &pi) {
-          if (IsPromotedPiece(piece)) {
-            // 成り駒は打てない.
-            return;
-          }
-          PieceType pt = PieceTypeFromPiece(piece);
-          if (find(hand.begin(), hand.end(), pt) == hand.end()) {
-            // 持ち駒に無い.
-            return;
-          }
-          double sim = Similarity(pi, roi);
-          if (sim > maxSim) {
-            maxSim = sim;
-            maxSimPiece = piece;
-          }
-        });
-        if (maxSimPiece) {
-          Move mv;
-          mv.color = color;
-          mv.to = MakeSquare(ch.x, ch.y);
-          mv.piece = *maxSimPiece;
-          move = mv;
-        } else {
-          cout << "打った駒の検出に失敗" << endl;
-        }
-      }
-    } else {
-      // 相手の駒がいるマス全てについて, 直前のマス画像との類似度を調べる. 類似度が最も低かったマスを, 取られた駒の居たマスとする.
-      double minSim = numeric_limits<double>::max();
-      optional<Square> minSquare;
-      for (int y = 0; y < 9; y++) {
-        for (int x = 0; x < 9; x++) {
-          auto piece = position.pieces[x][y];
-          if (piece == 0 || ColorFromPiece(piece) == color) {
-            continue;
-          }
-          auto bp = PieceROI(before, x, y);
-          auto ap = PieceROI(after, x, y);
-          double sim = Similarity(bp, ap);
-          if (minSim > sim) {
-            minSim = sim;
-            minSquare = MakeSquare(x, y);
-          }
-        }
-      }
-      if (minSquare) {
-        Move mv;
-        mv.color = color;
-        mv.from = MakeSquare(ch.x, ch.y);
-        mv.to = *minSquare;
-        mv.newHand = PieceTypeFromPiece(position.pieces[minSquare->file][minSquare->rank]);
-        mv.piece = p;
-        AppendPromotion(mv, before, after);
-        move = mv;
-      } else {
-        cout << "取った駒を検出できなかった" << endl;
-      }
-    }
-  } else if (changes.size() == 2) {
-    // from と to どちらも駒がある場合 => from が to の駒を取る
-    // to が空きマス, from が手番の駒 => 駒の移動
-    // それ以外 => エラー
-    auto it = changes.begin();
-    cv::Point ch0 = *it;
-    it++;
-    cv::Point ch1 = *it;
-    Piece p0 = position.pieces[ch0.x][ch0.y];
-    Piece p1 = position.pieces[ch1.x][ch1.y];
-    if (p0 != 0 && p1 != 0) {
-      if (ColorFromPiece(p0) == ColorFromPiece(p1)) {
-        cout << "自分の駒を自分で取っている" << endl;
-      } else {
-        Move mv;
-        mv.color = color;
-        if (moves.empty() || ColorFromPiece(p0) == color) {
-          // p0 の駒が p1 の駒を取った.
-          mv.from = MakeSquare(ch0.x, ch0.y);
-          mv.to = MakeSquare(ch1.x, ch1.y);
-          mv.piece = p0;
-          mv.newHand = PieceTypeFromPiece(p1);
-          AppendPromotion(mv, before, after);
-        } else {
-          // p1 の駒が p0 の駒を取った.
-          mv.from = MakeSquare(ch1.x, ch1.y);
-          mv.to = MakeSquare(ch0.x, ch0.y);
-          mv.piece = p1;
-          mv.newHand = PieceTypeFromPiece(p0);
-          AppendPromotion(mv, before, after);
-        }
-        move = mv;
-      }
-    } else if (p0) {
-      if (moves.empty() || ColorFromPiece(p0) == color) {
-        // p0 の駒が p1 に移動
-        Move mv;
-        mv.color = color;
-        mv.from = MakeSquare(ch0.x, ch0.y);
-        mv.to = MakeSquare(ch1.x, ch1.y);
-        mv.piece = p0;
-        AppendPromotion(mv, before, after);
-        move = mv;
-      } else {
-        cout << "相手の駒を動かしている" << endl;
-      }
-    } else if (p1) {
-      if (moves.empty() || ColorFromPiece(p1) == color) {
-        // p1 の駒が p0 に移動
-        Move mv;
-        mv.color = color;
-        mv.from = MakeSquare(ch1.x, ch1.y);
-        mv.to = MakeSquare(ch0.x, ch0.y);
-        mv.piece = p1;
-        AppendPromotion(mv, before, after);
-        move = mv;
-      } else {
-        cout << "相手の駒を動かしている" << endl;
-      }
-    }
-  }
-  return move;
-}
-
-void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &)> cb) const {
-  cv::Mat img;
-  if (color == Color::Black) {
-    if (blackInit) {
-      cb(blackInit->clone());
-    }
-    if (whiteInit) {
-      cv::rotate(*whiteInit, img, cv::ROTATE_180);
-      cb(img);
-    }
-    if (blackLast) {
-      cb(blackLast->clone());
-    }
-    if (whiteLast) {
-      cv::rotate(*whiteLast, img, cv::ROTATE_180);
-      cb(img);
-    }
-  } else {
-    if (whiteInit) {
-      cb(whiteInit->clone());
-    }
-    if (blackInit) {
-      cv::rotate(*blackInit, img, cv::ROTATE_180);
-      cb(img);
-    }
-    if (whiteLast) {
-      cb(whiteLast->clone());
-    }
-    if (blackLast) {
-      cv::rotate(*blackLast, img, cv::ROTATE_180);
-      cb(img);
-    }
-  }
-}
-
-void PieceBook::Entry::push(cv::Mat const &img, Color color) {
-  if (color == Color::Black) {
-    if (!blackInit) {
-      blackInit = img;
-      return;
-    }
-    blackLast = img;
-  } else {
-    cv::Mat tmp;
-    cv::rotate(img, tmp, cv::ROTATE_180);
-    if (!whiteInit) {
-      whiteInit = tmp;
-      return;
-    }
-    whiteLast = tmp;
-  }
-}
-
-void PieceBook::each(Color color, std::function<void(Piece, cv::Mat const &)> cb) const {
-  for (auto const &it : store) {
-    PieceUnderlyingType piece = it.first;
-    it.second.each(color, [&cb, piece, color](cv::Mat const &img) {
-      cb(static_cast<PieceUnderlyingType>(piece) | static_cast<PieceUnderlyingType>(color), img);
-    });
-  }
-}
-
-void PieceBook::update(Position const &position, cv::Mat const &board) {
-  for (int y = 0; y < 9; y++) {
-    for (int x = 0; x < 9; x++) {
-      Piece piece = position.pieces[x][y];
-      if (piece == 0) {
-        continue;
-      }
-      auto roi = PieceROI(board, x, y).clone();
-      PieceUnderlyingType p = RemoveColorFromPiece(piece);
-      Color color = ColorFromPiece(piece);
-      store[p].push(roi, color);
-    }
-  }
 }
 
 void Game::apply(Move const &mv) {

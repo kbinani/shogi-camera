@@ -651,6 +651,20 @@ private:
   Game game;
 };
 
+class Img {
+  Img() = delete;
+
+public:
+  static cv::Mat PieceROI(cv::Mat const &board, int x, int y, float shrink = 1);
+  static void Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, std::array<std::array<double, 9>, 9> *similarity = nullptr);
+  // 2 つの画像を同じサイズになるよう変形する
+  static std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b);
+  // 2 枚の画像を比較する. right を ±degrees 度, x と y 方向にそれぞれ ±width*translationRatio, ±height*translationRatio 移動して画像の一致度を計算し, 最大の一致度を返す.
+  static double Similarity(cv::Mat const &left, cv::Mat const &right, int degrees = 5, float translationRatio = 0.5f);
+  static void PrintAsBase64(cv::Mat const &image, std::string const &title);
+  static void Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y);
+};
+
 class Utility {
   Utility() = delete;
 
