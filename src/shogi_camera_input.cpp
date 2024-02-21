@@ -881,6 +881,23 @@ bool CanPromote(Square from, Square to, Color color) {
     return from.rank >= Rank::Rank7 || to.rank >= Rank::Rank7;
   }
 }
+
+void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter) {
+  if (!mv.from || IsPromotedPiece(mv.piece)) {
+    return;
+  }
+  if (!CanPromote(*mv.from, mv.to, mv.color)) {
+    return;
+  }
+  auto bp = PieceROI(boardBefore, mv.from->file, mv.from->rank);
+  auto ap = PieceROI(boardAfter, mv.to.file, mv.to.rank);
+  if (IsPromoted(bp, ap)) {
+    mv.piece = Promote(mv.piece);
+    mv.promote_ = true;
+  } else {
+    mv.promote_ = false;
+  }
+}
 } // namespace
 
 std::optional<cv::Point2f> Contour::direction(float length) const {
@@ -1136,6 +1153,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
 std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand) {
   using namespace std;
   optional<Move> move;
+  auto [before, after] = Equalize(boardBefore, boardAfter);
   if (changes.size() == 1) {
     cv::Point ch = *changes.begin();
     Piece p = position.pieces[ch.x][ch.y];
@@ -1157,7 +1175,6 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
       // 相手の駒がいるマス全てについて, 直前のマス画像との類似度を調べる. 類似度が最も低かったマスを, 取られた駒の居たマスとする.
       double minSim = numeric_limits<double>::max();
       optional<Square> minSquare;
-      auto [before, after] = Equalize(boardBefore, boardAfter);
       for (int y = 0; y < 9; y++) {
         for (int x = 0; x < 9; x++) {
           auto piece = position.pieces[x][y];
@@ -1179,19 +1196,8 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.from = MakeSquare(ch.x, ch.y);
         mv.to = *minSquare;
         mv.newHand = PieceTypeFromPiece(position.pieces[minSquare->file][minSquare->rank]);
-        if (!IsPromotedPiece(p) && CanPromote(*mv.from, mv.to, color)) {
-          auto bp = PieceROI(before, ch.x, ch.y);
-          auto ap = PieceROI(after, minSquare->file, minSquare->rank);
-          if (IsPromoted(bp, ap)) {
-            mv.piece = Promote(p);
-            mv.promote_ = true;
-          } else {
-            mv.piece = p;
-            mv.promote_ = false;
-          }
-        } else {
-          mv.piece = p;
-        }
+        mv.piece = p;
+        AppendPromotion(mv, before, after);
         move = mv;
       } else {
         cout << "取った駒を検出できなかった" << endl;
@@ -1219,36 +1225,14 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           mv.to = MakeSquare(ch1.x, ch1.y);
           mv.piece = p0;
           mv.newHand = PieceTypeFromPiece(p1);
-          if (!IsPromotedPiece(p0) && CanPromote(*mv.from, mv.to, color)) {
-            auto [before, after] = Equalize(boardBefore, boardAfter);
-            auto bp = PieceROI(before, mv.from->file, mv.from->rank);
-            auto ap = PieceROI(after, mv.to.file, mv.to.rank);
-            if (IsPromoted(bp, ap)) {
-              mv.piece = Promote(p0);
-              mv.promote_ = true;
-            } else {
-              mv.piece = p0;
-              mv.promote_ = false;
-            }
-          }
+          AppendPromotion(mv, before, after);
         } else {
           // p1 の駒が p0 の駒を取った.
           mv.from = MakeSquare(ch1.x, ch1.y);
           mv.to = MakeSquare(ch0.x, ch0.y);
           mv.piece = p1;
           mv.newHand = PieceTypeFromPiece(p0);
-          if (!IsPromotedPiece(p1) && CanPromote(*mv.from, mv.to, color)) {
-            auto [before, after] = Equalize(boardBefore, boardAfter);
-            auto bp = PieceROI(before, mv.from->file, mv.from->rank);
-            auto ap = PieceROI(after, mv.to.file, mv.to.rank);
-            if (IsPromoted(bp, ap)) {
-              mv.piece = Promote(p1);
-              mv.promote_ = true;
-            } else {
-              mv.piece = p1;
-              mv.promote_ = false;
-            }
-          }
+          AppendPromotion(mv, before, after);
         }
         move = mv;
       }
@@ -1260,18 +1244,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.from = MakeSquare(ch0.x, ch0.y);
         mv.to = MakeSquare(ch1.x, ch1.y);
         mv.piece = p0;
-        if (!IsPromotedPiece(p0) && CanPromote(*mv.from, mv.to, color)) {
-          auto [before, after] = Equalize(boardBefore, boardAfter);
-          auto bp = PieceROI(before, mv.from->file, mv.from->rank);
-          auto ap = PieceROI(after, mv.to.file, mv.to.rank);
-          if (IsPromoted(bp, ap)) {
-            mv.piece = Promote(p0);
-            mv.promote_ = true;
-          } else {
-            mv.piece = p0;
-            mv.promote_ = false;
-          }
-        }
+        AppendPromotion(mv, before, after);
         move = mv;
       } else {
         cout << "相手の駒を動かしている" << endl;
@@ -1284,18 +1257,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.from = MakeSquare(ch1.x, ch1.y);
         mv.to = MakeSquare(ch0.x, ch0.y);
         mv.piece = p1;
-        if (!IsPromotedPiece(p1) && CanPromote(*mv.from, mv.to, color)) {
-          auto [before, after] = Equalize(boardBefore, boardAfter);
-          auto bp = PieceROI(before, mv.from->file, mv.from->rank);
-          auto ap = PieceROI(after, mv.to.file, mv.to.rank);
-          if (IsPromoted(bp, ap)) {
-            mv.piece = Promote(p1);
-            mv.promote_ = true;
-          } else {
-            mv.piece = p1;
-            mv.promote_ = false;
-          }
-        }
+        AppendPromotion(mv, before, after);
         move = mv;
       } else {
         cout << "相手の駒を動かしている" << endl;
