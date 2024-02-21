@@ -159,6 +159,7 @@ class Reader {
     case Down
     case Lateral  // 寄る
     case Nearest  // 直ぐ
+    case Drop  // 打ち
   }
   struct ActionVoice {
     let action: UInt32
@@ -234,6 +235,26 @@ class Reader {
     }
     if let promote = move.promote_.value {
       let action: Action = promote ? .Promote : .NoPromote
+      var startAction: TimeInterval?
+      var endAction: TimeInterval?
+      for i in 0..<self.actions.count - 1 {
+        let a = self.actions[i]
+        if a.action == action.rawValue {
+          startAction = a.time
+          endAction = self.actions[i + 1].time
+        }
+      }
+      if let startAction, let endAction {
+        node.scheduleSegment(
+          file, startingFrame: .init(offset + startAction * rate),
+          frameCount: .init((endAction - startAction) * rate), at: nil)
+        offset += endAction - startAction
+      } else {
+        print("アクション用のボイスが無い")
+      }
+    }
+    if !move.from.__convertToBool() {
+      let action: Action = .Drop
       var startAction: TimeInterval?
       var endAction: TimeInterval?
       for i in 0..<self.actions.count - 1 {

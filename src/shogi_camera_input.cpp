@@ -207,7 +207,7 @@ std::optional<cv::Vec4f> FitLine(std::vector<cv::Point2f> const &points) {
 std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b) {
   using namespace std;
   if (a.size() == b.size()) {
-    return make_pair(a, b);
+    return make_pair(a.clone(), b.clone());
   }
   int width = std::max(a.size().width, b.size().width);
   int height = std::max(a.size().height, b.size().height);
@@ -825,6 +825,8 @@ bool IsIdentical(std::set<T, L> const &a, std::set<T, L> const &b) {
 // 2 枚の画像を比較する. right を ±degrees 度, x と y 方向にそれぞれ ±width*translationRatio, ±height*translationRatio 移動して画像の一致度を計算し, 最大の一致度を返す.
 double Similarity(cv::Mat const &left, cv::Mat const &right, int degrees = 5, float translationRatio = 0.5f) {
   auto [a, b] = Equalize(left, right);
+  cv::adaptiveThreshold(b, b, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+  cv::adaptiveThreshold(a, a, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
   int w = a.size().width;
   int h = a.size().height;
   int cx = w / 2;
@@ -870,6 +872,7 @@ double Similarity(cv::Mat const &left, cv::Mat const &right, int degrees = 5, fl
 
 bool IsPromoted(cv::Mat const &pieceBefore, cv::Mat const &pieceAfter) {
   double sim = Similarity(pieceBefore, pieceAfter);
+  std::cout << __FUNCTION__ << "; sim=" << sim << std::endl;
   return sim < 0.98;
 }
 
@@ -1026,8 +1029,8 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   if (boardHistory.size() == 1) {
     return;
   }
-  int constexpr stableThresholdFrames = 8;
-  int constexpr stableThresholdMoves = 5;
+  int constexpr stableThresholdFrames = 3;
+  int constexpr stableThresholdMoves = 3;
   // 盤面の各マスについて, 直前の画像との類似度を計算する. 将棋は 1 手につきたかだか 2 マス変動するはず. もし変動したマスが 3 マス以上なら,
   // 指が映り込むなどして盤面が正確に検出できなかった可能性がある.
   // 直前から変動した升目数が 0 のフレームが stableThresholdFrames フレーム連続した時, stable になったと判定する.
@@ -1062,7 +1065,8 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     // 最初の stable board なので登録するだけ.
     stableBoardHistory.push_back(history);
     boardHistory.clear();
-    if (true) {
+    book.update(g.position, board);
+    if (false) {
       PrintAsBase64(board, "");
     }
     return;
@@ -1105,7 +1109,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   size_t const index = g.moves.size();
   Color const color = ColorFromIndex(index);
   CvPointSet const &ch = changeset.front();
-  optional<Move> move = Statistics::Detect(last.back().image, board, ch, g.position, g.moves, color, g.hand(color));
+  optional<Move> move = Statistics::Detect(last.back().image, board, ch, g.position, g.moves, color, g.hand(color), book);
   if (!move) {
     return;
   }
@@ -1148,9 +1152,10 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   stableBoardHistory.push_back(history);
   g.moves.push_back(*move);
   g.apply(*move);
+  book.update(g.position, board);
 }
 
-std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand) {
+std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand, PieceBook const &book) {
   using namespace std;
   optional<Move> move;
   auto [before, after] = Equalize(boardBefore, boardAfter);
@@ -1168,8 +1173,34 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.piece = MakePiece(color, *hand.begin());
         move = mv;
       } else {
-        // TODO: 駒打ちで複数候補がある場合
-        cout << "TODO: 駒打ち" << endl;
+        double maxSim = 0;
+        std::optional<Piece> maxSimPiece;
+        cv::Mat roi = PieceROI(boardAfter, ch.x, ch.y).clone();
+        book.each(color, [&](Piece piece, cv::Mat const &pi) {
+          if (IsPromotedPiece(piece)) {
+            // 成り駒は打てない.
+            return;
+          }
+          PieceType pt = PieceTypeFromPiece(piece);
+          if (find(hand.begin(), hand.end(), pt) == hand.end()) {
+            // 持ち駒に無い.
+            return;
+          }
+          double sim = Similarity(pi, roi);
+          if (sim > maxSim) {
+            maxSim = sim;
+            maxSimPiece = piece;
+          }
+        });
+        if (maxSimPiece) {
+          Move mv;
+          mv.color = color;
+          mv.to = MakeSquare(ch.x, ch.y);
+          mv.piece = *maxSimPiece;
+          move = mv;
+        } else {
+          cout << "打った駒の検出に失敗" << endl;
+        }
       }
     } else {
       // 相手の駒がいるマス全てについて, 直前のマス画像との類似度を調べる. 類似度が最も低かったマスを, 取られた駒の居たマスとする.
@@ -1265,6 +1296,83 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
     }
   }
   return move;
+}
+
+void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &)> cb) const {
+  cv::Mat img;
+  if (color == Color::Black) {
+    if (blackInit) {
+      cb(blackInit->clone());
+    }
+    if (whiteInit) {
+      cv::rotate(*whiteInit, img, cv::ROTATE_180);
+      cb(img);
+    }
+    if (blackLast) {
+      cb(blackLast->clone());
+    }
+    if (whiteLast) {
+      cv::rotate(*whiteLast, img, cv::ROTATE_180);
+      cb(img);
+    }
+  } else {
+    if (whiteInit) {
+      cb(whiteInit->clone());
+    }
+    if (blackInit) {
+      cv::rotate(*blackInit, img, cv::ROTATE_180);
+      cb(img);
+    }
+    if (whiteLast) {
+      cb(whiteLast->clone());
+    }
+    if (blackLast) {
+      cv::rotate(*blackLast, img, cv::ROTATE_180);
+      cb(img);
+    }
+  }
+}
+
+void PieceBook::Entry::push(cv::Mat const &img, Color color) {
+  if (color == Color::Black) {
+    if (!blackInit) {
+      blackInit = img;
+      return;
+    }
+    blackLast = img;
+  } else {
+    cv::Mat tmp;
+    cv::rotate(img, tmp, cv::ROTATE_180);
+    if (!whiteInit) {
+      whiteInit = tmp;
+      return;
+    }
+    whiteLast = tmp;
+  }
+}
+
+void PieceBook::each(Color color, std::function<void(Piece, cv::Mat const &)> cb) const {
+  for (auto const &it : store) {
+    PieceUnderlyingType piece = it.first;
+    it.second.each(color, [&cb, piece, color](cv::Mat const &img) {
+      cb(static_cast<PieceUnderlyingType>(piece) | static_cast<PieceUnderlyingType>(color), img);
+    });
+  }
+}
+
+void PieceBook::update(Position const &position, cv::Mat const &board) {
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      Piece piece = position.pieces[x][y];
+      if (piece == 0) {
+        continue;
+      }
+      auto roi = PieceROI(board, x, y).clone();
+      PieceUnderlyingType p = RemoveColorFromPiece(piece);
+      Color color = ColorFromPiece(piece);
+      store[p].push(roi, color);
+    }
+  }
 }
 
 void Game::apply(Move const &mv) {

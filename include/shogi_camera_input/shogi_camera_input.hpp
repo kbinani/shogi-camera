@@ -575,6 +575,26 @@ struct LessCvPoint {
 
 using CvPointSet = std::set<cv::Point, LessCvPoint>;
 
+// 駒の画像を集めたもの.
+struct PieceBook {
+  struct Entry {
+    std::optional<cv::Mat> blackInit;
+    // 先手向きで格納する.
+    std::optional<cv::Mat> whiteInit;
+    std::optional<cv::Mat> blackLast;
+    // 先手向きで格納する.
+    std::optional<cv::Mat> whiteLast;
+
+    void each(Color color, std::function<void(cv::Mat const &)> cb) const;
+    void push(cv::Mat const &img, Color color);
+  };
+
+  std::map<PieceUnderlyingType, Entry> store;
+
+  void each(Color color, std::function<void(Piece, cv::Mat const &ete)> cb) const;
+  void update(Position const &position, cv::Mat const &board);
+};
+
 struct Statistics {
   std::deque<float> squareAreaHistory;
   std::optional<float> squareArea;
@@ -595,7 +615,15 @@ struct Statistics {
 
   std::deque<Move> moveCandidateHistory;
 
-  static std::optional<Move> Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand);
+  static std::optional<Move> Detect(cv::Mat const &boardBefore,
+                                    cv::Mat const &boardAfter,
+                                    CvPointSet const &changes,
+                                    Position const &position,
+                                    std::vector<Move> const &moves,
+                                    Color const &color,
+                                    std::deque<PieceType> const &hand,
+                                    PieceBook const &book);
+  PieceBook book;
 };
 
 class Session {
