@@ -26,12 +26,12 @@ int main(int argc, const char *argv[]) {
 
   int x = 7;
   int y = 1;
-  auto bp = PieceROI(b, 1, 7).clone();
-  auto ap = PieceROI(a, 1, 7).clone();
-  //  cv::adaptiveThreshold(ap, ap, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
-  //  cv::adaptiveThreshold(bp, bp, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
-  double sim = Similarity(bp, ap, 5, 0.5);
+  auto bp = PieceROI(b, 7, 1).clone();
+  auto ap = PieceROI(a, 7, 1).clone();
+  double sim = Similarity(bp, ap, 10, 0.5f);
   cout << sim << endl;
+  cv::adaptiveThreshold(ap, ap, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+  cv::adaptiveThreshold(bp, bp, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
 
   int width = a.size().width;
   int height = a.size().height;

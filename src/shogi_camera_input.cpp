@@ -873,7 +873,7 @@ double Similarity(cv::Mat const &left, cv::Mat const &right, int degrees = 5, fl
 bool IsPromoted(cv::Mat const &pieceBefore, cv::Mat const &pieceAfter) {
   double sim = Similarity(pieceBefore, pieceAfter);
   std::cout << __FUNCTION__ << "; sim=" << sim << std::endl;
-  return sim < 0.98;
+  return sim < 0.7;
 }
 
 // 手番 color の駒が from から to に移動したとき, 成れる条件かどうか.
