@@ -255,7 +255,7 @@ class DebugView: UIView {
         defer {
           device.unlockForConfiguration()
         }
-        let rate = min(max(2, range.minFrameRate), range.maxFrameRate)
+        let rate = min(max(5, range.minFrameRate), range.maxFrameRate)
         device.activeVideoMinFrameDuration = CMTime(
           seconds: 1 / rate, preferredTimescale: 1_000_000)
       } catch {
