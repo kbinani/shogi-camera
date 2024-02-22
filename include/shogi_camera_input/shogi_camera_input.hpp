@@ -189,22 +189,7 @@ inline Position MakePosition(Handicap h) {
 struct Hand {
   std::deque<PieceType> pieces;
 };
-#if 0
-// 局面
-struct Board {
-  Position position;
-  Hand black;
-  Hand white;
-  uint32_t step;
-};
 
-inline Board MakeBoard(Handicap h) {
-  Board b;
-  b.position = MakePosition(h);
-  b.step = 0;
-  return b;
-}
-#endif
 // 筋. 右が File1, 左が File9
 enum File : int32_t {
   File9 = 0,

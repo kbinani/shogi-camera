@@ -72,23 +72,9 @@ double Img::Similarity(cv::Mat const &left, cv::Mat const &right, int degrees, f
   auto [a, b] = Equalize(left, right);
   cv::adaptiveThreshold(b, b, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
   cv::adaptiveThreshold(a, a, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
-#if 0
-  double s = cv::matchShapes(b, a, cv::CONTOURS_MATCH_I1, 0);
-  return 1 - s;
-#else
 
   int w = a.size().width;
   int h = a.size().height;
-
-  //  float rate = 0.2f;
-  //  int dw = (int)floor(w * rate);
-  //  int dh = (int)floor(h * rate);
-  //  cv::Scalar fill(0, 0, 0);
-  //    cv::rectangle(a, cv::Rect(0, 0, w, dh), fill, -1);
-  //    cv::rectangle(a, cv::Rect(0, h - dh, w, dh), fill, -1);
-  //    cv::rectangle(a, cv::Rect(0, 0, dw, h), fill, -1);
-  //    cv::rectangle(a, cv::Rect(w - dw, 0, dw, h), fill, -1);
-
   int cx = w / 2;
   int cy = h / 2;
   int dx = (int)round(w * translationRatio);
@@ -112,9 +98,6 @@ double Img::Similarity(cv::Mat const &left, cv::Mat const &right, int degrees, f
               float diff = b.at<uint8_t>(i, j) - rotated.at<uint8_t>(i + ix, j + iy);
               sum += diff * diff;
               count++;
-              //            } else {
-              //              float diff = b.at<uint8_t>(i, j);
-              //              sum += diff * diff;
             }
           }
         }
@@ -128,11 +111,7 @@ double Img::Similarity(cv::Mat const &left, cv::Mat const &right, int degrees, f
       }
     }
   }
-
-  //  std::cout << "dx=" << maxDx << ", dy=" << maxDy << ", d=" << maxDegrees << std::endl;
-
   return maxSim;
-#endif
 }
 
 std::string Img::EncodeToBase64(cv::Mat const &image) {

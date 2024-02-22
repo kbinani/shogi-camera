@@ -25,12 +25,6 @@ cv::Point2d Rotate(cv::Point2d const &p, double radian) {
   return cv::Point2d(cos(radian) * p.x - sin(radian) * p.y, sin(radian) * p.x + cos(radian) * p.y);
 }
 
-float Distance(cv::Point2f const &a, cv::Point2f const &b) {
-  float dx = a.x - b.x;
-  float dy = a.y - b.y;
-  return sqrtf(dx * dx + dy * dy);
-}
-
 float Angle(cv::Point2f const &a) {
   return atan2f(a.y, a.x);
 }
@@ -175,16 +169,6 @@ double Distance(cv::Vec4f const &line, cv::Point2d const &p) {
   } else {
     return std::numeric_limits<double>::infinity();
   }
-}
-
-cv::Point2d Normalize(cv::Point2d const &a) {
-  return a / cv::norm(a);
-}
-
-void Normalize(cv::Mat &a) {
-  double min, max;
-  cv::minMaxLoc(a, &min, &max);
-  a = (a - min) / (max - min);
 }
 
 std::optional<cv::Vec4f> FitLine(std::vector<cv::Point2f> const &points) {

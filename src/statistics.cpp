@@ -311,7 +311,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
       } else {
         double maxSim = 0;
         std::optional<Piece> maxSimPiece;
-        cv::Mat roi = Img::PieceROI(boardAfter, ch.x, ch.y).clone();
+        cv::Mat roi = Img::PieceROI(boardAfter, ch.x, ch.y);
         book.each(color, [&](Piece piece, cv::Mat const &pi) {
           if (IsPromotedPiece(piece)) {
             // 成り駒は打てない.
@@ -322,7 +322,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
             // 持ち駒に無い.
             return;
           }
-          double sim = Img::Similarity(pi, roi);
+          double sim = Img::Similarity(roi, pi);
           if (sim > maxSim) {
             maxSim = sim;
             maxSimPiece = piece;
