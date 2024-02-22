@@ -878,4 +878,79 @@ void Session::push(cv::Mat const &frame) {
   cv.notify_all();
 }
 
+bool CanMove(Position const &position, Square from, Square to) {
+  using namespace std;
+  Piece pieceFrom = position.pieces[from.file][from.rank];
+  if (pieceFrom == 0) {
+    return false;
+  }
+  Color color = ColorFromPiece(pieceFrom);
+  Piece pieceTo = position.pieces[to.file][to.rank];
+  if (pieceTo != 0 && ColorFromPiece(pieceTo) == color) {
+    return false;
+  }
+
+  struct Step {
+    Step(int x, int y, int count = 1) : x(x), y(y), count(count) {}
+    int x;
+    int y;
+    int count;
+  };
+  static map<Piece, vector<Step>> const sSteps = {
+      {MakePiece(Color::Black, PieceType::King), {Step{-1, -1}, Step{0, -1}, Step{1, -1}, Step{-1, 0}, Step{1, 0}, Step{-1, 1}, Step{0, 1}, Step{1, 1}}},
+      {MakePiece(Color::Black, PieceType::Rook), {Step{0, -1, 9}, Step{1, 0, 9}, Step{0, 1, 9}, Step{-1, 0, 9}}},
+      {MakePiece(Color::Black, PieceType::Bishop), {Step{-1, -1, 9}, Step{1, -1, 9}, Step{1, 1, 9}, Step{-1, 1, 9}}},
+      {MakePiece(Color::Black, PieceType::Gold), {Step{-1, -1}, Step{0, -1}, Step{1, -1}, Step{-1, 0}, Step{1, 0}, Step{0, -1}}},
+      {MakePiece(Color::Black, PieceType::Silver), {Step{-1, -1}, Step{0, -1}, Step{1, -1}, Step{-1, 1}, Step{1, 1}}},
+      {MakePiece(Color::Black, PieceType::Knight), {Step{-1, -2}, Step{1, -2}}},
+      {MakePiece(Color::Black, PieceType::Lance), {Step{0, -1, 9}}},
+      {MakePiece(Color::Black, PieceType::Pawn), {Step{0, -1}}},
+      {MakePiece(Color::Black, PieceType::Rook, PieceStatus::Promoted), {Step{0, -1, 9}, Step{1, 0, 9}, Step{0, 1, 9}, Step{-1, 0, 9}, Step{-1, -1}, Step{1, -1}, Step{-1, 1}, Step{1, 1}}},
+      {MakePiece(Color::Black, PieceType::Bishop, PieceStatus::Promoted), {Step{-1, -1, 9}, Step{1, -1, 9}, Step{1, 1, 9}, Step{-1, 1, 9}, Step{0, -1}, Step{-1, 0}, Step{1, 0}, Step{0, 1}}},
+      {MakePiece(Color::Black, PieceType::Silver, PieceStatus::Promoted), {Step{-1, -1}, Step{0, -1}, Step{1, -1}, Step{-1, 0}, Step{1, 0}, Step{0, -1}}},
+      {MakePiece(Color::Black, PieceType::Knight, PieceStatus::Promoted), {Step{-1, -1}, Step{0, -1}, Step{1, -1}, Step{-1, 0}, Step{1, 0}, Step{0, -1}}},
+      {MakePiece(Color::Black, PieceType::Lance, PieceStatus::Promoted), {Step{-1, -1}, Step{0, -1}, Step{1, -1}, Step{-1, 0}, Step{1, 0}, Step{0, -1}}},
+      {MakePiece(Color::Black, PieceType::Pawn, PieceStatus::Promoted), {Step{-1, -1}, Step{0, -1}, Step{1, -1}, Step{-1, 0}, Step{1, 0}, Step{0, -1}}},
+
+      {MakePiece(Color::White, PieceType::King), {Step{-1, -1}, Step{0, -1}, Step{1, -1}, Step{-1, 0}, Step{1, 0}, Step{-1, 1}, Step{0, 1}, Step{1, 1}}},
+      {MakePiece(Color::White, PieceType::Rook), {Step{0, -1, 9}, Step{1, 0, 9}, Step{0, 1, 9}, Step{-1, 0, 9}}},
+      {MakePiece(Color::White, PieceType::Bishop), {Step{-1, -1, 9}, Step{1, -1, 9}, Step{1, 1, 9}, Step{-1, 1, 9}}},
+      {MakePiece(Color::White, PieceType::Gold), {Step{1, 1}, Step{0, 1}, Step{-1, 1}, Step{1, 0}, Step{-1, 0}, Step{0, 1}}},
+      {MakePiece(Color::White, PieceType::Silver), {Step{1, 1}, Step{0, 1}, Step{-1, 1}, Step{1, -1}, Step{-1, -1}}},
+      {MakePiece(Color::White, PieceType::Knight), {Step{1, 2}, Step{-1, 2}}},
+      {MakePiece(Color::White, PieceType::Lance), {Step{0, 1, 9}}},
+      {MakePiece(Color::White, PieceType::Pawn), {Step{0, 1}}},
+      {MakePiece(Color::White, PieceType::Rook, PieceStatus::Promoted), {Step{0, 1, 9}, Step{-1, 0, 9}, Step{0, -1, 9}, Step{1, 0, 9}, Step{1, 1}, Step{-1, 1}, Step{1, -1}, Step{-1, -1}}},
+      {MakePiece(Color::White, PieceType::Bishop, PieceStatus::Promoted), {Step{1, 1, 9}, Step{-1, 1, 9}, Step{-1, -1, 9}, Step{1, -1, 9}, Step{0, 1}, Step{1, 0}, Step{-1, 0}, Step{0, -1}}},
+      {MakePiece(Color::White, PieceType::Silver, PieceStatus::Promoted), {Step{1, 1}, Step{0, 1}, Step{-1, 1}, Step{1, 0}, Step{-1, 0}, Step{0, 1}}},
+      {MakePiece(Color::White, PieceType::Knight, PieceStatus::Promoted), {Step{1, 1}, Step{0, 1}, Step{-1, 1}, Step{1, 0}, Step{-1, 0}, Step{0, 1}}},
+      {MakePiece(Color::White, PieceType::Lance, PieceStatus::Promoted), {Step{1, 1}, Step{0, 1}, Step{-1, 1}, Step{1, 0}, Step{-1, 0}, Step{0, 1}}},
+      {MakePiece(Color::White, PieceType::Pawn, PieceStatus::Promoted), {Step{1, 1}, Step{0, 1}, Step{-1, 1}, Step{1, 0}, Step{-1, 0}, Step{0, 1}}},
+  };
+  auto found = sSteps.find(pieceFrom);
+  if (found == sSteps.end()) {
+    return false;
+  }
+  vector<Step> const &steps = found->second;
+  for (Step const &step : steps) {
+    for (int i = 1; i <= step.count; i++) {
+      int x = from.file + step.x * i;
+      int y = from.rank + step.y * i;
+      if (x < 0 || 9 <= x || y < 0 || 9 <= y) {
+        break;
+      }
+      Piece t = position.pieces[x][y];
+      if (t == 0) {
+        continue;
+      } else if (ColorFromPiece(t) == color) {
+        break;
+      } else if (x == to.file && y == to.rank) {
+        return true;
+      } else {
+        break;
+      }
+    }
+  }
+  return false;
+}
 } // namespace sci

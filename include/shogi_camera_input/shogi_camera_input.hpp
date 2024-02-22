@@ -366,6 +366,9 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
   return TrimSquarePartFromString(cp);
 }
 
+// from に居る駒が to に効いているかどうかを調べる. from が空きマスだった場合は false を返す.
+bool CanMove(Position const &p, Square from, Square to);
+
 struct Move {
   Color color;
   // 移動した駒.

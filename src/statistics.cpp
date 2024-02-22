@@ -46,6 +46,7 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
 
   if (auto range = book.store[Promote(RemoveColorFromPiece(mv.piece))].similarityRange(); range) {
     // 成り駒の book entry がある場合, 優先して類似度を調べる.
+    std::cout << sim << " [" << range->minimum << ", " << range->maximum << "] (1)" << std::endl;
     if (sim >= range->minimum) {
       mv.piece = Promote(mv.piece);
       mv.promote_ = true;
@@ -55,6 +56,7 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   if (auto range = book.store[RemoveColorFromPiece(mv.piece)].similarityRange(); range) {
     // なる前の駒の画像コレクション同士の類似度の最低値より, 今回の駒画像の前後で比べた時の類似度が下回っている場合成りとみなす.
     // 既存の画像のどの駒画像にも似てない => 成りなのでは.
+    std::cout << sim << " [" << range->minimum << ", " << range->maximum << "] (2)" << std::endl;
     if (sim < range->minimum) {
       mv.piece = Promote(mv.piece);
       mv.promote_ = true;
@@ -202,6 +204,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
           // まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
           stableBoardHistory.pop_back();
           stableBoardHistory.push_back(history);
+          cout << "stableBoardHistoryをリセット" << endl;
         }
         return;
       }
@@ -341,9 +344,13 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           if (piece == 0 || ColorFromPiece(piece) == color) {
             continue;
           }
+          if (!CanMove(position, MakeSquare(ch.x, ch.y), MakeSquare(x, y))) {
+            continue;
+          }
           auto bp = Img::PieceROI(before, x, y);
           auto ap = Img::PieceROI(after, x, y);
           double sim = Img::Similarity(bp, ap);
+          std::cout << (char const *)StringFromSquare(MakeSquare(x, y)).c_str() << "; sim=" << sim << endl;
           if (minSim > sim) {
             minSim = sim;
             minSquare = MakeSquare(x, y);
