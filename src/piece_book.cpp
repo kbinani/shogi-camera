@@ -38,7 +38,7 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &)> cb
 }
 
 void PieceBook::Entry::push(cv::Mat const &img, Color color) {
-  similarityRange = std::nullopt;
+  similarityRange_ = std::nullopt;
   if (color == Color::Black) {
     if (!blackInit) {
       blackInit = img;
@@ -129,10 +129,10 @@ std::string PieceBook::toPng() const {
   return Img::EncodeToBase64(all);
 }
 
-ClosedRange<double> PieceBook::Entry::ensureSimilarityRange() {
+std::optional<ClosedRange<double>> PieceBook::Entry::similarityRange() {
   using namespace std;
-  if (similarityRange) {
-    return *similarityRange;
+  if (similarityRange_) {
+    return *similarityRange_;
   }
   double minimum = std::numeric_limits<double>::max();
   double maximum = std::numeric_limits<double>::lowest();
@@ -141,7 +141,7 @@ ClosedRange<double> PieceBook::Entry::ensureSimilarityRange() {
     images.push_back(img);
   });
   if (images.empty()) {
-    return ClosedRange<double>(1, 1);
+    return nullopt;
   }
   for (int i = 0; i < (int)images.size() - 1; i++) {
     cv::Mat const &a = images[i];
@@ -153,7 +153,7 @@ ClosedRange<double> PieceBook::Entry::ensureSimilarityRange() {
     }
   }
   ClosedRange<double> range(minimum, maximum);
-  similarityRange = range;
+  similarityRange_ = range;
   return range;
 }
 

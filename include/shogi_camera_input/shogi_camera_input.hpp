@@ -592,13 +592,15 @@ struct PieceBook {
     std::deque<cv::Mat> blackLast;
     // 先手向きで格納する.
     std::deque<cv::Mat> whiteLast;
-    std::optional<ClosedRange<double>> similarityRange;
 
     static constexpr size_t kMaxLastImageCount = 4;
 
     void each(Color color, std::function<void(cv::Mat const &)> cb) const;
     void push(cv::Mat const &img, Color color);
-    ClosedRange<double> ensureSimilarityRange();
+    std::optional<ClosedRange<double>> similarityRange();
+
+  private:
+    std::optional<ClosedRange<double>> similarityRange_;
   };
 
   std::map<PieceUnderlyingType, Entry> store;

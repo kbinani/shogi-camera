@@ -40,17 +40,27 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   if (!CanPromote(*mv.from, mv.to, mv.color)) {
     return;
   }
-  PieceBook::Entry &entry = book.store[RemoveColorFromPiece(mv.piece)];
-  ClosedRange<double> range = entry.ensureSimilarityRange();
-  // なる前の駒の画像コレクション同士の類似度の最低値より, 今回の駒画像の前後で比べた時の類似度が下回っている場合成りとみなす.
-  // 既存の画像のどの駒画像にも似てない => 成りなのでは.
   auto bp = Img::PieceROI(boardBefore, mv.from->file, mv.from->rank);
   auto ap = Img::PieceROI(boardAfter, mv.to.file, mv.to.rank);
   double sim = Img::Similarity(bp, ap);
-  std::cout << "sim=" << sim << "; range=[" << range.minimum << ", " << range.maximum << "]" << std::endl;
-  if (sim < range.minimum) {
-    mv.piece = Promote(mv.piece);
-    mv.promote_ = true;
+
+  if (auto range = book.store[Promote(RemoveColorFromPiece(mv.piece))].similarityRange(); range) {
+    // 成り駒の book entry がある場合, 優先して類似度を調べる.
+    if (sim >= range->minimum) {
+      mv.piece = Promote(mv.piece);
+      mv.promote_ = true;
+      return;
+    }
+  }
+  if (auto range = book.store[RemoveColorFromPiece(mv.piece)].similarityRange(); range) {
+    // なる前の駒の画像コレクション同士の類似度の最低値より, 今回の駒画像の前後で比べた時の類似度が下回っている場合成りとみなす.
+    // 既存の画像のどの駒画像にも似てない => 成りなのでは.
+    if (sim < range->minimum) {
+      mv.piece = Promote(mv.piece);
+      mv.promote_ = true;
+    } else {
+      mv.promote_ = false;
+    }
   } else {
     mv.promote_ = false;
   }
