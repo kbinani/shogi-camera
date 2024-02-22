@@ -34,6 +34,7 @@ bool CanPromote(Square from, Square to, Color color) {
 }
 
 void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter, PieceBook &book) {
+  using namespace std;
   if (!mv.from || IsPromotedPiece(mv.piece)) {
     return;
   }
@@ -42,27 +43,36 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   }
   auto bp = Img::PieceROI(boardBefore, mv.from->file, mv.from->rank);
   auto ap = Img::PieceROI(boardAfter, mv.to.file, mv.to.rank);
-  double sim = Img::Similarity(bp, ap);
 
-  if (auto range = book.store[Promote(RemoveColorFromPiece(mv.piece))].similarityRange(); range) {
-    // 成り駒の book entry がある場合, 優先して類似度を調べる.
-    std::cout << sim << " [" << range->minimum << ", " << range->maximum << "] (1)" << std::endl;
-    if (sim >= range->minimum) {
-      mv.piece = Promote(mv.piece);
-      mv.promote_ = true;
-      return;
-    }
-  }
-  if (auto range = book.store[RemoveColorFromPiece(mv.piece)].similarityRange(); range) {
-    // なる前の駒の画像コレクション同士の類似度の最低値より, 今回の駒画像の前後で比べた時の類似度が下回っている場合成りとみなす.
-    // 既存の画像のどの駒画像にも似てない => 成りなのでは.
-    std::cout << sim << " [" << range->minimum << ", " << range->maximum << "] (2)" << std::endl;
-    if (sim < range->minimum) {
-      mv.piece = Promote(mv.piece);
-      mv.promote_ = true;
-    } else {
-      mv.promote_ = false;
-    }
+  auto &entry = book.store[RemoveColorFromPiece(mv.piece)];
+  vector<float> simAfter;
+  vector<float> simBefore;
+  entry.each(mv.color, [&](cv::Mat const &img) {
+    double sa = Img::Similarity(ap, img);
+    double sb = Img::Similarity(bp, img);
+    simAfter.push_back(sa);
+    simBefore.push_back(sb);
+  });
+  cv::Scalar meanBeforeScalar, stddevBeforeScalar;
+  cv::meanStdDev(cv::Mat(simBefore), meanBeforeScalar, stddevBeforeScalar);
+  cv::Scalar meanAfterScalar, stddevAfterScalar;
+  cv::meanStdDev(cv::Mat(simAfter), meanAfterScalar, stddevAfterScalar);
+
+  float meanBefore = meanBeforeScalar[0];
+  float stddevBefore = stddevBeforeScalar[0];
+  float meanAfter = meanAfterScalar[0];
+  float stddevAfter = stddevAfterScalar[0];
+  // before の平均値の, after から見たときの偏差値
+  float tBeforeMean = (10 * meanBefore - meanAfter) / stddevAfter + 50;
+  float tAfterMean = (10 * meanAfter - meanBefore) / stddevBefore + 50;
+  cout << "tBefore=" << tBeforeMean << ", tAfter=" << tAfterMean << ", fabs(tBefore - tAfter)=" << fabs(tBeforeMean - tAfterMean) << endl;
+  // before と after で, book の駒画像との類似度の分布を調べる. before 対 book の分布が, after 対 book の分布とだいたい同じなら不成, 大きくずれていれば成りと判定する.
+  // fabs(tBeforeMean - tAfterMean) の実際の値の様子:
+  // 成りの時: 727, 1418, 1293
+  // 不成の時: 22.5, 1.73, 78.2, 65.9, 59.9, 65.9
+  if (fabs(tAfterMean - tBeforeMean) > 150) {
+    mv.piece = Promote(mv.piece);
+    mv.promote_ = true;
   } else {
     mv.promote_ = false;
   }
@@ -197,24 +207,31 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
       Img::Compare(before, after, changes);
       if (changes.size() == 0) {
         // 直前の stable board と比べて変化箇所が無い場合は無視.
-        return;
+        //        return;
       } else if (changes.size() > 2) {
         // 変化箇所が 3 以上ある場合, 将棋の駒以外の変化が盤面に現れているので無視.
         if (stableBoardHistory.size() == 1 && g.moves.empty()) {
           // まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
-          stableBoardHistory.pop_back();
-          stableBoardHistory.push_back(history);
-          cout << "stableBoardHistoryをリセット" << endl;
+          //          stableBoardHistory.pop_back();
+          //          stableBoardHistory.push_back(history);
+          //          cout << "stableBoardHistoryをリセット" << endl;
         }
-        return;
+        //        return;
       }
       minChange = min(minChange, (int)changes.size());
       maxChange = max(maxChange, (int)changes.size());
       changeset.push_back(changes);
     }
   }
+  cout << "minChanges=" << minChange << "; maxChanges=" << maxChange << endl;
   if (changeset.empty() || minChange != maxChange) {
     // 有効な変化が発見できなかった
+    if (maxChange > 2 && stableBoardHistory.size() == 1 && g.moves.empty()) {
+      // まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
+      stableBoardHistory.pop_back();
+      stableBoardHistory.push_back(history);
+      cout << "stableBoardHistoryをリセット" << endl;
+    }
     return;
   }
   // changeset 内の変化位置が全て同じ部分を指しているか確認する. 違っていれば stable とはみなせない.

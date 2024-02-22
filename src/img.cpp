@@ -72,27 +72,31 @@ double Img::Similarity(cv::Mat const &left, cv::Mat const &right, int degrees, f
   auto [a, b] = Equalize(left, right);
   cv::adaptiveThreshold(b, b, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
   cv::adaptiveThreshold(a, a, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
-  
+#if 0
+  double s = cv::matchShapes(b, a, cv::CONTOURS_MATCH_I1, 0);
+  return 1 - s;
+#else
+
   int w = a.size().width;
   int h = a.size().height;
 
-  float rate = 0.2f;
-  int dw = (int)floor(w * rate);
-  int dh = (int)floor(h * rate);
-  cv::Scalar fill(0, 0, 0);
-  cv::rectangle(a, cv::Rect(0, 0, w, dh), fill, -1);
-  cv::rectangle(a, cv::Rect(0, h - dh, w, dh), fill, -1);
-  cv::rectangle(a, cv::Rect(0, 0, dw, h), fill, -1);
-  cv::rectangle(a, cv::Rect(w - dw, 0, dw, h), fill, -1);
-  
+  //  float rate = 0.2f;
+  //  int dw = (int)floor(w * rate);
+  //  int dh = (int)floor(h * rate);
+  //  cv::Scalar fill(0, 0, 0);
+  //    cv::rectangle(a, cv::Rect(0, 0, w, dh), fill, -1);
+  //    cv::rectangle(a, cv::Rect(0, h - dh, w, dh), fill, -1);
+  //    cv::rectangle(a, cv::Rect(0, 0, dw, h), fill, -1);
+  //    cv::rectangle(a, cv::Rect(w - dw, 0, dw, h), fill, -1);
+
   int cx = w / 2;
   int cy = h / 2;
   int dx = (int)round(w * translationRatio);
   int dy = (int)round(h * translationRatio);
-  float minSum = std::numeric_limits<float>::max();
-  int minDegrees;
-  int minDx;
-  int minDy;
+  float maxSim = std::numeric_limits<float>::lowest();
+  int maxDegrees = 99;
+  int maxDx = 99;
+  int maxDy = 99;
   for (int t = -degrees; t <= degrees; t++) {
     cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
     cv::Mat rotated;
@@ -101,29 +105,34 @@ double Img::Similarity(cv::Mat const &left, cv::Mat const &right, int degrees, f
     for (int iy = -dy; iy <= dy; iy++) {
       for (int ix = -dx; ix <= dx; ix++) {
         float sum = 0;
+        int count = 0;
         for (int j = 0; j < h; j++) {
           for (int i = 0; i < w; i++) {
             if (0 <= i + ix && i + ix < w && 0 <= j + iy && j + iy < h) {
               float diff = b.at<uint8_t>(i, j) - rotated.at<uint8_t>(i + ix, j + iy);
               sum += diff * diff;
-            } else {
-              float diff = b.at<uint8_t>(i, j);
-              sum += diff * diff;
+              count++;
+              //            } else {
+              //              float diff = b.at<uint8_t>(i, j);
+              //              sum += diff * diff;
             }
           }
         }
-        if (minSum > sum) {
-          minSum = sum;
-          minDx = ix;
-          minDy = iy;
-          minDegrees = t;
+        float sim = 1 - sum / (count * 255.f * 255.f);
+        if (maxSim < sim) {
+          maxSim = sim;
+          maxDx = ix;
+          maxDy = iy;
+          maxDegrees = t;
         }
-        minSum = std::min(minSum, sum);
       }
     }
   }
 
-  return 1 - minSum / (w * h * 255.0 * 255.0);
+  //  std::cout << "dx=" << maxDx << ", dy=" << maxDy << ", d=" << maxDegrees << std::endl;
+
+  return maxSim;
+#endif
 }
 
 std::string Img::EncodeToBase64(cv::Mat const &image) {

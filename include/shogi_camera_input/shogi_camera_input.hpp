@@ -600,10 +600,6 @@ struct PieceBook {
 
     void each(Color color, std::function<void(cv::Mat const &)> cb) const;
     void push(cv::Mat const &img, Color color);
-    std::optional<ClosedRange<double>> similarityRange();
-
-  private:
-    std::optional<ClosedRange<double>> similarityRange_;
   };
 
   std::map<PieceUnderlyingType, Entry> store;

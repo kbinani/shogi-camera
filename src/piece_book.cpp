@@ -38,7 +38,6 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &)> cb
 }
 
 void PieceBook::Entry::push(cv::Mat const &img, Color color) {
-  similarityRange_ = std::nullopt;
   if (color == Color::Black) {
     if (!blackInit) {
       blackInit = img;
@@ -127,34 +126,6 @@ std::string PieceBook::toPng() const {
     row++;
   }
   return Img::EncodeToBase64(all);
-}
-
-std::optional<ClosedRange<double>> PieceBook::Entry::similarityRange() {
-  using namespace std;
-  if (similarityRange_) {
-    return *similarityRange_;
-  }
-  double minimum = std::numeric_limits<double>::max();
-  double maximum = std::numeric_limits<double>::lowest();
-  vector<cv::Mat> images;
-  each(Color::Black, [&](cv::Mat const &img) {
-    images.push_back(img);
-  });
-  if (images.empty()) {
-    return nullopt;
-  }
-  for (int i = 0; i < (int)images.size() - 1; i++) {
-    cv::Mat const &a = images[i];
-    for (int j = i + 1; j < (int)images.size(); j++) {
-      cv::Mat const &b = images[j];
-      double sim = Img::Similarity(a, b);
-      minimum = std::min(minimum, sim);
-      maximum = std::max(maximum, sim);
-    }
-  }
-  ClosedRange<double> range(minimum, maximum);
-  similarityRange_ = range;
-  return range;
 }
 
 } // namespace sci
