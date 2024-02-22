@@ -91,6 +91,18 @@ class DebugView: UIView {
         }
       }
 
+      // 盤面の向きを表示
+      let cx = width * 0.5
+      let cy = height * 0.5
+      let length = max(width, height) * 10
+      let dx = length * cos(CGFloat(status.boardDirection))
+      let dy = length * sin(CGFloat(status.boardDirection))
+      ctx.move(to: .init(x: cx - dx, y: cy - dy))
+      ctx.addLine(to: .init(x: cx + dx, y: cy + dy))
+      ctx.setLineWidth(3)
+      ctx.setStrokeColor(UIColor.white.cgColor)
+      ctx.strokePath()
+
       status.hgrids.forEach { grid in
         let vx = CGFloat(grid[0])
         let vy = CGFloat(grid[1])
