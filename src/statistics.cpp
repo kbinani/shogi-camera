@@ -343,7 +343,9 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.to = *minSquare;
         mv.newHand = PieceTypeFromPiece(position.pieces[minSquare->file][minSquare->rank]);
         mv.piece = p;
-        AppendPromotion(mv, before, after, book);
+        if (!moves.empty()) {
+          AppendPromotion(mv, before, after, book);
+        }
         move = mv;
       } else {
         cout << "取った駒を検出できなかった" << endl;
@@ -371,14 +373,18 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           mv.to = MakeSquare(ch1.x, ch1.y);
           mv.piece = p0;
           mv.newHand = PieceTypeFromPiece(p1);
-          AppendPromotion(mv, before, after, book);
+          if (!moves.empty()) {
+            AppendPromotion(mv, before, after, book);
+          }
         } else {
           // p1 の駒が p0 の駒を取った.
           mv.from = MakeSquare(ch1.x, ch1.y);
           mv.to = MakeSquare(ch0.x, ch0.y);
           mv.piece = p1;
           mv.newHand = PieceTypeFromPiece(p0);
-          AppendPromotion(mv, before, after, book);
+          if (!moves.empty()) {
+            AppendPromotion(mv, before, after, book);
+          }
         }
         move = mv;
       }
@@ -390,7 +396,9 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.from = MakeSquare(ch0.x, ch0.y);
         mv.to = MakeSquare(ch1.x, ch1.y);
         mv.piece = p0;
-        AppendPromotion(mv, before, after, book);
+        if (!moves.empty()) {
+          AppendPromotion(mv, before, after, book);
+        }
         move = mv;
       } else {
         cout << "相手の駒を動かしている" << endl;
@@ -403,7 +411,9 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.from = MakeSquare(ch1.x, ch1.y);
         mv.to = MakeSquare(ch0.x, ch0.y);
         mv.piece = p1;
-        AppendPromotion(mv, before, after, book);
+        if (!moves.empty()) {
+          AppendPromotion(mv, before, after, book);
+        }
         move = mv;
       } else {
         cout << "相手の駒を動かしている" << endl;
