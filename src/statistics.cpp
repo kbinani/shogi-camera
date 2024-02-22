@@ -239,7 +239,6 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   if (!g.moves.empty()) {
     lastMoveTo = g.moves.back().to;
   }
-  cout << (char const *)StringFromMove(*move, lastMoveTo).c_str() << endl;
   // 初手なら画像の上下どちらが先手側か判定する.
   if (g.moves.empty() && move->to.rank < 5) {
     // キャプチャした画像で先手が上になっている. 以後 180 度回転して処理する.
@@ -269,6 +268,10 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   g.apply(*move);
   book.update(g.position, board);
   cout << "b64png(book" << g.moves.size() << "):" << book.toPng() << endl;
+  cout << (char const *)StringFromMove(*move, lastMoveTo).c_str() << endl;
+  std::cout << "========================" << std::endl;
+  std::cout << (char const *)DebugStringFromPosition(g.position).c_str();
+  std::cout << "------------------------" << std::endl;
 }
 
 std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand, PieceBook &book) {

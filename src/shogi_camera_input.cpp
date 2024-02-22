@@ -804,9 +804,6 @@ void Game::apply(Move const &mv) {
       handWhite.push_back(*mv.newHand);
     }
   }
-  std::cout << "========================" << std::endl;
-  std::cout << (char const *)DebugStringFromPosition(position).c_str();
-  std::cout << "------------------------" << std::endl;
 }
 
 std::u8string DebugStringFromPosition(Position const &p) {
