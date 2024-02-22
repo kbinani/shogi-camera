@@ -205,19 +205,6 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
       auto const &after = history[j];
       changes.clear();
       Img::Compare(before, after, changes);
-      if (changes.size() == 0) {
-        // 直前の stable board と比べて変化箇所が無い場合は無視.
-        //        return;
-      } else if (changes.size() > 2) {
-        // 変化箇所が 3 以上ある場合, 将棋の駒以外の変化が盤面に現れているので無視.
-        if (stableBoardHistory.size() == 1 && g.moves.empty()) {
-          // まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
-          //          stableBoardHistory.pop_back();
-          //          stableBoardHistory.push_back(history);
-          //          cout << "stableBoardHistoryをリセット" << endl;
-        }
-        //        return;
-      }
       minChange = min(minChange, (int)changes.size());
       maxChange = max(maxChange, (int)changes.size());
       changeset.push_back(changes);
@@ -226,7 +213,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   cout << "minChanges=" << minChange << "; maxChanges=" << maxChange << endl;
   if (changeset.empty() || minChange != maxChange) {
     // 有効な変化が発見できなかった
-    if (maxChange > 2 && stableBoardHistory.size() == 1 && g.moves.empty()) {
+    if ((minChange > 2 || maxChange > 4) && stableBoardHistory.size() == 1 && g.moves.empty()) {
       // まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
       stableBoardHistory.pop_back();
       stableBoardHistory.push_back(history);
