@@ -119,7 +119,6 @@
 		940A14B02B7A9DE9006E2D01 /* shogi-camera-input-demo */ = {
 			isa = PBXGroup;
 			children = (
-				940A14CC2B7ABE9C006E2D01 /* shogi_camera_input.hpp */,
 				940A14C72B7AA079006E2D01 /* opencv2.xcframework */,
 				94BB050B2B82010D003FB8B8 /* opencv2.framework */,
 				940A14B12B7A9DE9006E2D01 /* AppDelegate.swift */,
@@ -131,13 +130,14 @@
 				940A14BC2B7A9DEB006E2D01 /* LaunchScreen.storyboard */,
 				940A14BF2B7A9DEB006E2D01 /* Info.plist */,
 				940A14E72B7B2141006E2D01 /* shogi_camera_input.mm */,
-				940A14EA2B7B2152006E2D01 /* shogi_camera_input.cpp */,
 				94BB04FC2B81F78E003FB8B8 /* base64.hpp */,
 				940A14EC2B7D6E21006E2D01 /* module.modulemap */,
 				946220062B82FA780094B015 /* voice.wav */,
 				946220082B832FED0094B015 /* Reader.swift */,
 				9462200A2B8331AF0094B015 /* ShogiCameraInput+Utility.swift */,
 				9462200C2B8331E20094B015 /* OpenCV+Utility.swift */,
+				940A14CC2B7ABE9C006E2D01 /* shogi_camera_input.hpp */,
+				940A14EA2B7B2152006E2D01 /* shogi_camera_input.cpp */,
 				9462200E2B85F2C30094B015 /* piece_book.cpp */,
 				946220102B85F32B0094B015 /* statistics.cpp */,
 				946220122B85F47E0094B015 /* img.cpp */,

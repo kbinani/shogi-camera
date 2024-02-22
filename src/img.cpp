@@ -115,15 +115,13 @@ double Img::Similarity(cv::Mat const &left, cv::Mat const &right, int degrees, f
   return 1 - minSum / (w * h * 255.0 * 255.0);
 }
 
-void Img::PrintAsBase64(cv::Mat const &image, std::string const &title) {
+std::string Img::EncodeToBase64(cv::Mat const &image) {
   using namespace std;
   vector<uchar> buffer;
   cv::imencode(".png", image, buffer);
   string cbuffer;
   copy(buffer.begin(), buffer.end(), back_inserter(cbuffer));
-  cout << "== " << title << endl;
-  cout << base64::to_base64(cbuffer) << endl;
-  cout << "--" << endl;
+  return base64::to_base64(cbuffer);
 }
 
 void Img::Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y) {

@@ -169,7 +169,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     boardHistory.clear();
     book.update(g.position, board);
     if (false) {
-      Img::PrintAsBase64(board, "");
+      cout << Img::EncodeToBase64(board) << endl;
     }
     return;
   }
@@ -255,6 +255,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   g.moves.push_back(*move);
   g.apply(*move);
   book.update(g.position, board);
+  cout << "BOOK:" << book.toPng() << endl;
 }
 
 std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand, PieceBook const &book) {

@@ -79,4 +79,31 @@ void PieceBook::update(Position const &position, cv::Mat const &board) {
   }
 }
 
+std::string PieceBook::toPng() const {
+  int rows = (int)store.size();
+  int w = 0;
+  int h = 0;
+  each(Color::Black, [&](Piece piece, cv::Mat const &img) {
+    w = std::max(w, img.size().width);
+    h = std::max(h, img.size().height);
+  });
+  if (w == 0 || h == 0) {
+    return "";
+  }
+  int width = w * 4;
+  int height = rows * h;
+  cv::Mat all(cv::Size(width, height), CV_8UC3, cv::Scalar(255, 255, 255, 255));
+  int row = 0;
+  for (auto const &it : store) {
+    int column = 0;
+    it.second.each(Color::Black, [&](cv::Mat const &img) {
+      int x = column * w;
+      int y = row * h;
+      Img::Bitblt(img, all, x, y);
+      column++;
+    });
+    row++;
+  }
+  return Img::EncodeToBase64(all);
+}
 } // namespace sci

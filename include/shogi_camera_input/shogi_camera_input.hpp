@@ -593,6 +593,7 @@ struct PieceBook {
 
   void each(Color color, std::function<void(Piece, cv::Mat const &ete)> cb) const;
   void update(Position const &position, cv::Mat const &board);
+  std::string toPng() const;
 };
 
 struct Statistics {
@@ -661,7 +662,7 @@ public:
   static std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b);
   // 2 枚の画像を比較する. right を ±degrees 度, x と y 方向にそれぞれ ±width*translationRatio, ±height*translationRatio 移動して画像の一致度を計算し, 最大の一致度を返す.
   static double Similarity(cv::Mat const &left, cv::Mat const &right, int degrees = 5, float translationRatio = 0.5f);
-  static void PrintAsBase64(cv::Mat const &image, std::string const &title);
+  static std::string EncodeToBase64(cv::Mat const &image);
   static void Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y);
 };
 
