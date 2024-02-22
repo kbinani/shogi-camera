@@ -24,12 +24,6 @@ bool IsIdentical(std::set<T, L> const &a, std::set<T, L> const &b) {
   return true;
 }
 
-bool IsPromoted(cv::Mat const &pieceBefore, cv::Mat const &pieceAfter) {
-  double sim = Img::Similarity(pieceBefore, pieceAfter);
-  std::cout << __FUNCTION__ << "; sim=" << sim << std::endl;
-  return sim < 0.7;
-}
-
 // 手番 color の駒が from から to に移動したとき, 成れる条件かどうか.
 bool CanPromote(Square from, Square to, Color color) {
   if (color == Color::Black) {
@@ -39,16 +33,22 @@ bool CanPromote(Square from, Square to, Color color) {
   }
 }
 
-void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter) {
+void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter, PieceBook &book) {
   if (!mv.from || IsPromotedPiece(mv.piece)) {
     return;
   }
   if (!CanPromote(*mv.from, mv.to, mv.color)) {
     return;
   }
+  PieceBook::Entry &entry = book.store[RemoveColorFromPiece(mv.piece)];
+  ClosedRange<double> range = entry.ensureSimilarityRange();
+  // なる前の駒の画像コレクション同士の類似度の最低値より, 今回の駒画像の前後で比べた時の類似度が下回っている場合成りとみなす.
+  // 既存の画像のどの駒画像にも似てない => 成りなのでは.
   auto bp = Img::PieceROI(boardBefore, mv.from->file, mv.from->rank);
   auto ap = Img::PieceROI(boardAfter, mv.to.file, mv.to.rank);
-  if (IsPromoted(bp, ap)) {
+  double sim = Img::Similarity(bp, ap);
+  std::cout << "sim=" << sim << "; range=[" << range.minimum << ", " << range.maximum << "]" << std::endl;
+  if (sim < range.minimum) {
     mv.piece = Promote(mv.piece);
     mv.promote_ = true;
   } else {
@@ -167,7 +167,6 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     // 最初の stable board なので登録するだけ.
     stableBoardHistory.push_back(history);
     boardHistory.clear();
-    book.update(g.position, board);
     if (false) {
       cout << Img::EncodeToBase64(board) << endl;
     }
@@ -189,7 +188,11 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
         return;
       } else if (changes.size() > 2) {
         // 変化箇所が 3 以上ある場合, 将棋の駒以外の変化が盤面に現れているので無視.
-        // TODO: まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
+        if (stableBoardHistory.size() == 1 && g.moves.empty()) {
+          // まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
+          stableBoardHistory.pop_back();
+          stableBoardHistory.push_back(history);
+        }
         return;
       }
       minChange = min(minChange, (int)changes.size());
@@ -249,16 +252,25 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
       cv::rotate(history[i].image, rotated, cv::ROTATE_180);
       history[i].image = rotated;
     }
+    for (int i = 0; i < last.size(); i++) {
+      cv::Mat rotated;
+      cv::rotate(last[i].image, rotated, cv::ROTATE_180);
+      last[i].image = rotated;
+    }
     rotate = true;
+  }
+  if (g.moves.empty()) {
+    book.update(g.position, last.back().image);
+    cout << "b64png(book" << g.moves.size() << "):" << book.toPng() << endl;
   }
   stableBoardHistory.push_back(history);
   g.moves.push_back(*move);
   g.apply(*move);
   book.update(g.position, board);
-  cout << "BOOK:" << book.toPng() << endl;
+  cout << "b64png(book" << g.moves.size() << "):" << book.toPng() << endl;
 }
 
-std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand, PieceBook const &book) {
+std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand, PieceBook &book) {
   using namespace std;
   optional<Move> move;
   auto [before, after] = Img::Equalize(boardBefore, boardAfter);
@@ -331,7 +343,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.to = *minSquare;
         mv.newHand = PieceTypeFromPiece(position.pieces[minSquare->file][minSquare->rank]);
         mv.piece = p;
-        AppendPromotion(mv, before, after);
+        AppendPromotion(mv, before, after, book);
         move = mv;
       } else {
         cout << "取った駒を検出できなかった" << endl;
@@ -359,14 +371,14 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           mv.to = MakeSquare(ch1.x, ch1.y);
           mv.piece = p0;
           mv.newHand = PieceTypeFromPiece(p1);
-          AppendPromotion(mv, before, after);
+          AppendPromotion(mv, before, after, book);
         } else {
           // p1 の駒が p0 の駒を取った.
           mv.from = MakeSquare(ch1.x, ch1.y);
           mv.to = MakeSquare(ch0.x, ch0.y);
           mv.piece = p1;
           mv.newHand = PieceTypeFromPiece(p0);
-          AppendPromotion(mv, before, after);
+          AppendPromotion(mv, before, after, book);
         }
         move = mv;
       }
@@ -378,7 +390,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.from = MakeSquare(ch0.x, ch0.y);
         mv.to = MakeSquare(ch1.x, ch1.y);
         mv.piece = p0;
-        AppendPromotion(mv, before, after);
+        AppendPromotion(mv, before, after, book);
         move = mv;
       } else {
         cout << "相手の駒を動かしている" << endl;
@@ -391,7 +403,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.from = MakeSquare(ch1.x, ch1.y);
         mv.to = MakeSquare(ch0.x, ch0.y);
         mv.piece = p1;
-        AppendPromotion(mv, before, after);
+        AppendPromotion(mv, before, after, book);
         move = mv;
       } else {
         cout << "相手の駒を動かしている" << endl;

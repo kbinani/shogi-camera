@@ -575,18 +575,30 @@ struct LessCvPoint {
 
 using CvPointSet = std::set<cv::Point, LessCvPoint>;
 
+template <class T>
+struct ClosedRange {
+  ClosedRange() = default;
+  ClosedRange(T minimum, T maximum) : minimum(minimum), maximum(maximum) {}
+  T minimum;
+  T maximum;
+};
+
 // 駒の画像を集めたもの.
 struct PieceBook {
   struct Entry {
     std::optional<cv::Mat> blackInit;
     // 先手向きで格納する.
     std::optional<cv::Mat> whiteInit;
-    std::optional<cv::Mat> blackLast;
+    std::deque<cv::Mat> blackLast;
     // 先手向きで格納する.
-    std::optional<cv::Mat> whiteLast;
+    std::deque<cv::Mat> whiteLast;
+    std::optional<ClosedRange<double>> similarityRange;
+
+    static constexpr size_t kMaxLastImageCount = 4;
 
     void each(Color color, std::function<void(cv::Mat const &)> cb) const;
     void push(cv::Mat const &img, Color color);
+    ClosedRange<double> ensureSimilarityRange();
   };
 
   std::map<PieceUnderlyingType, Entry> store;
@@ -623,7 +635,7 @@ struct Statistics {
                                     std::vector<Move> const &moves,
                                     Color const &color,
                                     std::deque<PieceType> const &hand,
-                                    PieceBook const &book);
+                                    PieceBook &book);
   PieceBook book;
 };
 

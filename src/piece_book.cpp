@@ -12,11 +12,11 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &)> cb
       cv::rotate(*whiteInit, img, cv::ROTATE_180);
       cb(img);
     }
-    if (blackLast) {
-      cb(blackLast->clone());
+    for (auto const &entry : blackLast) {
+      cb(entry.clone());
     }
-    if (whiteLast) {
-      cv::rotate(*whiteLast, img, cv::ROTATE_180);
+    for (auto const &entry : whiteLast) {
+      cv::rotate(entry, img, cv::ROTATE_180);
       cb(img);
     }
   } else {
@@ -27,23 +27,27 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &)> cb
       cv::rotate(*blackInit, img, cv::ROTATE_180);
       cb(img);
     }
-    if (whiteLast) {
-      cb(whiteLast->clone());
+    for (auto const &entry : whiteLast) {
+      cb(entry.clone());
     }
-    if (blackLast) {
-      cv::rotate(*blackLast, img, cv::ROTATE_180);
+    for (auto const &entry : blackLast) {
+      cv::rotate(entry, img, cv::ROTATE_180);
       cb(img);
     }
   }
 }
 
 void PieceBook::Entry::push(cv::Mat const &img, Color color) {
+  similarityRange = std::nullopt;
   if (color == Color::Black) {
     if (!blackInit) {
       blackInit = img;
       return;
     }
-    blackLast = img;
+    if (blackLast.size() >= kMaxLastImageCount) {
+      blackLast.pop_front();
+    }
+    blackLast.push_back(img);
   } else {
     cv::Mat tmp;
     cv::rotate(img, tmp, cv::ROTATE_180);
@@ -51,7 +55,10 @@ void PieceBook::Entry::push(cv::Mat const &img, Color color) {
       whiteInit = tmp;
       return;
     }
-    whiteLast = tmp;
+    if (whiteLast.size() >= kMaxLastImageCount) {
+      whiteLast.pop_front();
+    }
+    whiteLast.push_back(tmp);
   }
 }
 
@@ -71,10 +78,16 @@ void PieceBook::update(Position const &position, cv::Mat const &board) {
       if (piece == 0) {
         continue;
       }
-      auto roi = Img::PieceROI(board, x, y).clone();
+      auto roi = Img::PieceROI(board, x, y);
       PieceUnderlyingType p = RemoveColorFromPiece(piece);
       Color color = ColorFromPiece(piece);
-      store[p].push(roi, color);
+      if (color == Color::White) {
+        cv::Mat tmp;
+        cv::rotate(roi, tmp, cv::ROTATE_180);
+        store[p].push(tmp, color);
+      } else {
+        store[p].push(roi.clone(), color);
+      }
     }
   }
 }
@@ -83,14 +96,23 @@ std::string PieceBook::toPng() const {
   int rows = (int)store.size();
   int w = 0;
   int h = 0;
+  std::map<Piece, int> count;
   each(Color::Black, [&](Piece piece, cv::Mat const &img) {
     w = std::max(w, img.size().width);
     h = std::max(h, img.size().height);
+    count[piece] += 1;
   });
   if (w == 0 || h == 0) {
     return "";
   }
-  int width = w * 4;
+  int columns = 0;
+  for (auto const &it : count) {
+    columns = std::max(columns, it.second);
+  }
+  if (columns == 0) {
+    return "";
+  }
+  int width = w * columns;
   int height = rows * h;
   cv::Mat all(cv::Size(width, height), CV_8UC3, cv::Scalar(255, 255, 255, 255));
   int row = 0;
@@ -106,4 +128,33 @@ std::string PieceBook::toPng() const {
   }
   return Img::EncodeToBase64(all);
 }
+
+ClosedRange<double> PieceBook::Entry::ensureSimilarityRange() {
+  using namespace std;
+  if (similarityRange) {
+    return *similarityRange;
+  }
+  double minimum = std::numeric_limits<double>::max();
+  double maximum = std::numeric_limits<double>::lowest();
+  vector<cv::Mat> images;
+  each(Color::Black, [&](cv::Mat const &img) {
+    images.push_back(img);
+  });
+  if (images.empty()) {
+    return ClosedRange<double>(1, 1);
+  }
+  for (int i = 0; i < (int)images.size() - 1; i++) {
+    cv::Mat const &a = images[i];
+    for (int j = i + 1; j < (int)images.size(); j++) {
+      cv::Mat const &b = images[j];
+      double sim = Img::Similarity(a, b);
+      minimum = std::min(minimum, sim);
+      maximum = std::max(maximum, sim);
+    }
+  }
+  ClosedRange<double> range(minimum, maximum);
+  similarityRange = range;
+  return range;
+}
+
 } // namespace sci
