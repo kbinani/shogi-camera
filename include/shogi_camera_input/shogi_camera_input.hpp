@@ -559,7 +559,7 @@ struct Status {
 // 盤面画像.
 struct BoardImage {
   cv::Mat image;
-  static constexpr double kStableBoardMaxSimilarity = 0.03;
+  static constexpr double kStableBoardMaxSimilarity = 0.02;
   static constexpr double kStableBoardThreshold = kStableBoardMaxSimilarity * 0.5;
 };
 
