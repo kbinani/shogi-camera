@@ -16,6 +16,9 @@
 		940A14C82B7AA079006E2D01 /* opencv2.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 940A14C72B7AA079006E2D01 /* opencv2.xcframework */; };
 		940A14F12B7DC84D006E2D01 /* shogi_camera_input.mm in Sources */ = {isa = PBXBuildFile; fileRef = 940A14E72B7B2141006E2D01 /* shogi_camera_input.mm */; };
 		940A14F32B7DEFF1006E2D01 /* DebugPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 940A14F22B7DEFF1006E2D01 /* DebugPreview.swift */; };
+		944ECF1D2B871C54001E8CF5 /* statistics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 946220102B85F32B0094B015 /* statistics.cpp */; };
+		944ECF1E2B871C56001E8CF5 /* img.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 946220122B85F47E0094B015 /* img.cpp */; };
+		944ECF1F2B871C5A001E8CF5 /* piece_book.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9462200E2B85F2C30094B015 /* piece_book.cpp */; };
 		946220072B82FA780094B015 /* voice.wav in Resources */ = {isa = PBXBuildFile; fileRef = 946220062B82FA780094B015 /* voice.wav */; };
 		946220092B832FED0094B015 /* Reader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 946220082B832FED0094B015 /* Reader.swift */; };
 		9462200B2B8331AF0094B015 /* ShogiCameraInput+Utility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9462200A2B8331AF0094B015 /* ShogiCameraInput+Utility.swift */; };
@@ -276,7 +279,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				944ECF1E2B871C56001E8CF5 /* img.cpp in Sources */,
+				944ECF1D2B871C54001E8CF5 /* statistics.cpp in Sources */,
 				94BB05042B81FC81003FB8B8 /* main.cpp in Sources */,
+				944ECF1F2B871C5A001E8CF5 /* piece_book.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

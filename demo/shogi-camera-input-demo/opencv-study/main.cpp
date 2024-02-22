@@ -22,25 +22,37 @@ cv::Scalar ScalarFromColor(colormap::Color const &c) {
 int main(int argc, const char *argv[]) {
   cv::Mat before = cv::imread(argv[1], cv::IMREAD_GRAYSCALE);
   cv::Mat after = cv::imread(argv[2], cv::IMREAD_GRAYSCALE);
-  auto [a, b] = Equalize(after, before);
+  auto [a, b] = Img::Equalize(after, before);
 
   int x = 7;
   int y = 1;
-  auto bp = PieceROI(b, 7, 1).clone();
-  auto ap = PieceROI(a, 7, 1).clone();
-  double sim = Similarity(bp, ap, 10, 0.5f);
+  auto bp = Img::PieceROI(b, 7, 1).clone();
+  auto ap = Img::PieceROI(a, 7, 1).clone();
+  double sim = Img::Similarity(bp, ap, 10, 0.5f);
   cout << sim << endl;
   cv::adaptiveThreshold(ap, ap, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
   cv::adaptiveThreshold(bp, bp, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+  {
+    int w = ap.size().width;
+    int h = ap.size().height;
+    float rate = 0.2f;
+    int dw = (int)floor(w * rate);
+    int dh = (int)floor(h * rate);
+    cv::Scalar fill(0, 0, 0);
+    cv::rectangle(ap, cv::Rect(0, 0, w, dh), fill, -1);
+    cv::rectangle(ap, cv::Rect(0, h - dh, w, dh), fill, -1);
+    cv::rectangle(ap, cv::Rect(0, 0, dw, h), fill, -1);
+    cv::rectangle(ap, cv::Rect(w - dw, 0, dw, h), fill, -1);
+  }
 
   int width = a.size().width;
   int height = a.size().height;
   cv::Mat all(cv::Size(width * 3, height), CV_8UC4, cv::Scalar(255, 255, 255, 255));
-  Bitblt(b, all, 0, 0);
-  Bitblt(a, all, width * 2, 0);
+  Img::Bitblt(b, all, 0, 0);
+  Img::Bitblt(a, all, width * 2, 0);
 
-  Bitblt(bp, all, width, 0);
-  Bitblt(ap, all, width + bp.size().width, 0);
+  Img::Bitblt(bp, all, width, 0);
+  Img::Bitblt(ap, all, width + bp.size().width, 0);
   //  {
   //    double theta = 30.0;// 180.0f * std::numbers::pi;
   //    float t[2][3] = {{1, 0, 0}, {0, 1, 0}};
