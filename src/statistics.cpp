@@ -247,6 +247,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
       move->from = move->from->rotated();
     }
     move->to = move->to.rotated();
+    move->piece = RemoveColorFromPiece(move->piece) | static_cast<PieceUnderlyingType>(color);
     for (int i = 0; i < history.size(); i++) {
       cv::Mat rotated;
       cv::rotate(history[i].image, rotated, cv::ROTATE_180);
