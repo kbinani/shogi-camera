@@ -674,6 +674,7 @@ class Utility {
 public:
 #if defined(__APPLE__)
   static cv::Mat MatFromUIImage(void *ptr);
+  static cv::Mat MatFromCGImage(void *ptr);
   static void *UIImageFromMat(cv::Mat const &m);
   static CFStringRef CFStringFromU8String(std::u8string const &s) {
     return CFStringCreateWithCString(kCFAllocatorDefault, (char const *)s.c_str(), kCFStringEncodingUTF8);

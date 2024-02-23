@@ -13,6 +13,7 @@ class DebugView: UIView {
   private var session: sci.SessionWrapper?
   private let reader: Reader?
   private var moveIndex: Int?
+  private let ciContext: CIContext
 
   class OverlayLayer: CALayer {
     var status: sci.Status? {
@@ -421,6 +422,7 @@ class DebugView: UIView {
   }
 
   init() {
+    self.ciContext = CIContext()
     self.reader = Reader()
     super.init(frame: .zero)
 
@@ -527,15 +529,6 @@ class DebugView: UIView {
 }
 
 extension DebugView: AVCaptureVideoDataOutputSampleBufferDelegate {
-  private static func Convert(uiImage: UIImage) -> UIImage? {
-    UIGraphicsBeginImageContext(uiImage.size)
-    defer {
-      UIGraphicsEndImageContext()
-    }
-    uiImage.draw(in: CGRect(origin: .zero, size: uiImage.size))
-    return UIGraphicsGetImageFromCurrentImageContext()
-  }
-
   func captureOutput(
     _ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer,
     from connection: AVCaptureConnection
@@ -547,12 +540,13 @@ extension DebugView: AVCaptureVideoDataOutputSampleBufferDelegate {
       return
     }
     let ciImage = CIImage(cvImageBuffer: imageBuffer)
-    let uiImage = UIImage(ciImage: ciImage)
-
-    guard let converted = Self.Convert(uiImage: uiImage) else {
+    let width = CVPixelBufferGetWidth(imageBuffer)
+    let height = CVPixelBufferGetHeight(imageBuffer)
+    let rect = CGRect(x: 0, y: 0, width: width, height: height)
+    guard let cgImage = ciContext.createCGImage(ciImage, from: rect) else {
       return
     }
-    let mat = sci.Utility.MatFromUIImage(Unmanaged.passUnretained(converted).toOpaque())
+    let mat = sci.Utility.MatFromCGImage(Unmanaged.passUnretained(cgImage).toOpaque())
     session.push(mat)
     let status = session.status()
     overlayLayer?.status = status

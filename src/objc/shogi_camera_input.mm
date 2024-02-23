@@ -7,6 +7,12 @@ cv::Mat Utility::MatFromUIImage(void *ptr) {
   return image;
 }
 
+cv::Mat Utility::MatFromCGImage(void *ptr) {
+  cv::Mat image;
+  CGImageToMat((CGImageRef)ptr, image);
+  return image;
+}
+
 void *Utility::UIImageFromMat(cv::Mat const &m) {
   return (__bridge_retained void *)MatToUIImage(m);
 }
