@@ -189,9 +189,6 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     // 最初の stable board なので登録するだけ.
     stableBoardHistory.push_back(history);
     boardHistory.clear();
-    if (false) {
-      cout << Img::EncodeToBase64(board) << endl;
-    }
     return;
   }
   // 直前の stable board の各フレームと比較して, 変動したマス目が有るかどうか判定する.
@@ -278,13 +275,11 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   }
   if (g.moves.empty()) {
     book.update(g.position, last.back().image);
-    cout << "b64png(book" << g.moves.size() << "):" << book.toPng() << endl;
   }
   stableBoardHistory.push_back(history);
   g.moves.push_back(*move);
   g.apply(*move);
   book.update(g.position, board);
-  cout << "b64png(book" << g.moves.size() << "):" << book.toPng() << endl;
   cout << (char const *)StringFromMove(*move, lastMoveTo).c_str() << endl;
   std::cout << "========================" << std::endl;
   std::cout << (char const *)DebugStringFromPosition(g.position).c_str();
