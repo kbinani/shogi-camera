@@ -17,7 +17,6 @@ class Reader {
       try session.setActive(true)
       engine.attach(node)
       engine.connect(node, to: engine.mainMixerNode, format: file.processingFormat)
-      node.volume = 24
       try engine.start()
       node.play()
     } catch {

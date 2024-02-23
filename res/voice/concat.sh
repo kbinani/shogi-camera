@@ -171,7 +171,7 @@ for i in $(seq 1 $max); do
   sec=$(echo "$sec + $duration" | bc)
 done
 timing[$((cnt + 1))]=$sec
-ffmpeg -safe 0 -f concat -i "$list" -c copy voice.wav
+ffmpeg -safe 0 -f concat -i "$list" -af volume=10dB voice.wav
 rm -f "$list"
 
 echo "private let positions: [Position] = ["
