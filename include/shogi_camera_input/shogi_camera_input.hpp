@@ -9,7 +9,7 @@
 #include <thread>
 
 #if defined(__APPLE__)
-#include <swift/bridging>
+#include <CoreFoundation/CoreFoundation.h>
 #endif
 
 namespace sci {
@@ -675,8 +675,8 @@ public:
 #if defined(__APPLE__)
   static cv::Mat MatFromUIImage(void *ptr);
   static void *UIImageFromMat(cv::Mat const &m);
-  static char const *CStringFromU8String(std::u8string s) SWIFT_RETURNS_INDEPENDENT_VALUE {
-    return (char const *)s.c_str();
+  static CFStringRef CFStringFromU8String(std::u8string const &s) {
+    return CFStringCreateWithCString(kCFAllocatorDefault, (char const *)s.c_str(), kCFStringEncodingUTF8);
   }
 #endif // defined(__APPLE__)
 };

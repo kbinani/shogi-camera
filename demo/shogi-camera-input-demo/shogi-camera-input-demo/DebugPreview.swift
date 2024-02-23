@@ -311,13 +311,13 @@ class DebugView: UIView {
             continue
           }
           let u8str = sci.ShortStringFromPieceTypeAndStatus(sci.RemoveColorFromPiece(p))
-          guard let s = String.init(utf8String: sci.Utility.CStringFromU8String(u8str)) else {
+          guard let s = sci.Utility.CFStringFromU8String(u8str)?.takeRetainedValue() else {
             continue
           }
           let sx = cx + (-4.5 + CGFloat(x)) * w
           let sy = cy + (-4.5 + CGFloat(y)) * h
           Self.Draw(
-            str: s, font: font, ctx: ctx, box: .init(x: sx, y: sy, width: w, height: h),
+            str: s as String, font: font, ctx: ctx, box: .init(x: sx, y: sy, width: w, height: h),
             rotate: color == sci.Color.White)
         }
       }
@@ -355,9 +355,10 @@ class DebugView: UIView {
         PieceType.Bishop, PieceType.Rook,
       ] {
         let u8str = sci.ShortStringFromPieceTypeAndStatus(piece.rawValue)
-        guard let s = String.init(utf8String: sci.Utility.CStringFromU8String(u8str)) else {
+        guard let cf = sci.Utility.CFStringFromU8String(u8str)?.takeRetainedValue() else {
           continue
         }
+        let s = cf as String
         if let count = black[piece] {
           let ss = count > 1 ? s + String(count) : s
           Self.Draw(
