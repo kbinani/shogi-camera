@@ -365,8 +365,8 @@ struct Move {
   // from == nullopt の場合は駒打ち.
   std::optional<Square> from;
   Square to;
-  // 成る場合に true, 不成の場合に false, 変更なしの場合 nullopt
-  std::optional<bool> promote_;
+  // 成る場合に 1, 不成の場合に -1, 変更なしの場合 0
+  int promote = 0;
   // 相手の駒を取った場合, その駒の種類
   std::optional<PieceType> newHand;
 };
@@ -384,7 +384,7 @@ inline bool operator==(Move const &a, Move const &b) {
   if (a.to != b.to) {
     return false;
   }
-  return a.promote_ == b.promote_;
+  return a.promote == b.promote;
 }
 
 inline std::u8string StringFromMove(Move const &mv, std::optional<Square> last) {
@@ -399,9 +399,9 @@ inline std::u8string StringFromMove(Move const &mv, std::optional<Square> last) 
   } else {
     ret += StringFromSquare(mv.to);
   }
-  if (mv.promote_ == true) {
+  if (mv.promote == 1) {
     ret += LongStringFromPieceTypeAndStatus(static_cast<PieceUnderlyingType>(PieceTypeFromPiece(mv.piece))) + u8"成";
-  } else if (mv.promote_ == false) {
+  } else if (mv.promote == -1) {
     ret += LongStringFromPieceTypeAndStatus(mv.piece) + u8"不成";
   } else {
     ret += LongStringFromPieceTypeAndStatus(mv.piece);
@@ -539,9 +539,9 @@ struct Status {
   // 試合の最新状況. Session.game のコピー.
   Game game;
   // 直前のフレームと比較した時の各マスの類似度
-  std::array<std::array<double, 9>, 9> similarity;
+  double similarity[9][9];
   // 直前の stable board と比較した時の各マスの類似度
-  std::array<std::array<double, 9>, 9> similarityAgainstStableBoard;
+  double similarityAgainstStableBoard[9][9];
   double stableBoardThreshold;
   double stableBoardMaxSimilarity;
   // 最新の stable board
@@ -659,7 +659,7 @@ class Img {
 
 public:
   static cv::Mat PieceROI(cv::Mat const &board, int x, int y, float shrink = 1);
-  static void Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, std::array<std::array<double, 9>, 9> *similarity = nullptr);
+  static void Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9] = nullptr);
   // 2 つの画像を同じサイズになるよう変形する
   static std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b);
   // 2 枚の画像を比較する. right を ±degrees 度, x と y 方向にそれぞれ ±width*translationRatio, ±height*translationRatio 移動して画像の一致度を計算し, 最大の一致度を返す.

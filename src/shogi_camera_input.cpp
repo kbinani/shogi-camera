@@ -776,7 +776,7 @@ void Game::apply(Move const &mv) {
       std::cout << "存在しない持ち駒を打った" << std::endl;
     }
   }
-  if (mv.promote_ == true && !IsPromotedPiece(mv.piece)) {
+  if (mv.promote == 1 && !IsPromotedPiece(mv.piece)) {
     position.pieces[mv.to.file][mv.to.rank] = Promote(mv.piece);
   } else {
     position.pieces[mv.to.file][mv.to.rank] = mv.piece;
@@ -847,7 +847,7 @@ void Session::run() {
     stat.push(s->boardWarped, *s, game);
     s->game = game;
     if (!stat.stableBoardHistory.empty()) {
-      s->stableBoard = stat.stableBoardHistory.back()[2].image;
+      s->stableBoard = stat.stableBoardHistory.back().back().image;
     }
     this->s = s;
   }

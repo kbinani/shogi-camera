@@ -22,7 +22,7 @@ cv::Mat Img::PieceROI(cv::Mat const &board, int x, int y, float shrink) {
   return cv::Mat(board, cv::Rect(x0, y0, x1 - x0, y1 - y0));
 }
 
-void Img::Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, std::array<std::array<double, 9>, 9> *similarity) {
+void Img::Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9]) {
   using namespace std;
 
   // 2 枚の盤面画像を比較する. 変動が検出された升目を buffer に格納する.
@@ -39,7 +39,7 @@ void Img::Compare(BoardImage const &before, BoardImage const &after, CvPointSet 
       double s = cv::matchShapes(pb, pa, cv::CONTOURS_MATCH_I1, 0);
       sim[x][y] = s;
       if (similarity) {
-        (*similarity)[x][y] = s;
+        similarity[x][y] = s;
       }
     }
   }

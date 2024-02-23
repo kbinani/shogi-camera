@@ -197,9 +197,18 @@ class DebugView: UIView {
           let ph = rect.height / 9
           let px = rect.minX + pw * CGFloat(x)
           let py = rect.minY + ph * CGFloat(y)
-          let bar = min((status.similarity[x][y] - minSim) / (maxSim - minSim), 1) * ph
+          let similarity =
+            Mirror(reflecting: Mirror(reflecting: status.similarity).children[AnyIndex(x)].value)
+            .children[AnyIndex(y)].value as! Double
+          let similarityAgainstStableBoard =
+            Mirror(
+              reflecting: Mirror(reflecting: status.similarityAgainstStableBoard).children[
+                AnyIndex(x)
+              ].value
+            ).children[AnyIndex(y)].value as! Double
+          let bar = min((similarity - minSim) / (maxSim - minSim), 1) * ph
           let sbar =
-            min((status.similarityAgainstStableBoard[x][y] - minSim) / (maxSim - minSim), 1) * ph
+            min((similarityAgainstStableBoard - minSim) / (maxSim - minSim), 1) * ph
 
           let r = CGRect(x: px, y: py + ph - bar, width: pw * 0.5, height: bar)
           ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
@@ -351,7 +360,6 @@ class DebugView: UIView {
         }
         if let count = black[piece] {
           let ss = count > 1 ? s + String(count) : s
-          print("\(count): ss=", ss)
           Self.Draw(
             str: ss, font: font, ctx: ctx, box: .init(x: cx + 4.5 * w, y: by, width: w, height: h),
             rotate: false)
@@ -359,8 +367,6 @@ class DebugView: UIView {
         }
         if let count = white[piece] {
           let ss = count > 1 ? s + String(count) : s
-          print("\(count): ss=", ss)
-
           Self.Draw(
             str: ss, font: font, ctx: ctx, box: .init(x: cx - 5.5 * w, y: wy, width: w, height: h),
             rotate: true)

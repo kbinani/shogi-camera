@@ -214,7 +214,7 @@ class Reader {
     }
 
     let piece =
-      move.promote_.value == true ? sci.PieceTypeFromPiece(move.piece).rawValue : move.piece
+      move.promote == 1 ? sci.PieceTypeFromPiece(move.piece).rawValue : move.piece
     var startPiece: TimeInterval?
     var endPiece: TimeInterval?
     for i in 0..<self.pieces.count - 1 {
@@ -233,8 +233,8 @@ class Reader {
     } else {
       print("駒読み上げ用ボイスが搭載されていない: ", move.piece)
     }
-    if let promote = move.promote_.value {
-      let action: Action = promote ? .Promote : .NoPromote
+    if move.promote != 0 {
+      let action: Action = move.promote == 1 ? .Promote : .NoPromote
       var startAction: TimeInterval?
       var endAction: TimeInterval?
       for i in 0..<self.actions.count - 1 {

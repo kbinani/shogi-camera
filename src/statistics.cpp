@@ -72,9 +72,9 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   // 不成の時: 22.5, 1.73, 78.2, 65.9, 59.9, 65.9
   if (fabs(tAfterMean - tBeforeMean) > 110) {
     mv.piece = Promote(mv.piece);
-    mv.promote_ = true;
+    mv.promote = 1;
   } else {
-    mv.promote_ = false;
+    mv.promote = -1;
   }
 }
 
@@ -161,11 +161,11 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   BoardImage const &before = boardHistory[boardHistory.size() - 2];
   BoardImage const &after = boardHistory[boardHistory.size() - 1];
   CvPointSet changes;
-  Img::Compare(before, after, changes, &s.similarity);
+  Img::Compare(before, after, changes, s.similarity);
   if (!stableBoardHistory.empty()) {
     auto const &last = stableBoardHistory.back();
     CvPointSet tmp;
-    Img::Compare(last[2], bi, tmp, &s.similarityAgainstStableBoard);
+    Img::Compare(last[2], bi, tmp, s.similarityAgainstStableBoard);
   }
   if (!changes.empty()) {
     // 変動したマス目が検出されているので, 最新のフレームだけ残して捨てる.
