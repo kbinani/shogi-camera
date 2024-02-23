@@ -925,6 +925,9 @@ bool CanMove(Position const &position, Square from, Square to) {
       }
       Piece t = position.pieces[x][y];
       if (t == 0) {
+        if (x == to.file && y == to.rank) {
+          return true;
+        }
         continue;
       } else if (ColorFromPiece(t) == color) {
         break;
