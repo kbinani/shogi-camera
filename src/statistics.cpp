@@ -70,7 +70,7 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   // fabs(tBeforeMean - tAfterMean) の実際の値の様子:
   // 成りの時: 727, 1418, 1293
   // 不成の時: 22.5, 1.73, 78.2, 65.9, 59.9, 65.9
-  if (fabs(tAfterMean - tBeforeMean) > 150) {
+  if (fabs(tAfterMean - tBeforeMean) > 110) {
     mv.piece = Promote(mv.piece);
     mv.promote_ = true;
   } else {
