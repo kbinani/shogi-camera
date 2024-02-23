@@ -9,6 +9,7 @@ class DebugView: UIView {
   private weak var previewLayer: AVCaptureVideoPreviewLayer?
   private weak var overlayLayer: OverlayLayer?
   private weak var imageViewLayer: ImageViewLayer?
+  private weak var boardViewLayer: BoardViewLayer?
   private var session: sci.SessionWrapper?
   private let reader: Reader?
   private var moveIndex: Int?
@@ -216,6 +217,202 @@ class DebugView: UIView {
     }
   }
 
+  class BoardViewLayer: CALayer {
+    struct Board {
+      let position: sci.Position
+      let blackHand: [PieceType]
+      let whiteHand: [PieceType]
+      let move: Move?
+    }
+
+    var board: Board = .init(
+      position: sci.MakePosition(.None), blackHand: [], whiteHand: [], move: nil)
+    {
+      didSet {
+        setNeedsDisplay()
+      }
+    }
+
+    override func draw(in ctx: CGContext) {
+      let size = self.bounds.size
+      let aspect: CGFloat = 1.1
+      let margin: UIEdgeInsets = .init(top: 0, left: 0, bottom: 0, right: 0)
+      let w = min(
+        (size.height - margin.top - margin.bottom) / 9,
+        (size.width - margin.left - margin.right) / 12 / aspect)
+      let h = w * aspect
+      let cx = size.width * 0.5
+      let cy = size.height * 0.5
+
+      // 移動
+      if let move = board.move {
+        ctx.setFillColor(UIColor.lightGray.cgColor)
+        if let from = move.from.value {
+          ctx.fill([
+            CGRect(
+              x: cx + (-4.5 + CGFloat(from.file.rawValue)) * w,
+              y: cy + (-4.5 + CGFloat(from.rank.rawValue)) * h, width: w, height: h)
+          ])
+        }
+        ctx.fill([
+          CGRect(
+            x: cx + (-4.5 + CGFloat(move.to.file.rawValue)) * w,
+            y: cy + (-4.5 + CGFloat(move.to.rank.rawValue)) * h, width: w, height: h)
+        ])
+      }
+
+      // 縦線
+      ctx.setStrokeColor(UIColor.gray.cgColor)
+      for i in 1..<9 {
+        let x = cx + w * (-4.5 + CGFloat(i))
+        ctx.beginPath()
+        ctx.move(to: .init(x: x, y: cy - 4.5 * h))
+        ctx.addLine(to: .init(x: x, y: cy + 4.5 * h))
+        ctx.strokePath()
+      }
+      // 横線
+      for i in 1..<9 {
+        let y = cy + h * (-4.5 + CGFloat(i))
+        ctx.beginPath()
+        ctx.move(to: .init(x: cx - w * 4.5, y: y))
+        ctx.addLine(to: .init(x: cx + w * 4.5, y: y))
+        ctx.strokePath()
+      }
+      // 枠
+      ctx.setStrokeColor(UIColor.black.cgColor)
+      ctx.beginPath()
+      ctx.addRect(.init(x: cx - w * 4.5, y: cy - h * 4.5, width: w * 9, height: h * 9))
+      ctx.strokePath()
+
+      let (r0, r1, r2, r3, r4, r5, r6, r7, r8) = board.position.pieces
+      var pieces: [[sci.Piece]] = []
+      for r in [r0, r1, r2, r3, r4, r5, r6, r7, r8] {
+        let (c0, c1, c2, c3, c4, c5, c6, c7, c8) = r
+        let row: [sci.Piece] = [c0, c1, c2, c3, c4, c5, c6, c7, c8]
+        pieces.append(row)
+      }
+
+      let fontSize = w * 0.8
+      let font = CTFont(.application, size: fontSize, language: "ja-JP" as CFString)
+      for y in 0..<9 {
+        for x in 0..<9 {
+          let p = pieces[x][y]
+          let color = sci.ColorFromPiece(p)
+          if p == 0 {
+            continue
+          }
+          let u8str = sci.ShortStringFromPieceTypeAndStatus(sci.RemoveColorFromPiece(p))
+          guard let s = String.init(utf8String: sci.Utility.CStringFromU8String(u8str)) else {
+            continue
+          }
+          let sx = cx + (-4.5 + CGFloat(x)) * w
+          let sy = cy + (-4.5 + CGFloat(y)) * h
+          Self.Draw(
+            str: s, font: font, ctx: ctx, box: .init(x: sx, y: sy, width: w, height: h),
+            rotate: color == sci.Color.White)
+        }
+      }
+      // ポッチ
+      let dotRadius = w * 0.1
+      ctx.setFillColor(UIColor.gray.cgColor)
+      let topLeft = CGRect(
+        x: cx - 1.5 * w - dotRadius, y: cy - 1.5 * h - dotRadius, width: dotRadius * 2,
+        height: dotRadius * 2)
+      ctx.fillEllipse(in: topLeft)
+      ctx.fillEllipse(
+        in: .init(
+          x: topLeft.minX + 3 * w, y: topLeft.minY, width: topLeft.width, height: topLeft.height))
+      ctx.fillEllipse(
+        in: .init(
+          x: topLeft.minX, y: topLeft.minY + 3 * h, width: topLeft.width, height: topLeft.height))
+      ctx.fillEllipse(
+        in: .init(
+          x: topLeft.minX + 3 * w, y: topLeft.minY + 3 * h, width: topLeft.width,
+          height: topLeft.height))
+
+      // 持ち駒
+      var white: [PieceType: Int] = [:]
+      var black: [PieceType: Int] = [:]
+      for hand in board.blackHand {
+        black[hand] = (black[hand] ?? 0) + 1
+      }
+      for hand in board.whiteHand {
+        white[hand] = (white[hand] ?? 0) + 1
+      }
+      var by = cy + 3.5 * h
+      var wy = cy - 4.5 * h
+      for piece in [
+        PieceType.Pawn, PieceType.Lance, PieceType.Knight, PieceType.Silver, PieceType.Gold,
+        PieceType.Bishop, PieceType.Rook,
+      ] {
+        let u8str = sci.ShortStringFromPieceTypeAndStatus(piece.rawValue)
+        guard let s = String.init(utf8String: sci.Utility.CStringFromU8String(u8str)) else {
+          continue
+        }
+        if let count = black[piece] {
+          let ss = count > 1 ? s + String(count) : s
+          print("\(count): ss=", ss)
+          Self.Draw(
+            str: ss, font: font, ctx: ctx, box: .init(x: cx + 4.5 * w, y: by, width: w, height: h),
+            rotate: false)
+          by -= h
+        }
+        if let count = white[piece] {
+          let ss = count > 1 ? s + String(count) : s
+          print("\(count): ss=", ss)
+
+          Self.Draw(
+            str: ss, font: font, ctx: ctx, box: .init(x: cx - 5.5 * w, y: wy, width: w, height: h),
+            rotate: true)
+          wy += h
+        }
+      }
+      Self.Draw(
+        str: "☗", font: font, ctx: ctx, box: .init(x: cx + 4.5 * w, y: by, width: w, height: h),
+        rotate: false)
+      Self.Draw(
+        str: "☖", font: font, ctx: ctx, box: .init(x: cx - 5.5 * w, y: wy, width: w, height: h),
+        rotate: true)
+    }
+
+    private static func Draw(str: String, font: CTFont, ctx: CGContext, box: CGRect, rotate: Bool) {
+      let ascent = CTFontGetAscent(font)
+      let descent = CTFontGetDescent(font)
+      let fontSize = CTFontGetSize(font)
+      let str = NSAttributedString(
+        string: str, attributes: [.font: font, .foregroundColor: UIColor.black.cgColor])
+      let line = CTLineCreateWithAttributedString(str as CFAttributedString)
+      ctx.saveGState()
+      defer {
+        ctx.restoreGState()
+      }
+      let mtx: CGAffineTransform =
+        if rotate {
+          CGAffineTransform.identity
+            .concatenating(
+              .init(translationX: -fontSize * 0.5, y: descent - (ascent + descent) * 0.5)
+            )
+            .concatenating(.init(scaleX: 1, y: -1))
+            .concatenating(.init(rotationAngle: .pi))
+            .concatenating(
+              .init(
+                translationX: box.minX + box.width * 0.5,
+                y: box.minY + box.height * 0.5))
+        } else {
+          CGAffineTransform.identity
+            .concatenating(.init(translationX: 0, y: descent - (ascent + descent) * 0.5))
+            .concatenating(.init(scaleX: 1, y: -1))
+            .concatenating(
+              .init(
+                translationX: box.minX + box.width * 0.5 - fontSize * 0.5,
+                y: box.minY + box.height * 0.5))
+        }
+      ctx.concatenate(mtx)
+      ctx.textMatrix = CGAffineTransform.identity
+      CTLineDraw(line, ctx)
+    }
+  }
+
   init() {
     self.reader = Reader()
     super.init(frame: .zero)
@@ -282,6 +479,12 @@ class DebugView: UIView {
     self.layer.addSublayer(imageViewLayer)
     self.imageViewLayer = imageViewLayer
 
+    let boardViewLayer = BoardViewLayer()
+    boardViewLayer.backgroundColor = UIColor.white.cgColor
+    boardViewLayer.setNeedsDisplay()
+    self.layer.addSublayer(boardViewLayer)
+    self.boardViewLayer = boardViewLayer
+
     DispatchQueue.global().async { [weak session] in
       session?.startRunning()
     }
@@ -295,15 +498,20 @@ class DebugView: UIView {
     }
   }
 
+  override func willMove(toWindow w: UIWindow?) {
+    if let w {
+      boardViewLayer?.contentsScale = w.screen.scale
+    }
+  }
+
   override func layoutSubviews() {
     super.layoutSubviews()
     let w = self.bounds.size.width
     let h = self.bounds.size.height
-    // previewLayer?.frame = .init(x: 0, y: 0, width: w, height: h)
-    // overlayLayer?.frame = .init(x: 0, y: 0, width: w, height: h)
-    previewLayer?.frame = .init(x: 0, y: 0, width: w, height: h * 0.5)
-    overlayLayer?.frame = .init(x: 0, y: 0, width: w, height: h * 0.5)
-    imageViewLayer?.frame = .init(x: 0, y: h * 0.5, width: w, height: h * 0.5)
+    previewLayer?.frame = .init(x: 0, y: 0, width: w * 0.5, height: h * 0.5)
+    overlayLayer?.frame = .init(x: 0, y: 0, width: w * 0.5, height: h * 0.5)
+    imageViewLayer?.frame = .init(x: w * 0.5, y: 0, width: w * 0.5, height: h * 0.5)
+    boardViewLayer?.frame = .init(x: 0, y: h * 0.5, width: w, height: h * 0.5)
   }
 
   required init?(coder: NSCoder) {
@@ -355,5 +563,8 @@ extension DebugView: AVCaptureVideoDataOutputSampleBufferDelegate {
         moveIndex = 0
       }
     }
+    boardViewLayer?.board = .init(
+      position: status.game.position, blackHand: .init(status.game.handBlack),
+      whiteHand: .init(status.game.handWhite), move: status.game.moves.last)
   }
 }

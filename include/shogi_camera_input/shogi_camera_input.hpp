@@ -8,6 +8,10 @@
 #include <string>
 #include <thread>
 
+#if defined(__APPLE__)
+#include <swift/bridging>
+#endif
+
 namespace sci {
 
 using PieceUnderlyingType = uint32_t;
@@ -671,6 +675,9 @@ public:
 #if defined(__APPLE__)
   static cv::Mat MatFromUIImage(void *ptr);
   static void *UIImageFromMat(cv::Mat const &m);
+  static char const *CStringFromU8String(std::u8string s) SWIFT_RETURNS_INDEPENDENT_VALUE {
+    return (char const *)s.c_str();
+  }
 #endif // defined(__APPLE__)
 };
 
