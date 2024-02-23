@@ -389,52 +389,77 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.color = color;
         if (moves.empty() || ColorFromPiece(p0) == color) {
           // p0 の駒が p1 の駒を取った.
-          mv.from = MakeSquare(ch0.x, ch0.y);
-          mv.to = MakeSquare(ch1.x, ch1.y);
-          mv.piece = p0;
-          mv.newHand = PieceTypeFromPiece(p1);
-          if (!moves.empty()) {
-            AppendPromotion(mv, before, after, book);
+          Square from = MakeSquare(ch0.x, ch0.y);
+          Square to = MakeSquare(ch1.x, ch1.y);
+          if (moves.empty() || CanMove(position, from, to)) {
+            mv.from = from;
+            mv.to = to;
+            mv.piece = p0;
+            mv.newHand = PieceTypeFromPiece(p1);
+            if (!moves.empty()) {
+              AppendPromotion(mv, before, after, book);
+            }
+            move = mv;
+          } else {
+            cout << "利きの無い駒を取ろうとしている" << endl;
           }
         } else {
           // p1 の駒が p0 の駒を取った.
-          mv.from = MakeSquare(ch1.x, ch1.y);
-          mv.to = MakeSquare(ch0.x, ch0.y);
-          mv.piece = p1;
-          mv.newHand = PieceTypeFromPiece(p0);
-          if (!moves.empty()) {
-            AppendPromotion(mv, before, after, book);
+          Square from = MakeSquare(ch1.x, ch1.y);
+          Square to = MakeSquare(ch0.x, ch0.y);
+          if (moves.empty() || CanMove(position, from, to)) {
+            mv.from = from;
+            mv.to = to;
+            mv.piece = p1;
+            mv.newHand = PieceTypeFromPiece(p0);
+            if (!moves.empty()) {
+              AppendPromotion(mv, before, after, book);
+            }
+            move = mv;
+          } else {
+            cout << "利きの無い駒を取ろうとしている" << endl;
           }
         }
-        move = mv;
       }
     } else if (p0) {
       if (moves.empty() || ColorFromPiece(p0) == color) {
         // p0 の駒が p1 に移動
-        Move mv;
-        mv.color = color;
-        mv.from = MakeSquare(ch0.x, ch0.y);
-        mv.to = MakeSquare(ch1.x, ch1.y);
-        mv.piece = p0;
-        if (!moves.empty()) {
-          AppendPromotion(mv, before, after, book);
+        Square from = MakeSquare(ch0.x, ch0.y);
+        Square to = MakeSquare(ch1.x, ch1.y);
+        if (moves.empty() || CanMove(position, from, to)) {
+          Move mv;
+          mv.color = color;
+          mv.from = from;
+          mv.to = to;
+          mv.piece = p0;
+          if (!moves.empty()) {
+            AppendPromotion(mv, before, after, book);
+          }
+          move = mv;
+        } else {
+          cout << "利きの無い位置に移動しようとしている" << endl;
         }
-        move = mv;
       } else {
         cout << "相手の駒を動かしている" << endl;
       }
     } else if (p1) {
       if (moves.empty() || ColorFromPiece(p1) == color) {
         // p1 の駒が p0 に移動
-        Move mv;
-        mv.color = color;
-        mv.from = MakeSquare(ch1.x, ch1.y);
-        mv.to = MakeSquare(ch0.x, ch0.y);
-        mv.piece = p1;
-        if (!moves.empty()) {
-          AppendPromotion(mv, before, after, book);
+        Square from = MakeSquare(ch1.x, ch1.y);
+        Square to = MakeSquare(ch0.x, ch0.y);
+        if (moves.empty() || CanMove(position, from, to)) {
+          Move mv;
+          mv.color = color;
+          mv.from = from;
+          mv.to = to;
+          mv.piece = p1;
+          if (!moves.empty()) {
+            AppendPromotion(mv, before, after, book);
+          }
+          move = mv;
+        } else {
+          cout << "利きの無い位置に移動しようとしている" << endl;
         }
-        move = mv;
       } else {
         cout << "相手の駒を動かしている" << endl;
       }
