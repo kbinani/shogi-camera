@@ -13,7 +13,7 @@ class Reader {
     do {
       file = try AVAudioFile(forReading: voice)
       let session = AVAudioSession.sharedInstance()
-      try session.setCategory(.playAndRecord)
+      try session.setCategory(.playback, mode: .default)
       try session.setActive(true)
       engine.attach(node)
       engine.connect(node, to: engine.mainMixerNode, format: file.processingFormat)
@@ -35,121 +35,12 @@ class Reader {
     let square: (file: Int, rank: Int)
     let time: TimeInterval
   }
-  private let positions: [Position] = [
-    .init(square: (8, 0), time: 1.648),
-    .init(square: (8, 1), time: 2.751),
-    .init(square: (8, 2), time: 3.907),
-    .init(square: (8, 3), time: 5.063),
-    .init(square: (8, 4), time: 6.285),
-    .init(square: (8, 5), time: 7.335),
-    .init(square: (8, 6), time: 8.438),
-    .init(square: (8, 7), time: 9.501),
-    .init(square: (8, 8), time: 10.683),
-
-    .init(square: (7, 0), time: 11.560),
-    .init(square: (7, 1), time: 12.690),
-    .init(square: (7, 2), time: 13.700),
-    .init(square: (7, 3), time: 14.670),
-    .init(square: (7, 4), time: 15.693),
-    .init(square: (7, 5), time: 16.596),
-    .init(square: (7, 6), time: 17.580),
-    .init(square: (7, 7), time: 17.563),
-    .init(square: (7, 8), time: 19.626),
-
-    .init(square: (6, 0), time: 20.476),
-    .init(square: (6, 1), time: 21.579),
-    .init(square: (6, 2), time: 22.682),
-    .init(square: (6, 3), time: 23.652),
-    .init(square: (6, 4), time: 24.728),
-    .init(square: (6, 5), time: 25.672),
-    .init(square: (6, 6), time: 26.721),
-    .init(square: (6, 7), time: 27.758),
-    .init(square: (6, 8), time: 28.874),
-
-    .init(square: (5, 0), time: 29.818),
-    .init(square: (5, 1), time: 30.967),
-    .init(square: (5, 2), time: 31.904),
-    .init(square: (5, 3), time: 32.860),
-    .init(square: (5, 4), time: 33.897),
-    .init(square: (5, 5), time: 34.787),
-    .init(square: (5, 6), time: 35.784),
-    .init(square: (5, 7), time: 36.754),
-    .init(square: (5, 8), time: 37.830),
-
-    .init(square: (4, 0), time: 38.680),
-    .init(square: (4, 1), time: 39.690),
-    .init(square: (4, 2), time: 40.660),
-    .init(square: (4, 3), time: 41.551),
-    .init(square: (4, 4), time: 42.521),
-    .init(square: (4, 5), time: 43.384),
-    .init(square: (4, 6), time: 44.274),
-    .init(square: (4, 7), time: 45.178),
-    .init(square: (4, 8), time: 46.175),
-
-    .init(square: (3, 0), time: 47.025),
-    .init(square: (3, 1), time: 48.101),
-    .init(square: (3, 2), time: 49.124),
-    .init(square: (3, 3), time: 50.081),
-    .init(square: (3, 4), time: 51.104),
-    .init(square: (3, 5), time: 51.995),
-    .init(square: (3, 6), time: 52.965),
-    .init(square: (3, 7), time: 53.895),
-    .init(square: (3, 8), time: 54.905),
-
-    .init(square: (2, 0), time: 55.821),
-    .init(square: (2, 1), time: 56.884),
-    .init(square: (2, 2), time: 57.947),
-    .init(square: (2, 3), time: 58.944),
-    .init(square: (2, 4), time: 59.980),
-    .init(square: (2, 5), time: 60.964),
-    .init(square: (2, 6), time: 61.974),
-    .init(square: (2, 7), time: 62.957),
-    .init(square: (2, 8), time: 64.007),
-
-    .init(square: (1, 0), time: 64.897),
-    .init(square: (1, 1), time: 66.026),
-    .init(square: (1, 2), time: 67.089),
-    .init(square: (1, 3), time: 68.113),
-    .init(square: (1, 4), time: 69.176),
-    .init(square: (1, 5), time: 70.172),
-    .init(square: (1, 6), time: 71.209),
-    .init(square: (1, 7), time: 72.245),
-    .init(square: (1, 8), time: 73.321),
-
-    .init(square: (0, 0), time: 74.331),
-    .init(square: (0, 1), time: 75.474),
-    .init(square: (0, 2), time: 76.577),
-    .init(square: (0, 3), time: 77.560),
-    .init(square: (0, 4), time: 78.636),
-    .init(square: (0, 5), time: 79.593),
-    .init(square: (0, 6), time: 80.643),
-    .init(square: (0, 7), time: 81.666),
-    .init(square: (0, 8), time: 82.756),
-
-    .init(square: (9, 0), time: 83.712),
-  ]
 
   struct Piece {
     let piece: UInt32
     let time: TimeInterval
   }
-  private let pieces: [Piece] = [
-    .init(piece: PieceType.Pawn.rawValue, time: 83.739),
-    .init(piece: PieceType.Lance.rawValue, time: 84.310),
-    .init(piece: PieceType.Knight.rawValue, time: 85.094),
-    .init(piece: PieceType.Silver.rawValue, time: 85.918),
-    .init(piece: PieceType.Gold.rawValue, time: 86.542),
-    .init(piece: PieceType.Bishop.rawValue, time: 87.061),
-    .init(piece: PieceType.Rook.rawValue, time: 87.738),
-    .init(piece: PieceType.King.rawValue, time: 88.456),
-    .init(piece: PieceType.Pawn.rawValue + PieceStatus.Promoted.rawValue, time: 89.173),
-    .init(piece: PieceType.Lance.rawValue + PieceStatus.Promoted.rawValue, time: 89.904),
-    .init(piece: PieceType.Knight.rawValue + PieceStatus.Promoted.rawValue, time: 90.834),
-    .init(piece: PieceType.Silver.rawValue + PieceStatus.Promoted.rawValue, time: 91.725),
-    .init(piece: PieceType.Bishop.rawValue + PieceStatus.Promoted.rawValue, time: 92.602),
-    .init(piece: PieceType.Rook.rawValue + PieceStatus.Promoted.rawValue, time: 93.266),
-    .init(piece: 9999, time: 93.266),
-  ]
+
   enum Action: UInt32 {
     case Promote
     case NoPromote
@@ -161,23 +52,144 @@ class Reader {
     case Nearest  // 直ぐ
     case Drop  // 打ち
   }
+
   struct ActionVoice {
     let action: UInt32
     let time: TimeInterval
   }
+
+  private let positions: [Position] = [
+    .init(square: (8, 0), time: 1.536000),
+    .init(square: (8, 1), time: 2.474667),
+    .init(square: (8, 2), time: 3.360000),
+    .init(square: (8, 3), time: 4.202667),
+    .init(square: (8, 4), time: 5.045334),
+    .init(square: (8, 5), time: 5.909334),
+    .init(square: (8, 6), time: 6.816001),
+    .init(square: (8, 7), time: 7.701334),
+    .init(square: (8, 8), time: 8.672001),
+    .init(square: (7, 0), time: 9.568001),
+    .init(square: (7, 1), time: 10.528001),
+    .init(square: (7, 2), time: 11.413334),
+    .init(square: (7, 3), time: 12.245334),
+    .init(square: (7, 4), time: 13.088001),
+    .init(square: (7, 5), time: 13.952001),
+    .init(square: (7, 6), time: 14.858668),
+    .init(square: (7, 7), time: 15.744001),
+    .init(square: (7, 8), time: 16.714668),
+    .init(square: (6, 0), time: 17.610668),
+    .init(square: (6, 1), time: 18.581335),
+    .init(square: (6, 2), time: 19.498668),
+    .init(square: (6, 3), time: 20.341335),
+    .init(square: (6, 4), time: 21.194668),
+    .init(square: (6, 5), time: 22.101335),
+    .init(square: (6, 6), time: 23.050668),
+    .init(square: (6, 7), time: 23.978668),
+    .init(square: (6, 8), time: 24.960001),
+    .init(square: (5, 0), time: 25.877334),
+    .init(square: (5, 1), time: 26.816001),
+    .init(square: (5, 2), time: 27.658668),
+    .init(square: (5, 3), time: 28.448001),
+    .init(square: (5, 4), time: 29.237334),
+    .init(square: (5, 5), time: 30.090667),
+    .init(square: (5, 6), time: 30.976000),
+    .init(square: (5, 7), time: 31.840000),
+    .init(square: (5, 8), time: 32.757333),
+    .init(square: (4, 0), time: 33.600000),
+    .init(square: (4, 1), time: 34.538667),
+    .init(square: (4, 2), time: 35.392000),
+    .init(square: (4, 3), time: 36.224000),
+    .init(square: (4, 4), time: 37.013333),
+    .init(square: (4, 5), time: 37.856000),
+    .init(square: (4, 6), time: 38.720000),
+    .init(square: (4, 7), time: 39.573333),
+    .init(square: (4, 8), time: 40.512000),
+    .init(square: (3, 0), time: 41.408000),
+    .init(square: (3, 1), time: 42.357333),
+    .init(square: (3, 2), time: 43.210666),
+    .init(square: (3, 3), time: 44.042666),
+    .init(square: (3, 4), time: 44.863999),
+    .init(square: (3, 5), time: 45.717332),
+    .init(square: (3, 6), time: 46.645332),
+    .init(square: (3, 7), time: 47.551999),
+    .init(square: (3, 8), time: 48.522666),
+    .init(square: (2, 0), time: 49.418666),
+    .init(square: (2, 1), time: 50.346666),
+    .init(square: (2, 2), time: 51.221333),
+    .init(square: (2, 3), time: 52.064000),
+    .init(square: (2, 4), time: 52.906667),
+    .init(square: (2, 5), time: 53.792000),
+    .init(square: (2, 6), time: 54.720000),
+    .init(square: (2, 7), time: 55.626667),
+    .init(square: (2, 8), time: 56.597334),
+    .init(square: (1, 0), time: 57.514667),
+    .init(square: (1, 1), time: 58.485334),
+    .init(square: (1, 2), time: 59.402667),
+    .init(square: (1, 3), time: 60.288000),
+    .init(square: (1, 4), time: 61.162667),
+    .init(square: (1, 5), time: 62.090667),
+    .init(square: (1, 6), time: 63.061334),
+    .init(square: (1, 7), time: 64.010667),
+    .init(square: (1, 8), time: 65.056000),
+    .init(square: (0, 0), time: 65.994667),
+    .init(square: (0, 1), time: 67.008000),
+    .init(square: (0, 2), time: 67.946667),
+    .init(square: (0, 3), time: 68.832000),
+    .init(square: (0, 4), time: 69.717333),
+    .init(square: (0, 5), time: 70.634666),
+    .init(square: (0, 6), time: 71.605333),
+    .init(square: (0, 7), time: 72.533333),
+    .init(square: (0, 8), time: 73.536000),
+    .init(square: (9, 0), time: 74.464000),
+  ]
+  private let pieces: [Piece] = [
+    .init(piece: PieceType.Pawn.rawValue, time: 74.464000),
+    .init(piece: PieceType.Lance.rawValue, time: 75.072000),
+    .init(piece: PieceType.Knight.rawValue, time: 75.861333),
+    .init(piece: PieceType.Silver.rawValue, time: 76.682666),
+    .init(piece: PieceType.Gold.rawValue, time: 77.258666),
+    .init(piece: PieceType.Bishop.rawValue, time: 77.855999),
+    .init(piece: PieceType.Rook.rawValue, time: 78.549332),
+    .init(piece: PieceType.King.rawValue, time: 79.253332),
+    .init(piece: PieceType.Pawn.rawValue + PieceStatus.Promoted.rawValue, time: 79.946665),
+    .init(piece: PieceType.Lance.rawValue + PieceStatus.Promoted.rawValue, time: 80.703998),
+    .init(piece: PieceType.Knight.rawValue + PieceStatus.Promoted.rawValue, time: 81.621331),
+    .init(piece: PieceType.Silver.rawValue + PieceStatus.Promoted.rawValue, time: 82.538664),
+    .init(piece: PieceType.Bishop.rawValue + PieceStatus.Promoted.rawValue, time: 83.402664),
+    .init(piece: PieceType.Rook.rawValue + PieceStatus.Promoted.rawValue, time: 84.021331),
+    .init(piece: 9999, time: 84.021331),
+  ]
+  private let takes: [Piece] = [
+    .init(piece: PieceType.Pawn.rawValue, time: 84.671998),
+    .init(piece: PieceType.Lance.rawValue, time: 85.439998),
+    .init(piece: PieceType.Knight.rawValue, time: 86.314665),
+    .init(piece: PieceType.Silver.rawValue, time: 87.178665),
+    .init(piece: PieceType.Gold.rawValue, time: 87.999998),
+    .init(piece: PieceType.Bishop.rawValue, time: 88.853331),
+    .init(piece: PieceType.Rook.rawValue, time: 89.738664),
+    .init(piece: PieceType.King.rawValue, time: 90.666664),
+    .init(piece: PieceType.Pawn.rawValue + PieceStatus.Promoted.rawValue, time: 91.573331),
+    .init(piece: PieceType.Lance.rawValue + PieceStatus.Promoted.rawValue, time: 92.330664),
+    .init(piece: PieceType.Knight.rawValue + PieceStatus.Promoted.rawValue, time: 93.482664),
+    .init(piece: PieceType.Silver.rawValue + PieceStatus.Promoted.rawValue, time: 94.623997),
+    .init(piece: PieceType.Bishop.rawValue + PieceStatus.Promoted.rawValue, time: 95.722664),
+    .init(piece: PieceType.Rook.rawValue + PieceStatus.Promoted.rawValue, time: 96.565331),
+    .init(piece: 9999, time: 96.565331),
+  ]
   private let actions: [ActionVoice] = [
-    .init(action: Action.Promote.rawValue, time: 93.903),
-    .init(action: Action.NoPromote.rawValue, time: 94.513),
-    .init(action: Action.Right.rawValue, time: 95.293),
-    .init(action: Action.Left.rawValue, time: 95.931),
-    .init(action: Action.Up.rawValue, time: 96.711),
-    .init(action: Action.Down.rawValue, time: 97.434),
-    .init(action: Action.Lateral.rawValue, time: 98.073),
-    .init(action: Action.Nearest.rawValue, time: 98.654),
-    .init(action: 9999, time: 99.236),
+    .init(action: Action.Promote.rawValue, time: 97.397331),
+    .init(action: Action.NoPromote.rawValue, time: 98.037331),
+    .init(action: Action.Drop.rawValue, time: 98.805331),
+    .init(action: Action.Right.rawValue, time: 99.509331),
+    .init(action: Action.Left.rawValue, time: 100.181331),
+    .init(action: Action.Up.rawValue, time: 100.959998),
+    .init(action: Action.Down.rawValue, time: 101.663998),
+    .init(action: Action.Lateral.rawValue, time: 102.293331),
+    .init(action: Action.Nearest.rawValue, time: 102.901331),
+    .init(action: 9999, time: 103.583998),
   ]
 
-  func play(move: Move) {
+  func play(move: Move, last: Move?) {
     let startColor: Double
     let endColor: Double
     if move.color == .Black {
@@ -193,45 +205,69 @@ class Reader {
       frameCount: .init((endColor - startColor) * rate), at: nil)
     var offset = endColor - startColor
 
-    var startSquare: TimeInterval?
-    var endSquare: TimeInterval?
-    for i in 0..<self.positions.count - 1 {
-      let p = self.positions[i]
-      if p.square.file == Int(move.to.file.rawValue) && p.square.rank == Int(move.to.rank.rawValue)
-      {
-        startSquare = p.time
-        endSquare = self.positions[i + 1].time
-        break
+    if let last, last.to == move.to {
+      var startPiece: TimeInterval?
+      var endPiece: TimeInterval?
+      let piece =
+        move.promote == 1 ? sci.PieceTypeFromPiece(move.piece).rawValue : move.piece
+      for i in 0..<self.takes.count - 1 {
+        let p = self.takes[i]
+        if p.piece == sci.RemoveColorFromPiece(piece) {
+          startPiece = p.time
+          endPiece = self.takes[i + 1].time
+          break
+        }
       }
-    }
-    if let startSquare, let endSquare {
-      node.scheduleSegment(
-        file, startingFrame: .init(offset + startSquare * rate),
-        frameCount: .init((endSquare - startSquare) * rate), at: nil)
-      offset += endSquare - startSquare
+      if let startPiece, let endPiece {
+        node.scheduleSegment(
+          file, startingFrame: .init(offset + startPiece * rate),
+          frameCount: .init((endPiece - startPiece) * rate), at: nil)
+        offset += endPiece - startPiece
+      } else {
+        print("駒読み上げ用ボイスが搭載されていない: ", move.piece)
+      }
     } else {
-      print("マス目読み上げ用ボイスが搭載されていない: file=", move.to.file.rawValue, "rank=", move.to.rank.rawValue)
-    }
+      var startSquare: TimeInterval?
+      var endSquare: TimeInterval?
+      for i in 0..<self.positions.count - 1 {
+        let p = self.positions[i]
+        if p.square.file == Int(move.to.file.rawValue)
+          && p.square.rank == Int(move.to.rank.rawValue)
+        {
+          startSquare = p.time
+          endSquare = self.positions[i + 1].time
+          break
+        }
+      }
+      if let startSquare, let endSquare {
+        node.scheduleSegment(
+          file, startingFrame: .init(offset + startSquare * rate),
+          frameCount: .init((endSquare - startSquare) * rate), at: nil)
+        offset += endSquare - startSquare
+      } else {
+        print("マス目読み上げ用ボイスが搭載されていない: file=", move.to.file.rawValue, "rank=", move.to.rank.rawValue)
+      }
 
-    let piece =
-      move.promote == 1 ? sci.PieceTypeFromPiece(move.piece).rawValue : move.piece
-    var startPiece: TimeInterval?
-    var endPiece: TimeInterval?
-    for i in 0..<self.pieces.count - 1 {
-      let p = self.pieces[i]
-      if p.piece == sci.RemoveColorFromPiece(piece) {
-        startPiece = p.time
-        endPiece = self.pieces[i + 1].time
-        break
+      let piece =
+        move.promote == 1 ? sci.PieceTypeFromPiece(move.piece).rawValue : move.piece
+      var startPiece: TimeInterval?
+      var endPiece: TimeInterval?
+      for i in 0..<self.pieces.count - 1 {
+        let p = self.pieces[i]
+        if p.piece == sci.RemoveColorFromPiece(piece) {
+          startPiece = p.time
+          endPiece = self.pieces[i + 1].time
+          break
+        }
       }
-    }
-    if let startPiece, let endPiece {
-      node.scheduleSegment(
-        file, startingFrame: .init(offset + startPiece * rate),
-        frameCount: .init((endPiece - startPiece) * rate), at: nil)
-      offset += endPiece - startPiece
-    } else {
-      print("駒読み上げ用ボイスが搭載されていない: ", move.piece)
+      if let startPiece, let endPiece {
+        node.scheduleSegment(
+          file, startingFrame: .init(offset + startPiece * rate),
+          frameCount: .init((endPiece - startPiece) * rate), at: nil)
+        offset += endPiece - startPiece
+      } else {
+        print("駒読み上げ用ボイスが搭載されていない: ", move.piece)
+      }
     }
     if move.promote != 0 {
       let action: Action = move.promote == 1 ? .Promote : .NoPromote

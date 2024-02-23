@@ -561,12 +561,12 @@ extension DebugView: AVCaptureVideoDataOutputSampleBufferDelegate {
       if let moveIndex {
         if moveIndex + 1 < status.game.moves.size() {
           let mv = status.game.moves[moveIndex + 1]
-          reader?.play(move: mv)
+          reader?.play(move: mv, last: status.game.moves[moveIndex])
           self.moveIndex = moveIndex + 1
         }
       } else {
         let mv = status.game.moves[0]
-        reader?.play(move: mv)
+        reader?.play(move: mv, last: nil)
         moveIndex = 0
       }
     }
