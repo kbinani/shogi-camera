@@ -551,21 +551,21 @@ extension DebugView: AVCaptureVideoDataOutputSampleBufferDelegate {
     let status = session.status()
     overlayLayer?.status = status
     imageViewLayer?.status = status
-    if !status.game.moves.empty() {
+    if !status.game.moves_.empty() {
       if let moveIndex {
-        if moveIndex + 1 < status.game.moves.size() {
-          let mv = status.game.moves[moveIndex + 1]
-          reader?.play(move: mv, last: status.game.moves[moveIndex])
+        if moveIndex + 1 < status.game.moves_.size() {
+          let mv = status.game.moves_[moveIndex + 1]
+          reader?.play(move: mv, last: status.game.moves_[moveIndex])
           self.moveIndex = moveIndex + 1
         }
       } else {
-        let mv = status.game.moves[0]
+        let mv = status.game.moves_[0]
         reader?.play(move: mv, last: nil)
         moveIndex = 0
       }
     }
     boardViewLayer?.board = .init(
       position: status.game.position, blackHand: .init(status.game.handBlack),
-      whiteHand: .init(status.game.handWhite), move: status.game.moves.last)
+      whiteHand: .init(status.game.handWhite), move: status.game.moves_.last)
   }
 }

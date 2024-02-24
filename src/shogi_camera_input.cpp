@@ -783,7 +783,13 @@ std::u8string DebugStringFromPosition(Position const &p) {
 Status::Status() {
 }
 
-Session::Session() {
+Session::Session(std::shared_ptr<AI> black, std::shared_ptr<AI> white) : black(black), white(white) {
+  if (black) {
+    if (auto move = black->next(game.position, game.handBlack, game.handWhite); move) {
+      move->decideSuffix(game.position);
+      game.moves_.push_back(*move);
+    }
+  }
   s = std::make_shared<Status>();
   stop = false;
   std::thread th(std::bind(&Session::run, this));
@@ -797,6 +803,7 @@ Session::~Session() {
 }
 
 void Session::run() {
+  using namespace std;
   while (!stop) {
     std::unique_lock<std::mutex> lock(mut);
     cv.wait(lock, [this]() { return !queue.empty() || stop; });
@@ -816,7 +823,48 @@ void Session::run() {
     FindPieces(frame, *s);
     stat.update(*s);
     CreateWarpedBoard(frame, *s, stat);
-    stat.push(s->boardWarped, *s, game);
+    stat.push(s->boardWarped, *s, game, detected);
+    if (detected.size() == game.moves_.size()) {
+      if (game.moves_.size() % 2 == 0) {
+        // 次が先手番
+        if (black) {
+          auto move = black->next(game.position, game.handBlack, game.handWhite);
+          if (move) {
+            move->decideSuffix(game.position);
+            optional<Square> lastTo;
+            if (game.moves_.size() > 0) {
+              lastTo = game.moves_.back().to;
+            }
+            game.moves_.push_back(*move);
+            std::cout << (char const *)StringFromMove(*move, lastTo).c_str() << std::endl;
+            std::cout << "========================" << std::endl;
+            std::cout << (char const *)DebugStringFromPosition(game.position).c_str();
+            std::cout << "------------------------" << std::endl;
+          } else {
+            std::cout << "先手番AIが投了" << std::endl;
+          }
+        }
+      } else {
+        // 次が後手番
+        if (white) {
+          auto move = white->next(game.position, game.handWhite, game.handBlack);
+          if (move) {
+            move->decideSuffix(game.position);
+            optional<Square> lastTo;
+            if (game.moves_.size() > 0) {
+              lastTo = game.moves_.back().to;
+            }
+            game.moves_.push_back(*move);
+            std::cout << (char const *)StringFromMove(*move, lastTo).c_str() << std::endl;
+            std::cout << "========================" << std::endl;
+            std::cout << (char const *)DebugStringFromPosition(game.position).c_str();
+            std::cout << "------------------------" << std::endl;
+          } else {
+            std::cout << "後手番AIが投了" << std::endl;
+          }
+        }
+      }
+    }
     s->game = game;
     if (!stat.stableBoardHistory.empty()) {
       s->stableBoard = stat.stableBoardHistory.back().back().image;
@@ -832,6 +880,9 @@ void Session::push(cv::Mat const &frame) {
     queue.push_back(frame);
   }
   cv.notify_all();
+}
+
+SessionWrapper::SessionWrapper() : ptr(std::make_shared<Session>(nullptr, std::make_shared<RandomAI>(Color::White))) {
 }
 
 bool CanMove(Position const &position, Square from, Square to) {
@@ -1113,9 +1164,8 @@ void Position::apply(Move const &mv, std::deque<PieceType> &handBlack, std::dequ
   }
 }
 
-void Game::Generate(Position const &position, std::deque<PieceType> const &handBlack, std::deque<PieceType> const &handWhite, std::deque<Move> &moves, bool enablePawnCheckByDrop) {
+void Game::Generate(Position const &position, Color color, std::deque<PieceType> const &handBlack, std::deque<PieceType> const &handWhite, std::deque<Move> &moves, bool enablePawnCheckByDrop) {
   using namespace std;
-  Color color = (moves.size() % 2 == 0) ? Color::Black : Color::White;
 
   // 非合法手を含めた全ての手
   deque<Move> all;
@@ -1270,18 +1320,23 @@ void Game::Generate(Position const &position, std::deque<PieceType> const &handB
     if (!mv.from && PieceTypeFromPiece(mv.piece) == PieceType::Pawn && ColorFromPiece(cp.pieces[mv.to.file][mv.to.rank + dy]) != color && PieceTypeFromPiece(cp.pieces[mv.to.file][mv.to.rank + dy]) == PieceType::King) {
       // 打ち歩による王手
       deque<Move> next;
-      Generate(cp, hb, hw, next, false);
+      Generate(cp, color == Color::Black ? Color::White : Color::Black, hb, hw, next, false);
       if (next.empty()) {
         all.erase(all.begin() + i);
       }
     }
   }
 
+  for (Move m : all) {
+    cout << (char const *)StringFromMove(m).c_str() << endl;
+  }
+
   moves.swap(all);
 }
 
 void Game::generate(std::deque<Move> &moves) const {
-  Generate(position, handBlack, handWhite, moves, true);
+  Color color = this->moves_.size() % 2 == 0 ? Color::Black : Color::White;
+  Generate(position, color, handBlack, handWhite, moves, true);
 }
 
 RandomAI::RandomAI(Color color) : AI(color) {
@@ -1291,7 +1346,7 @@ RandomAI::RandomAI(Color color) : AI(color) {
 
 std::optional<Move> RandomAI::next(Position const &p, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) {
   std::deque<Move> moves;
-  Game::Generate(p, color == Color::Black ? hand : handEnemy, color == Color::Black ? handEnemy : hand, moves, true);
+  Game::Generate(p, color, color == Color::Black ? hand : handEnemy, color == Color::Black ? handEnemy : hand, moves, true);
   if (moves.empty()) {
     return std::nullopt;
   } else if (moves.size() == 1) {

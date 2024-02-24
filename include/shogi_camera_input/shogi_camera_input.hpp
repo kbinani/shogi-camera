@@ -464,7 +464,9 @@ inline std::u8string StringFromMove(Move const &mv, std::optional<Square> last) 
   } else {
     ret += LongStringFromPieceTypeAndStatus(mv.piece);
   }
-  if (!mv.from) {
+  if (mv.from) {
+    ret += u8"(" + std::u8string((char8_t const *)std::to_string(9 - mv.from->file).c_str()) + std::u8string((char8_t const *)std::to_string(mv.from->rank + 1).c_str()) + u8")";
+  } else {
     ret += u8"打";
   }
   return ret;
@@ -542,7 +544,7 @@ struct PieceContour {
 
 struct Game {
   Position position;
-  std::vector<Move> moves;
+  std::vector<Move> moves_;
   std::deque<PieceType> handBlack;
   std::deque<PieceType> handWhite;
 
@@ -568,7 +570,7 @@ struct Game {
     }
   }
 
-  static void Generate(Position const &p, std::deque<PieceType> const &handBlack, std::deque<PieceType> const &handWhite, std::deque<Move> &moves, bool enablePawnCheckByDrop);
+  static void Generate(Position const &p, Color color, std::deque<PieceType> const &handBlack, std::deque<PieceType> const &handWhite, std::deque<Move> &moves, bool enablePawnCheckByDrop);
   void generate(std::deque<Move> &moves) const;
 };
 
@@ -698,7 +700,7 @@ struct Statistics {
 
   std::deque<BoardImage> boardHistory;
   std::deque<std::array<BoardImage, 3>> stableBoardHistory;
-  void push(cv::Mat const &board, Status &s, Game &g);
+  void push(cv::Mat const &board, Status &s, Game &g, std::vector<Move> &detected);
   // 盤面画像を180度回転してから盤面認識処理すべき場合に true.
   bool rotate = false;
 
@@ -717,7 +719,7 @@ struct Statistics {
 
 class Session {
 public:
-  Session();
+  Session(std::shared_ptr<AI> black, std::shared_ptr<AI> white);
   ~Session();
   void push(cv::Mat const &frame);
 
@@ -738,6 +740,9 @@ private:
   std::shared_ptr<Status> s;
   Statistics stat;
   Game game;
+  std::vector<Move> detected;
+  std::shared_ptr<AI> black;
+  std::shared_ptr<AI> white;
 };
 
 class Img {
@@ -770,7 +775,7 @@ public:
 
 class SessionWrapper {
 public:
-  SessionWrapper() : ptr(std::make_shared<Session>()) {}
+  SessionWrapper();
 
   void push(cv::Mat const &frame) {
     ptr->push(frame);

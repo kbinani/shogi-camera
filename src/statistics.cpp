@@ -133,7 +133,7 @@ void Statistics::update(Status const &s) {
   }
 }
 
-void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
+void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move> &detected) {
   using namespace std;
   if (board.size().area() <= 0) {
     return;
@@ -201,7 +201,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   cout << "minChanges=" << minChange << "; maxChanges=" << maxChange << endl;
   if (changeset.empty() || minChange != maxChange) {
     // 有効な変化が発見できなかった
-    if ((minChange > 2 || maxChange > 4) && stableBoardHistory.size() == 1 && g.moves.empty()) {
+    if ((minChange > 2 || maxChange > 4) && stableBoardHistory.size() == 1 && detected.empty()) {
       // まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
       stableBoardHistory.pop_back();
       stableBoardHistory.push_back(history);
@@ -216,10 +216,10 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     }
   }
   // index 番目の手.
-  size_t const index = g.moves.size();
+  size_t const index = detected.size();
   Color const color = ColorFromIndex(index);
   CvPointSet const &ch = changeset.front();
-  optional<Move> move = Statistics::Detect(last.back().image, board, ch, g.position, g.moves, color, g.hand(color), book);
+  optional<Move> move = Statistics::Detect(last.back().image, board, ch, g.position, detected, color, g.hand(color), book);
   if (!move) {
     return;
   }
@@ -241,11 +241,11 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
   boardHistory.clear();
 
   optional<Square> lastMoveTo;
-  if (!g.moves.empty()) {
-    lastMoveTo = g.moves.back().to;
+  if (!detected.empty()) {
+    lastMoveTo = detected.back().to;
   }
   // 初手なら画像の上下どちらが先手側か判定する.
-  if (g.moves.empty() && move->to.rank < 5) {
+  if (detected.empty() && move->to.rank < 5) {
     // キャプチャした画像で先手が上になっている. 以後 180 度回転して処理する.
     if (move->from) {
       move->from = move->from->rotated();
@@ -264,12 +264,21 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     }
     rotate = true;
   }
-  if (g.moves.empty()) {
+  if (detected.empty()) {
     book.update(g.position, last.back().image);
   }
-  stableBoardHistory.push_back(history);
   move->decideSuffix(g.position);
-  g.moves.push_back(*move);
+  if (detected.size() + 1 == g.moves_.size()) {
+    // g.moves_.back() は AI が生成した手なので, それと合致しているか調べる.
+    if (*move != g.moves_.back()) {
+      cout << "AIの示した手と違う手が指されている" << endl;
+      return;
+    }
+  } else {
+    g.moves_.push_back(*move);
+  }
+  stableBoardHistory.push_back(history);
+  detected.push_back(*move);
   g.apply(*move);
   book.update(g.position, board);
   cout << (char const *)StringFromMove(*move, lastMoveTo).c_str() << endl;
