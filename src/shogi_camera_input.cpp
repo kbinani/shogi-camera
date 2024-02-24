@@ -841,6 +841,7 @@ void Session::run() {
             std::cout << (char const *)DebugStringFromPosition(game.position).c_str();
             std::cout << "------------------------" << std::endl;
           } else {
+            s->blackResign = true;
             std::cout << "先手番AIが投了" << std::endl;
           }
         }
@@ -860,6 +861,7 @@ void Session::run() {
             std::cout << (char const *)DebugStringFromPosition(game.position).c_str();
             std::cout << "------------------------" << std::endl;
           } else {
+            s->whiteResign = true;
             std::cout << "後手番AIが投了" << std::endl;
           }
         }

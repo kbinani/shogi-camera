@@ -634,6 +634,8 @@ struct Status {
   double stableBoardMaxSimilarity;
   // 最新の stable board
   std::optional<cv::Mat> stableBoard;
+  bool blackResign = false;
+  bool whiteResign = false;
 };
 
 // 盤面画像.

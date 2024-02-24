@@ -14,6 +14,7 @@ class DebugView: UIView {
   private let reader: Reader?
   private var moveIndex: Int?
   private let ciContext: CIContext
+  private var resigned: Bool = false
 
   class OverlayLayer: CALayer {
     var status: sci.Status? {
@@ -562,6 +563,14 @@ extension DebugView: AVCaptureVideoDataOutputSampleBufferDelegate {
         let mv = status.game.moves_[0]
         reader?.play(move: mv, last: nil)
         moveIndex = 0
+      }
+    }
+    if let moveIndex {
+      if moveIndex + 1 == status.game.moves_.size() {
+        if (status.blackResign || status.whiteResign) && !resigned {
+          reader?.playResign()
+          resigned = true
+        }
       }
     }
     boardViewLayer?.board = .init(
