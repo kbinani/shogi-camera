@@ -47,7 +47,7 @@ class Reader {
     case Left
     case Up
     case Down
-    case Lateral  // 寄る
+    case Sideway  // 寄る
     case Nearest  // 直ぐ
     case Drop  // 打ち
   }
@@ -183,7 +183,7 @@ class Reader {
     .init(action: Action.Left.rawValue, time: 100.181331),
     .init(action: Action.Up.rawValue, time: 100.959998),
     .init(action: Action.Down.rawValue, time: 101.663998),
-    .init(action: Action.Lateral.rawValue, time: 102.293331),
+    .init(action: Action.Sideway.rawValue, time: 102.293331),
     .init(action: Action.Nearest.rawValue, time: 102.901331),
     .init(action: 9999, time: 103.583998),
   ]
@@ -288,8 +288,26 @@ class Reader {
         print("アクション用のボイスが無い")
       }
     }
-    if !move.from.__convertToBool() {
-      let action: Action = .Drop
+    var actions: [Action] = []
+    if (move.suffix & sci.SuffixType.Right.rawValue) == sci.SuffixType.Right.rawValue {
+      actions.append(.Right)
+    }
+    if (move.suffix & sci.SuffixType.Left.rawValue) == sci.SuffixType.Left.rawValue {
+      actions.append(.Left)
+    }
+    if (move.suffix & sci.SuffixType.Nearest.rawValue) == sci.SuffixType.Nearest.rawValue {
+      actions.append(.Nearest)
+    }
+    if (move.suffix & sci.SuffixType.Up.rawValue) == sci.SuffixType.Up.rawValue {
+      actions.append(.Up)
+    }
+    if (move.suffix & sci.SuffixType.Down.rawValue) == sci.SuffixType.Down.rawValue {
+      actions.append(.Left)
+    }
+    if (move.suffix & sci.SuffixType.Sideway.rawValue) == sci.SuffixType.Sideway.rawValue {
+      actions.append(.Sideway)
+    }
+    for action in actions {
       var startAction: TimeInterval?
       var endAction: TimeInterval?
       for i in 0..<self.actions.count - 1 {

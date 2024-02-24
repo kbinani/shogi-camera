@@ -958,10 +958,10 @@ void Move::decideSuffix(Position const &p) {
     }
   }
   if (candidates.size() < 2) {
-    suffix = SuffixNone;
+    suffix = static_cast<SuffixUnderlyingType>(SuffixType::None);
   } else if (!from) {
     // candidates.size によらず, drop を指定するだけで手を特定できる
-    suffix = SuffixDrop;
+    suffix = static_cast<SuffixUnderlyingType>(SuffixType::Drop);
   } else {
     SquareSet up;
     SquareSet down;
@@ -1005,24 +1005,24 @@ void Move::decideSuffix(Position const &p) {
     size_t const numDown = down.count(*from);
     size_t const numSideway = sideway.count(*from);
     if (numUp == 1 && up.size() == 1) {
-      suffix = SuffixUp;
+      suffix = static_cast<SuffixUnderlyingType>(SuffixType::Up);
       return;
     } else if (numDown == 1 && down.size() == 1) {
-      suffix = SuffixDown;
+      suffix = static_cast<SuffixUnderlyingType>(SuffixType::Down);
       return;
     } else if (numSideway == 1 && sideway.size() == 1) {
-      suffix = SuffixSideway;
+      suffix = static_cast<SuffixUnderlyingType>(SuffixType::Sideway);
       return;
     } else if (from->file == to.file && from->rank + nearestDy == to.rank && search != MakePiece(color, PieceType::Rook, PieceStatus::Promoted) && search != MakePiece(color, PieceType::Bishop, PieceStatus::Promoted)) {
       // "直ぐ", と表現できるならそのようにする. ただし竜と馬には "直ぐ" は使わない.
-      suffix = SuffixNearest;
+      suffix = static_cast<SuffixUnderlyingType>(SuffixType::Nearest);
       return;
     } else if (numUp == 1) {
       if (right.size() == 0) {
-        suffix = SuffixRight;
+        suffix = static_cast<SuffixUnderlyingType>(SuffixType::Right);
         return;
       } else if (left.size() == 0) {
-        suffix = SuffixLeft;
+        suffix = static_cast<SuffixUnderlyingType>(SuffixType::Left);
         return;
       }
       for (auto const &candidate : candidates) {
@@ -1032,18 +1032,18 @@ void Move::decideSuffix(Position const &p) {
         }
       }
       if (right.size() == 0) {
-        suffix = SuffixRight | SuffixUp;
+        suffix = static_cast<SuffixUnderlyingType>(SuffixType::Right) | static_cast<SuffixUnderlyingType>(SuffixType::Up);
         return;
       } else if (left.size() == 0) {
-        suffix = SuffixLeft | SuffixUp;
+        suffix = static_cast<SuffixUnderlyingType>(SuffixType::Left) | static_cast<SuffixUnderlyingType>(SuffixType::Up);
         return;
       }
     } else if (numDown == 1) {
       if (left.size() == 0) {
-        suffix = SuffixLeft;
+        suffix = static_cast<SuffixUnderlyingType>(SuffixType::Left);
         return;
       } else if (right.size() == 0) {
-        suffix = SuffixRight;
+        suffix = static_cast<SuffixUnderlyingType>(SuffixType::Right);
         return;
       }
       for (auto const &candidate : candidates) {
@@ -1053,18 +1053,18 @@ void Move::decideSuffix(Position const &p) {
         }
       }
       if (right.size() == 0) {
-        suffix = SuffixRight | SuffixDown;
+        suffix = static_cast<SuffixUnderlyingType>(SuffixType::Right) | static_cast<SuffixUnderlyingType>(SuffixType::Down);
         return;
       } else if (left.size() == 0) {
-        suffix = SuffixLeft | SuffixDown;
+        suffix = static_cast<SuffixUnderlyingType>(SuffixType::Left) | static_cast<SuffixUnderlyingType>(SuffixType::Down);
         return;
       }
     } else if (numSideway == 1) {
       if (left.size() == 0) {
-        suffix = SuffixLeft;
+        suffix = static_cast<SuffixUnderlyingType>(SuffixType::Left);
         return;
       } else if (right.size() == 0) {
-        suffix = SuffixRight;
+        suffix = static_cast<SuffixUnderlyingType>(SuffixType::Right);
         return;
       }
       for (auto const &candidate : candidates) {
@@ -1074,10 +1074,10 @@ void Move::decideSuffix(Position const &p) {
         }
       }
       if (right.size() == 0) {
-        suffix = SuffixRight | SuffixSideway;
+        suffix = static_cast<SuffixUnderlyingType>(SuffixType::Right) | static_cast<SuffixUnderlyingType>(SuffixType::Sideway);
         return;
       } else if (left.size() == 0) {
-        suffix = SuffixLeft | SuffixSideway;
+        suffix = static_cast<SuffixUnderlyingType>(SuffixType::Left) | static_cast<SuffixUnderlyingType>(SuffixType::Sideway);
         return;
       }
     }

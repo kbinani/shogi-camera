@@ -374,22 +374,26 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
 // from に居る駒が to に効いているかどうかを調べる. from が空きマスだった場合は false を返す.
 bool CanMove(Position const &p, Square from, Square to);
 
-// 符号を読み上げるのに必要な追加情報.
-enum Suffix : uint32_t {
-  SuffixNone = 0,
-  // 位置を表す Suffix
-  SuffixRight = 0b01,   // 右
-  SuffixLeft = 0b10,    // 左
-  SuffixNearest = 0b11, // 直
-  // 動作を表す Suffix
-  SuffixUp = 0b00100,      // 上
-  SuffixDown = 0b01000,    // 引
-  SuffixSideway = 0b01100, // 寄
-  SuffixDrop = 0b10000,    // 打ち
+using SuffixUnderlyingType = uint32_t;
 
-  SuffixMaskPosition = 0b00011,
-  SuffixMaskAction = 0b11100,
+// 符号を読み上げるのに必要な追加情報.
+enum class SuffixType : SuffixUnderlyingType {
+  None = 0,
+  // 位置を表す Suffix
+  Right = 0b01,   // 右
+  Left = 0b10,    // 左
+  Nearest = 0b11, // 直
+  // 動作を表す Suffix
+  Up = 0b00100,      // 上
+  Down = 0b01000,    // 引
+  Sideway = 0b01100, // 寄
+  Drop = 0b10000,    // 打ち
+
+  MaskPosition = 0b00011,
+  MaskAction = 0b11100,
 };
+
+using Suffix = SuffixUnderlyingType;
 
 struct Move {
   Color color;
@@ -402,7 +406,7 @@ struct Move {
   int promote = 0;
   // 相手の駒を取った場合, その駒の種類
   std::optional<PieceType> newHand;
-  uint32_t suffix = SuffixNone;
+  Suffix suffix = static_cast<SuffixUnderlyingType>(SuffixType::None);
 
   // 盤面の情報から suffix を決める.
   void decideSuffix(Position const &p);

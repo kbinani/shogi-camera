@@ -277,6 +277,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g) {
     book.update(g.position, last.back().image);
   }
   stableBoardHistory.push_back(history);
+  move->decideSuffix(g.position);
   g.moves.push_back(*move);
   g.apply(*move);
   book.update(g.position, board);

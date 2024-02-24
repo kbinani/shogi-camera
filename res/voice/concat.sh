@@ -134,7 +134,7 @@ declare -A voices=(
   ["a_Left"]=116
   ["a_Up"]=117
   ["a_Down"]=118
-  ["a_Lateral"]=119
+  ["a_Sideway"]=119
   ["a_Nearest"]=120
 )
 declare -A numbers

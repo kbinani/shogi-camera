@@ -42,8 +42,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = gold;
       base.to = MakeSquare(File::File8, Rank::Rank2);
-      CheckSuffixWhen(p, base, File::File9, Rank::Rank3, Suffix::SuffixUp);
-      CheckSuffixWhen(p, base, File::File7, Rank::Rank2, Suffix::SuffixSideway);
+      CheckSuffixWhen(p, base, File::File9, Rank::Rank3, static_cast<SuffixUnderlyingType>(SuffixType::Up));
+      CheckSuffixWhen(p, base, File::File7, Rank::Rank2, static_cast<SuffixUnderlyingType>(SuffixType::Sideway));
     }
     SUBCASE("B") {
       Position p = EmptyPosition();
@@ -54,8 +54,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = gold;
       base.to = MakeSquare(File::File3, Rank::Rank2);
-      CheckSuffixWhen(p, base, File::File4, Rank::Rank3, Suffix::SuffixUp);
-      CheckSuffixWhen(p, base, File::File3, Rank::Rank1, Suffix::SuffixDown);
+      CheckSuffixWhen(p, base, File::File4, Rank::Rank3, static_cast<SuffixUnderlyingType>(SuffixType::Up));
+      CheckSuffixWhen(p, base, File::File3, Rank::Rank1, static_cast<SuffixUnderlyingType>(SuffixType::Down));
     }
     SUBCASE("C") {
       Position p = EmptyPosition();
@@ -66,8 +66,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = gold;
       base.to = MakeSquare(File::File5, Rank::Rank5);
-      CheckSuffixWhen(p, base, File::File5, Rank::Rank6, Suffix::SuffixUp);
-      CheckSuffixWhen(p, base, File::File4, Rank::Rank5, Suffix::SuffixSideway);
+      CheckSuffixWhen(p, base, File::File5, Rank::Rank6, static_cast<SuffixUnderlyingType>(SuffixType::Up));
+      CheckSuffixWhen(p, base, File::File4, Rank::Rank5, static_cast<SuffixUnderlyingType>(SuffixType::Sideway));
     }
     SUBCASE("D") {
       Position p = EmptyPosition();
@@ -78,8 +78,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = silver;
       base.to = MakeSquare(File::File8, Rank::Rank8);
-      CheckSuffixWhen(p, base, File::File8, Rank::Rank9, Suffix::SuffixUp);
-      CheckSuffixWhen(p, base, File::File7, Rank::Rank7, Suffix::SuffixDown);
+      CheckSuffixWhen(p, base, File::File8, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Up));
+      CheckSuffixWhen(p, base, File::File7, Rank::Rank7, static_cast<SuffixUnderlyingType>(SuffixType::Down));
     }
     SUBCASE("E") {
       Position p = EmptyPosition();
@@ -90,8 +90,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = silver;
       base.to = MakeSquare(File::File3, Rank::Rank8);
-      CheckSuffixWhen(p, base, File::File4, Rank::Rank9, Suffix::SuffixUp);
-      CheckSuffixWhen(p, base, File::File2, Rank::Rank7, Suffix::SuffixDown);
+      CheckSuffixWhen(p, base, File::File4, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Up));
+      CheckSuffixWhen(p, base, File::File2, Rank::Rank7, static_cast<SuffixUnderlyingType>(SuffixType::Down));
     }
   }
   SUBCASE("右・左１") {
@@ -104,8 +104,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = gold;
       base.to = MakeSquare(File::File8, Rank::Rank1);
-      CheckSuffixWhen(p, base, File::File9, Rank::Rank2, Suffix::SuffixLeft);
-      CheckSuffixWhen(p, base, File::File7, Rank::Rank2, Suffix::SuffixRight);
+      CheckSuffixWhen(p, base, File::File9, Rank::Rank2, static_cast<SuffixUnderlyingType>(SuffixType::Left));
+      CheckSuffixWhen(p, base, File::File7, Rank::Rank2, static_cast<SuffixUnderlyingType>(SuffixType::Right));
     }
     SUBCASE("B") {
       Position p = EmptyPosition();
@@ -116,8 +116,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = gold;
       base.to = MakeSquare(File::File2, Rank::Rank2);
-      CheckSuffixWhen(p, base, File::File3, Rank::Rank2, Suffix::SuffixLeft);
-      CheckSuffixWhen(p, base, File::File1, Rank::Rank2, Suffix::SuffixRight);
+      CheckSuffixWhen(p, base, File::File3, Rank::Rank2, static_cast<SuffixUnderlyingType>(SuffixType::Left));
+      CheckSuffixWhen(p, base, File::File1, Rank::Rank2, static_cast<SuffixUnderlyingType>(SuffixType::Right));
     }
     SUBCASE("C") {
       Position p = EmptyPosition();
@@ -128,8 +128,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = silver;
       base.to = MakeSquare(File::File5, Rank::Rank6);
-      CheckSuffixWhen(p, base, File::File6, Rank::Rank5, Suffix::SuffixLeft);
-      CheckSuffixWhen(p, base, File::File4, Rank::Rank5, Suffix::SuffixRight);
+      CheckSuffixWhen(p, base, File::File6, Rank::Rank5, static_cast<SuffixUnderlyingType>(SuffixType::Left));
+      CheckSuffixWhen(p, base, File::File4, Rank::Rank5, static_cast<SuffixUnderlyingType>(SuffixType::Right));
     }
     SUBCASE("D") {
       Position p = EmptyPosition();
@@ -140,8 +140,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = gold;
       base.to = MakeSquare(File::File7, Rank::Rank8);
-      CheckSuffixWhen(p, base, File::File8, Rank::Rank9, Suffix::SuffixLeft);
-      CheckSuffixWhen(p, base, File::File7, Rank::Rank9, Suffix::SuffixNearest);
+      CheckSuffixWhen(p, base, File::File8, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Left));
+      CheckSuffixWhen(p, base, File::File7, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Nearest));
     }
     SUBCASE("E") {
       Position p = EmptyPosition();
@@ -152,8 +152,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = silver;
       base.to = MakeSquare(File::File3, Rank::Rank8);
-      CheckSuffixWhen(p, base, File::File3, Rank::Rank9, Suffix::SuffixNearest);
-      CheckSuffixWhen(p, base, File::File2, Rank::Rank9, Suffix::SuffixRight);
+      CheckSuffixWhen(p, base, File::File3, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Nearest));
+      CheckSuffixWhen(p, base, File::File2, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Right));
     }
   }
   SUBCASE("右・左２") {
@@ -167,9 +167,9 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = gold;
       base.to = MakeSquare(File::File5, Rank::Rank2);
-      CheckSuffixWhen(p, base, File::File6, Rank::Rank3, Suffix::SuffixLeft);
-      CheckSuffixWhen(p, base, File::File5, Rank::Rank3, Suffix::SuffixNearest);
-      CheckSuffixWhen(p, base, File::File4, Rank::Rank3, Suffix::SuffixRight);
+      CheckSuffixWhen(p, base, File::File6, Rank::Rank3, static_cast<SuffixUnderlyingType>(SuffixType::Left));
+      CheckSuffixWhen(p, base, File::File5, Rank::Rank3, static_cast<SuffixUnderlyingType>(SuffixType::Nearest));
+      CheckSuffixWhen(p, base, File::File4, Rank::Rank3, static_cast<SuffixUnderlyingType>(SuffixType::Right));
     }
     SUBCASE("B") {
       Position p = EmptyPosition();
@@ -183,11 +183,11 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = pp;
       base.to = MakeSquare(File::File8, Rank::Rank8);
-      CheckSuffixWhen(p, base, File::File7, Rank::Rank9, Suffix::SuffixRight);
-      CheckSuffixWhen(p, base, File::File8, Rank::Rank9, Suffix::SuffixNearest);
-      CheckSuffixWhen(p, base, File::File9, Rank::Rank9, Suffix::SuffixLeft | Suffix::SuffixUp);
-      CheckSuffixWhen(p, base, File::File9, Rank::Rank8, Suffix::SuffixSideway);
-      CheckSuffixWhen(p, base, File::File8, Rank::Rank7, Suffix::SuffixDown);
+      CheckSuffixWhen(p, base, File::File7, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Right));
+      CheckSuffixWhen(p, base, File::File8, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Nearest));
+      CheckSuffixWhen(p, base, File::File9, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Left) | static_cast<SuffixUnderlyingType>(SuffixType::Up));
+      CheckSuffixWhen(p, base, File::File9, Rank::Rank8, static_cast<SuffixUnderlyingType>(SuffixType::Sideway));
+      CheckSuffixWhen(p, base, File::File8, Rank::Rank7, static_cast<SuffixUnderlyingType>(SuffixType::Down));
     }
     SUBCASE("C") {
       Position p = EmptyPosition();
@@ -200,10 +200,10 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = silver;
       base.to = MakeSquare(File::File2, Rank::Rank8);
-      CheckSuffixWhen(p, base, File::File2, Rank::Rank9, Suffix::SuffixNearest);
-      CheckSuffixWhen(p, base, File::File1, Rank::Rank7, Suffix::SuffixRight);
-      CheckSuffixWhen(p, base, File::File3, Rank::Rank9, Suffix::SuffixLeft | Suffix::SuffixUp);
-      CheckSuffixWhen(p, base, File::File3, Rank::Rank7, Suffix::SuffixLeft | Suffix::SuffixDown);
+      CheckSuffixWhen(p, base, File::File2, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Nearest));
+      CheckSuffixWhen(p, base, File::File1, Rank::Rank7, static_cast<SuffixUnderlyingType>(SuffixType::Right));
+      CheckSuffixWhen(p, base, File::File3, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Left) | static_cast<SuffixUnderlyingType>(SuffixType::Up));
+      CheckSuffixWhen(p, base, File::File3, Rank::Rank7, static_cast<SuffixUnderlyingType>(SuffixType::Left) | static_cast<SuffixUnderlyingType>(SuffixType::Down));
     }
   }
   SUBCASE("竜") {
@@ -216,8 +216,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = prook;
       base.to = MakeSquare(File::File8, Rank::Rank2);
-      CheckSuffixWhen(p, base, File::File9, Rank::Rank1, Suffix::SuffixDown);
-      CheckSuffixWhen(p, base, File::File8, Rank::Rank4, Suffix::SuffixUp);
+      CheckSuffixWhen(p, base, File::File9, Rank::Rank1, static_cast<SuffixUnderlyingType>(SuffixType::Down));
+      CheckSuffixWhen(p, base, File::File8, Rank::Rank4, static_cast<SuffixUnderlyingType>(SuffixType::Up));
     }
     SUBCASE("B") {
       Position p = EmptyPosition();
@@ -228,8 +228,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = prook;
       base.to = MakeSquare(File::File4, Rank::Rank3);
-      CheckSuffixWhen(p, base, File::File2, Rank::Rank3, Suffix::SuffixSideway);
-      CheckSuffixWhen(p, base, File::File5, Rank::Rank2, Suffix::SuffixDown);
+      CheckSuffixWhen(p, base, File::File2, Rank::Rank3, static_cast<SuffixUnderlyingType>(SuffixType::Sideway));
+      CheckSuffixWhen(p, base, File::File5, Rank::Rank2, static_cast<SuffixUnderlyingType>(SuffixType::Down));
     }
     SUBCASE("C") {
       Position p = EmptyPosition();
@@ -240,8 +240,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = prook;
       base.to = MakeSquare(File::File3, Rank::Rank5);
-      CheckSuffixWhen(p, base, File::File5, Rank::Rank5, Suffix::SuffixLeft);
-      CheckSuffixWhen(p, base, File::File1, Rank::Rank5, Suffix::SuffixRight);
+      CheckSuffixWhen(p, base, File::File5, Rank::Rank5, static_cast<SuffixUnderlyingType>(SuffixType::Left));
+      CheckSuffixWhen(p, base, File::File1, Rank::Rank5, static_cast<SuffixUnderlyingType>(SuffixType::Right));
     }
     SUBCASE("D") {
       Position p = EmptyPosition();
@@ -252,8 +252,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = prook;
       base.to = MakeSquare(File::File8, Rank::Rank8);
-      CheckSuffixWhen(p, base, File::File9, Rank::Rank9, Suffix::SuffixLeft);
-      CheckSuffixWhen(p, base, File::File8, Rank::Rank9, Suffix::SuffixRight);
+      CheckSuffixWhen(p, base, File::File9, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Left));
+      CheckSuffixWhen(p, base, File::File8, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Right));
     }
     SUBCASE("E") {
       Position p = EmptyPosition();
@@ -264,8 +264,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = prook;
       base.to = MakeSquare(File::File1, Rank::Rank7);
-      CheckSuffixWhen(p, base, File::File2, Rank::Rank8, Suffix::SuffixLeft);
-      CheckSuffixWhen(p, base, File::File1, Rank::Rank9, Suffix::SuffixRight);
+      CheckSuffixWhen(p, base, File::File2, Rank::Rank8, static_cast<SuffixUnderlyingType>(SuffixType::Left));
+      CheckSuffixWhen(p, base, File::File1, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Right));
     }
   }
   SUBCASE("馬") {
@@ -278,8 +278,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = pbishop;
       base.to = MakeSquare(File::File8, Rank::Rank2);
-      CheckSuffixWhen(p, base, File::File9, Rank::Rank1, Suffix::SuffixLeft);
-      CheckSuffixWhen(p, base, File::File8, Rank::Rank1, Suffix::SuffixRight);
+      CheckSuffixWhen(p, base, File::File9, Rank::Rank1, static_cast<SuffixUnderlyingType>(SuffixType::Left));
+      CheckSuffixWhen(p, base, File::File8, Rank::Rank1, static_cast<SuffixUnderlyingType>(SuffixType::Right));
     }
     SUBCASE("B") {
       Position p = EmptyPosition();
@@ -290,8 +290,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = pbishop;
       base.to = MakeSquare(File::File8, Rank::Rank5);
-      CheckSuffixWhen(p, base, File::File9, Rank::Rank5, Suffix::SuffixSideway);
-      CheckSuffixWhen(p, base, File::File6, Rank::Rank3, Suffix::SuffixDown);
+      CheckSuffixWhen(p, base, File::File9, Rank::Rank5, static_cast<SuffixUnderlyingType>(SuffixType::Sideway));
+      CheckSuffixWhen(p, base, File::File6, Rank::Rank3, static_cast<SuffixUnderlyingType>(SuffixType::Down));
     }
     SUBCASE("C") {
       Position p = EmptyPosition();
@@ -302,8 +302,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = pbishop;
       base.to = MakeSquare(File::File1, Rank::Rank2);
-      CheckSuffixWhen(p, base, File::File1, Rank::Rank1, Suffix::SuffixDown);
-      CheckSuffixWhen(p, base, File::File3, Rank::Rank4, Suffix::SuffixUp);
+      CheckSuffixWhen(p, base, File::File1, Rank::Rank1, static_cast<SuffixUnderlyingType>(SuffixType::Down));
+      CheckSuffixWhen(p, base, File::File3, Rank::Rank4, static_cast<SuffixUnderlyingType>(SuffixType::Up));
     }
     SUBCASE("D") {
       Position p = EmptyPosition();
@@ -314,8 +314,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = pbishop;
       base.to = MakeSquare(File::File7, Rank::Rank7);
-      CheckSuffixWhen(p, base, File::File9, Rank::Rank9, Suffix::SuffixLeft);
-      CheckSuffixWhen(p, base, File::File5, Rank::Rank9, Suffix::SuffixRight);
+      CheckSuffixWhen(p, base, File::File9, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Left));
+      CheckSuffixWhen(p, base, File::File5, Rank::Rank9, static_cast<SuffixUnderlyingType>(SuffixType::Right));
     }
     SUBCASE("E") {
       Position p = EmptyPosition();
@@ -326,8 +326,8 @@ TEST_CASE("Move::decideSuffix") {
       base.color = Color::Black;
       base.piece = pbishop;
       base.to = MakeSquare(File::File2, Rank::Rank9);
-      CheckSuffixWhen(p, base, File::File4, Rank::Rank7, Suffix::SuffixLeft);
-      CheckSuffixWhen(p, base, File::File1, Rank::Rank8, Suffix::SuffixRight);
+      CheckSuffixWhen(p, base, File::File4, Rank::Rank7, static_cast<SuffixUnderlyingType>(SuffixType::Left));
+      CheckSuffixWhen(p, base, File::File1, Rank::Rank8, static_cast<SuffixUnderlyingType>(SuffixType::Right));
     }
   }
 }
