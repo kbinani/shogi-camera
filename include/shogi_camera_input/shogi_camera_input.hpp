@@ -149,12 +149,16 @@ inline std::u8string LongStringFromPieceTypeAndStatus(PieceUnderlyingType p) {
   return u8"？";
 }
 
+struct Move;
+
 // 盤面
 struct Position {
   Piece pieces[9][9]; // [筋][段]
 
   // 手番 color の玉に王手がかかっているかどうかを判定
   bool isInCheck(Color color) const;
+
+  void apply(Move const &, std::deque<PieceType> &handBlack, std::deque<PieceType> &handWhite);
 };
 
 std::u8string DebugStringFromPosition(Position const &p);
@@ -377,6 +381,15 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
 // from に居る駒が to に効いているかどうかを調べる. from が空きマスだった場合は false を返す.
 bool CanMove(Position const &p, Square from, Square to);
 
+// 手番 color の駒が from から to に移動したとき, 成れる条件かどうか.
+inline bool CanPromote(Square from, Square to, Color color) {
+  if (color == Color::Black) {
+    return from.rank <= Rank::Rank3 || to.rank <= Rank::Rank3;
+  } else {
+    return from.rank >= Rank::Rank7 || to.rank >= Rank::Rank7;
+  }
+}
+
 using SuffixUnderlyingType = uint32_t;
 
 // 符号を読み上げるのに必要な追加情報.
@@ -545,6 +558,17 @@ struct Game {
       return handWhite;
     }
   }
+
+  std::deque<PieceType> const &hand(Color color) const {
+    if (color == Color::Black) {
+      return handBlack;
+    } else {
+      return handWhite;
+    }
+  }
+
+  static void Generate(Position const &p, std::deque<PieceType> const &handBlack, std::deque<PieceType> const &handWhite, std::deque<Move> &moves, bool enablePawnCheckByDrop);
+  void generate(std::deque<Move> &moves) const;
 };
 
 struct Status {

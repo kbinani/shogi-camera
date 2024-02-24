@@ -24,15 +24,6 @@ bool IsIdentical(std::set<T, L> const &a, std::set<T, L> const &b) {
   return true;
 }
 
-// 手番 color の駒が from から to に移動したとき, 成れる条件かどうか.
-bool CanPromote(Square from, Square to, Color color) {
-  if (color == Color::Black) {
-    return from.rank <= Rank::Rank3 || to.rank <= Rank::Rank3;
-  } else {
-    return from.rank >= Rank::Rank7 || to.rank >= Rank::Rank7;
-  }
-}
-
 void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter, PieceBook &book) {
   using namespace std;
   if (!mv.from || IsPromotedPiece(mv.piece)) {
