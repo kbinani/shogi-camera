@@ -941,10 +941,10 @@ bool CanMove(Position const &position, Square from, Square to) {
   return false;
 }
 
-void Move::decideAction(Position const& p) {
+void Move::decideSuffix(Position const &p) {
   using namespace std;
-  // this->to に効いている自軍の this->piece の一覧. nullopt は持ち駒
-  vector<optional<Square>> candidates;
+  // this->to に効いている自軍の this->piece の一覧.
+  vector<Square> candidates;
   Piece search = promote == 1 ? RemoveStatusFromPiece(piece) : piece;
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
@@ -957,30 +957,183 @@ void Move::decideAction(Position const& p) {
       }
     }
   }
-  if (!from) {
-    candidates.push_back(nullopt);
-  }
-  if (candidates.empty()) {
-    action = ActionNone;
+  if (candidates.size() < 2) {
+    suffix = SuffixNone;
+  } else if (!from) {
+    // candidates.size によらず, drop を指定するだけで手を特定できる
+    suffix = SuffixDrop;
   } else {
-    if (from) {
-      map<Square, Action> actions;
-      for (auto const& candidate : candidates) {
-        if (!candidate) {
-          continue;
-        }
-        Action a;
-        if (candidate->file == to.file) {
-          a = ActionNearest;
-        } else if (candidate->file < to.file) {
-          a = color == Color::Black ? ActionLeft : ActionRight;
+    SquareSet up;
+    SquareSet down;
+    SquareSet sideway;
+    SquareSet nearest;
+    // piece 以外の candiate が piece に対して左右どちらに居るか.
+    SquareSet left;
+    SquareSet right;
+    for (auto const &candidate : candidates) {
+      if (candidate.rank > to.rank) {
+        if (color == Color::Black) {
+          up.insert(candidate);
         } else {
-          a = color == Color::Black ? ActionRight : ActionLeft;
+          down.insert(candidate);
+        }
+      } else if (candidate.rank < to.rank) {
+        if (color == Color::Black) {
+          down.insert(candidate);
+        } else {
+          up.insert(candidate);
         }
       }
-    } else {
-      action = ActionDrop;
+      if (candidate.file != to.file && candidate.rank == to.rank) {
+        sideway.insert(candidate);
+      }
+      if (candidate.file != from->file || candidate.rank != from->rank) {
+        int dx = candidate.file - from->file;
+        if (color == Color::White) {
+          dx = -dx;
+        }
+        if (dx > 0) {
+          right.insert(candidate);
+        } else {
+          left.insert(candidate);
+        }
+      }
     }
+    // "直" 判定の時の dy
+    int nearestDy = color == Color::Black ? -1 : 1;
+
+    size_t const numUp = up.count(*from);
+    size_t const numDown = down.count(*from);
+    size_t const numSideway = sideway.count(*from);
+    if (numUp == 1 && up.size() == 1) {
+      suffix = SuffixUp;
+      return;
+    } else if (numDown == 1 && down.size() == 1) {
+      suffix = SuffixDown;
+      return;
+    } else if (numSideway == 1 && sideway.size() == 1) {
+      suffix = SuffixSideway;
+      return;
+    } else if (from->file == to.file && from->rank + nearestDy == to.rank && search != MakePiece(color, PieceType::Rook, PieceStatus::Promoted) && search != MakePiece(color, PieceType::Bishop, PieceStatus::Promoted)) {
+      // "直ぐ", と表現できるならそのようにする. ただし竜と馬には "直ぐ" は使わない.
+      suffix = SuffixNearest;
+      return;
+      //    } else if (numUp == 1 && up.size() == 2) {
+      //      up.erase(*from);
+      //      Square other = *up.begin();
+      //      if (other.file < from->file) {
+      //        if (color == Color::Black) {
+      //          suffix = SuffixRight;
+      //        } else {
+      //          suffix = SuffixLeft;
+      //        }
+      //      } else if (from->file < other.file) {
+      //        if (color == Color::Black) {
+      //          suffix = SuffixLeft;
+      //        } else {
+      //          suffix = SuffixRight;
+      //        }
+      //      }
+      //      return;
+      //    } else if (numDown == 1 && down.size() == 2) {
+      //      down.erase(*from);
+      //      Square other = *down.begin();
+      //      if (other.file < from->file) {
+      //        if (color == Color::Black) {
+      //          suffix = SuffixRight;
+      //        } else {
+      //          suffix = SuffixLeft;
+      //        }
+      //      } else if (from->file < other.file) {
+      //        if (color == Color::Black) {
+      //          suffix = SuffixLeft;
+      //        } else {
+      //          suffix = SuffixRight;
+      //        }
+      //      }
+      //      return;
+      //    } else if (numSideway == 1 && sideway.size() == 2) {
+      //      sideway.erase(*from);
+      //      Square other = *sideway.begin();
+      //      if (other.file < from->file) {
+      //        if (color == Color::Black) {
+      //          suffix = SuffixRight;
+      //        } else {
+      //          suffix = SuffixLeft;
+      //        }
+      //      } else if (from->file < other.file) {
+      //        if (color == Color::Black) {
+      //          suffix = SuffixLeft;
+      //        } else {
+      //          suffix = SuffixRight;
+      //        }
+      //      }
+      //      return;
+    } else if (numUp == 1) {
+      if (right.size() == 0) {
+        suffix = SuffixRight;
+        return;
+      } else if (left.size() == 0) {
+        suffix = SuffixLeft;
+        return;
+      }
+      for (auto const &candidate : candidates) {
+        if (up.count(candidate) == 0) {
+          right.erase(candidate);
+          left.erase(candidate);
+        }
+      }
+      if (right.size() == 0) {
+        suffix = SuffixRight | SuffixUp;
+        return;
+      } else if (left.size() == 0) {
+        suffix = SuffixLeft | SuffixUp;
+        return;
+      }
+    } else if (numDown == 1) {
+      if (left.size() == 0) {
+        suffix = SuffixLeft;
+        return;
+      } else if (right.size() == 0) {
+        suffix = SuffixRight;
+        return;
+      }
+      for (auto const &candidate : candidates) {
+        if (down.count(candidate) == 0) {
+          right.erase(candidate);
+          left.erase(candidate);
+        }
+      }
+      if (right.size() == 0) {
+        suffix = SuffixRight | SuffixDown;
+        return;
+      } else if (left.size() == 0) {
+        suffix = SuffixLeft | SuffixDown;
+        return;
+      }
+    } else if (numSideway == 1) {
+      if (left.size() == 0) {
+        suffix = SuffixLeft;
+        return;
+      } else if (right.size() == 0) {
+        suffix = SuffixRight;
+        return;
+      }
+      for (auto const &candidate : candidates) {
+        if (sideway.count(candidate) == 0) {
+          right.erase(candidate);
+          left.erase(candidate);
+        }
+      }
+      if (right.size() == 0) {
+        suffix = SuffixRight | SuffixSideway;
+        return;
+      } else if (left.size() == 0) {
+        suffix = SuffixLeft | SuffixSideway;
+        return;
+      }
+    }
+    cout << 1 << endl;
   }
 }
 } // namespace sci

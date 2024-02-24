@@ -294,6 +294,18 @@ inline bool operator==(Square const &a, Square const &b) {
   return a.file == b.file && a.rank == b.rank;
 }
 
+struct LessSquare {
+  constexpr bool operator()(Square const &a, Square const &b) const {
+    if (a.file == b.file) {
+      return a.rank < b.rank;
+    } else {
+      return a.file < b.file;
+    }
+  }
+};
+
+using SquareSet = std::set<Square, LessSquare>;
+
 inline std::u8string StringFromSquare(Square s) {
   return StringFromFile(s.file) + StringFromRank(s.rank);
 }
@@ -363,17 +375,20 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
 bool CanMove(Position const &p, Square from, Square to);
 
 // 符号を読み上げるのに必要な追加情報.
-enum Action: uint32_t {
-  ActionNone = 0,
-  // 位置を表す Action, mask = 0b00011
-  ActionRight = 0b01, // 右
-  ActionLeft = 0b10, // 左
-  ActionNearest = 0b11,  // 直
-  // 動作を表す Action, mask = 011100
-  ActionUp = 0b00100, // 上
-  ActionDown = 0b01000, // 引
-  ActionSideway = 0b01100,  // 寄
-  ActionDrop = 0b10000,  // 打ち
+enum Suffix : uint32_t {
+  SuffixNone = 0,
+  // 位置を表す Suffix
+  SuffixRight = 0b01,   // 右
+  SuffixLeft = 0b10,    // 左
+  SuffixNearest = 0b11, // 直
+  // 動作を表す Suffix
+  SuffixUp = 0b00100,      // 上
+  SuffixDown = 0b01000,    // 引
+  SuffixSideway = 0b01100, // 寄
+  SuffixDrop = 0b10000,    // 打ち
+
+  SuffixMaskPosition = 0b00011,
+  SuffixMaskAction = 0b11100,
 };
 
 struct Move {
@@ -387,10 +402,10 @@ struct Move {
   int promote = 0;
   // 相手の駒を取った場合, その駒の種類
   std::optional<PieceType> newHand;
-  Action action = ActionNone;
-  
-  // 盤面の情報から action を決める.
-  void decideAction(Position const& p);
+  uint32_t suffix = SuffixNone;
+
+  // 盤面の情報から suffix を決める.
+  void decideSuffix(Position const &p);
 };
 
 inline bool operator==(Move const &a, Move const &b) {
