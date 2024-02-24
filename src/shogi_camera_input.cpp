@@ -940,4 +940,47 @@ bool CanMove(Position const &position, Square from, Square to) {
   }
   return false;
 }
+
+void Move::decideAction(Position const& p) {
+  using namespace std;
+  // this->to に効いている自軍の this->piece の一覧. nullopt は持ち駒
+  vector<optional<Square>> candidates;
+  Piece search = promote == 1 ? RemoveStatusFromPiece(piece) : piece;
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      if (p.pieces[x][y] != search) {
+        continue;
+      }
+      Square sq = MakeSquare(x, y);
+      if (CanMove(p, sq, to)) {
+        candidates.push_back(sq);
+      }
+    }
+  }
+  if (!from) {
+    candidates.push_back(nullopt);
+  }
+  if (candidates.empty()) {
+    action = ActionNone;
+  } else {
+    if (from) {
+      map<Square, Action> actions;
+      for (auto const& candidate : candidates) {
+        if (!candidate) {
+          continue;
+        }
+        Action a;
+        if (candidate->file == to.file) {
+          a = ActionNearest;
+        } else if (candidate->file < to.file) {
+          a = color == Color::Black ? ActionLeft : ActionRight;
+        } else {
+          a = color == Color::Black ? ActionRight : ActionLeft;
+        }
+      }
+    } else {
+      action = ActionDrop;
+    }
+  }
+}
 } // namespace sci

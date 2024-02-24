@@ -59,6 +59,10 @@ inline PieceUnderlyingType RemoveColorFromPiece(Piece p) {
   return p & 0b11111;
 }
 
+inline Piece RemoveStatusFromPiece(Piece p) {
+  return p & 0b101111;
+}
+
 inline PieceType PieceTypeFromPiece(Piece p) {
   return static_cast<PieceType>(p & 0b1111);
 }
@@ -358,6 +362,20 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
 // from に居る駒が to に効いているかどうかを調べる. from が空きマスだった場合は false を返す.
 bool CanMove(Position const &p, Square from, Square to);
 
+// 符号を読み上げるのに必要な追加情報.
+enum Action: uint32_t {
+  ActionNone = 0,
+  // 位置を表す Action, mask = 0b00011
+  ActionRight = 0b01, // 右
+  ActionLeft = 0b10, // 左
+  ActionNearest = 0b11,  // 直
+  // 動作を表す Action, mask = 011100
+  ActionUp = 0b00100, // 上
+  ActionDown = 0b01000, // 引
+  ActionSideway = 0b01100,  // 寄
+  ActionDrop = 0b10000,  // 打ち
+};
+
 struct Move {
   Color color;
   // 移動した駒.
@@ -369,6 +387,10 @@ struct Move {
   int promote = 0;
   // 相手の駒を取った場合, その駒の種類
   std::optional<PieceType> newHand;
+  Action action = ActionNone;
+  
+  // 盤面の情報から action を決める.
+  void decideAction(Position const& p);
 };
 
 inline bool operator==(Move const &a, Move const &b) {

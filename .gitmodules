@@ -1,3 +1,6 @@
 [submodule "demo/colormap-shaders"]
 	path = demo/colormap-shaders
 	url = https://github.com/kbinani/colormap-shaders.git
+[submodule "test/doctest"]
+	path = test/doctest
+	url = https://github.com/doctest/doctest.git

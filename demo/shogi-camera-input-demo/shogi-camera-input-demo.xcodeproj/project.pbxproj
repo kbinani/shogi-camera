@@ -19,6 +19,15 @@
 		944ECF1D2B871C54001E8CF5 /* statistics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 946220102B85F32B0094B015 /* statistics.cpp */; };
 		944ECF1E2B871C56001E8CF5 /* img.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 946220122B85F47E0094B015 /* img.cpp */; };
 		944ECF1F2B871C5A001E8CF5 /* piece_book.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9462200E2B85F2C30094B015 /* piece_book.cpp */; };
+		944ECF272B895A2C001E8CF5 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF262B895A2C001E8CF5 /* main.cpp */; };
+		944ECF2E2B895B65001E8CF5 /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 94BB050B2B82010D003FB8B8 /* opencv2.framework */; };
+		944ECF2F2B895BB6001E8CF5 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 94BB05112B820529003FB8B8 /* Accelerate.framework */; };
+		944ECF302B895BBB001E8CF5 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 94BB05132B829A3A003FB8B8 /* AppKit.framework */; };
+		944ECF312B895BC0001E8CF5 /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 94BB050F2B8204CA003FB8B8 /* OpenCL.framework */; };
+		944ECF322B895BE3001E8CF5 /* shogi_camera_input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 940A14EA2B7B2152006E2D01 /* shogi_camera_input.cpp */; };
+		944ECF332B895C14001E8CF5 /* statistics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 946220102B85F32B0094B015 /* statistics.cpp */; };
+		944ECF342B895C17001E8CF5 /* img.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 946220122B85F47E0094B015 /* img.cpp */; };
+		944ECF352B895C1F001E8CF5 /* piece_book.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9462200E2B85F2C30094B015 /* piece_book.cpp */; };
 		946220072B82FA780094B015 /* voice.wav in Resources */ = {isa = PBXBuildFile; fileRef = 946220062B82FA780094B015 /* voice.wav */; };
 		946220092B832FED0094B015 /* Reader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 946220082B832FED0094B015 /* Reader.swift */; };
 		9462200B2B8331AF0094B015 /* ShogiCameraInput+Utility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9462200A2B8331AF0094B015 /* ShogiCameraInput+Utility.swift */; };
@@ -32,18 +41,6 @@
 		94BB05122B820529003FB8B8 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 94BB05112B820529003FB8B8 /* Accelerate.framework */; };
 		94BB05142B829A3A003FB8B8 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 94BB05132B829A3A003FB8B8 /* AppKit.framework */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		94BB04FF2B81FC81003FB8B8 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		940A14AE2B7A9DE9006E2D01 /* shogi-camera-input-demo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "shogi-camera-input-demo.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -61,6 +58,8 @@
 		940A14EC2B7D6E21006E2D01 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; name = module.modulemap; path = ../../../include/shogi_camera_input/module.modulemap; sourceTree = "<group>"; };
 		940A14EE2B7D7C6E006E2D01 /* CoreAudioTypes.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioTypes.framework; path = System/Library/Frameworks/CoreAudioTypes.framework; sourceTree = SDKROOT; };
 		940A14F22B7DEFF1006E2D01 /* DebugPreview.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DebugPreview.swift; sourceTree = "<group>"; };
+		944ECF242B895A2C001E8CF5 /* test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = test; sourceTree = BUILT_PRODUCTS_DIR; };
+		944ECF262B895A2C001E8CF5 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		946220062B82FA780094B015 /* voice.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = voice.wav; path = ../../../res/voice/voice.wav; sourceTree = "<group>"; };
 		946220082B832FED0094B015 /* Reader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Reader.swift; sourceTree = "<group>"; };
 		9462200A2B8331AF0094B015 /* ShogiCameraInput+Utility.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ShogiCameraInput+Utility.swift"; sourceTree = "<group>"; };
@@ -86,6 +85,17 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		944ECF212B895A2C001E8CF5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				944ECF302B895BBB001E8CF5 /* AppKit.framework in Frameworks */,
+				944ECF312B895BC0001E8CF5 /* OpenCL.framework in Frameworks */,
+				944ECF2E2B895B65001E8CF5 /* opencv2.framework in Frameworks */,
+				944ECF2F2B895BB6001E8CF5 /* Accelerate.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		94BB04FE2B81FC81003FB8B8 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -105,6 +115,7 @@
 			children = (
 				940A14B02B7A9DE9006E2D01 /* shogi-camera-input-demo */,
 				94BB05022B81FC81003FB8B8 /* opencv-study */,
+				944ECF252B895A2C001E8CF5 /* test */,
 				940A14AF2B7A9DE9006E2D01 /* Products */,
 				940A14ED2B7D7C6E006E2D01 /* Frameworks */,
 			);
@@ -115,6 +126,7 @@
 			children = (
 				940A14AE2B7A9DE9006E2D01 /* shogi-camera-input-demo.app */,
 				94BB05012B81FC81003FB8B8 /* opencv-study */,
+				944ECF242B895A2C001E8CF5 /* test */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -159,6 +171,14 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		944ECF252B895A2C001E8CF5 /* test */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF262B895A2C001E8CF5 /* main.cpp */,
+			);
+			path = test;
+			sourceTree = "<group>";
+		};
 		94BB05022B81FC81003FB8B8 /* opencv-study */ = {
 			isa = PBXGroup;
 			children = (
@@ -187,13 +207,28 @@
 			productReference = 940A14AE2B7A9DE9006E2D01 /* shogi-camera-input-demo.app */;
 			productType = "com.apple.product-type.application";
 		};
+		944ECF232B895A2C001E8CF5 /* test */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 944ECF282B895A2C001E8CF5 /* Build configuration list for PBXNativeTarget "test" */;
+			buildPhases = (
+				944ECF202B895A2C001E8CF5 /* Sources */,
+				944ECF212B895A2C001E8CF5 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = test;
+			productName = test;
+			productReference = 944ECF242B895A2C001E8CF5 /* test */;
+			productType = "com.apple.product-type.tool";
+		};
 		94BB05002B81FC81003FB8B8 /* opencv-study */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 94BB05072B81FC81003FB8B8 /* Build configuration list for PBXNativeTarget "opencv-study" */;
 			buildPhases = (
 				94BB04FD2B81FC81003FB8B8 /* Sources */,
 				94BB04FE2B81FC81003FB8B8 /* Frameworks */,
-				94BB04FF2B81FC81003FB8B8 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -218,6 +253,9 @@
 						CreatedOnToolsVersion = 15.2;
 						LastSwiftMigration = 1520;
 					};
+					944ECF232B895A2C001E8CF5 = {
+						CreatedOnToolsVersion = 15.2;
+					};
 					94BB05002B81FC81003FB8B8 = {
 						CreatedOnToolsVersion = 15.2;
 					};
@@ -238,6 +276,7 @@
 			targets = (
 				940A14AD2B7A9DE9006E2D01 /* shogi-camera-input-demo */,
 				94BB05002B81FC81003FB8B8 /* opencv-study */,
+				944ECF232B895A2C001E8CF5 /* test */,
 			);
 		};
 /* End PBXProject section */
@@ -272,6 +311,18 @@
 				940A14F12B7DC84D006E2D01 /* shogi_camera_input.mm in Sources */,
 				9462200F2B85F2C30094B015 /* piece_book.cpp in Sources */,
 				940A14B42B7A9DE9006E2D01 /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		944ECF202B895A2C001E8CF5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				944ECF322B895BE3001E8CF5 /* shogi_camera_input.cpp in Sources */,
+				944ECF342B895C17001E8CF5 /* img.cpp in Sources */,
+				944ECF272B895A2C001E8CF5 /* main.cpp in Sources */,
+				944ECF332B895C14001E8CF5 /* statistics.cpp in Sources */,
+				944ECF352B895C1F001E8CF5 /* piece_book.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -492,6 +543,42 @@
 			};
 			name = Release;
 		};
+		944ECF292B895A2C001E8CF5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = XM695N4A7T;
+				ENABLE_HARDENED_RUNTIME = YES;
+				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../../build/opencv/build";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../../test/doctest",
+					"$(SRCROOT)/../../src",
+					"$(SRCROOT)/../../include",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.1;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		944ECF2A2B895A2C001E8CF5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = XM695N4A7T;
+				ENABLE_HARDENED_RUNTIME = YES;
+				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../../build/opencv/build";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../../test/doctest",
+					"$(SRCROOT)/../../src",
+					"$(SRCROOT)/../../include",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.1;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
 		94BB05052B81FC81003FB8B8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -545,6 +632,15 @@
 			buildConfigurations = (
 				940A14C32B7A9DEB006E2D01 /* Debug */,
 				940A14C42B7A9DEB006E2D01 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		944ECF282B895A2C001E8CF5 /* Build configuration list for PBXNativeTarget "test" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				944ECF292B895A2C001E8CF5 /* Debug */,
+				944ECF2A2B895A2C001E8CF5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
