@@ -29,7 +29,10 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   if (!mv.from || IsPromotedPiece(mv.piece)) {
     return;
   }
-  if (!CanPromote(*mv.from, mv.to, mv.color)) {
+  if (!CanPromote(mv.piece)) {
+    return;
+  }
+  if (!IsPromotableMove(*mv.from, mv.to, mv.color)) {
     return;
   }
   auto bp = Img::PieceROI(boardBefore, mv.from->file, mv.from->rank);

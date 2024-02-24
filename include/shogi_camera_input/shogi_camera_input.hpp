@@ -76,6 +76,14 @@ inline Piece Promote(Piece p) {
   return p | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
 }
 
+inline bool CanPromote(Piece p) {
+  if (IsPromotedPiece(p)) {
+    return false;
+  }
+  PieceType type = PieceTypeFromPiece(p);
+  return type != PieceType::King && type != PieceType::Gold;
+}
+
 inline std::u8string ShortStringFromPieceTypeAndStatus(PieceUnderlyingType p) {
   auto i = RemoveColorFromPiece(p);
   switch (i) {
@@ -383,7 +391,7 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
 bool CanMove(Position const &p, Square from, Square to);
 
 // 手番 color の駒が from から to に移動したとき, 成れる条件かどうか.
-inline bool CanPromote(Square from, Square to, Color color) {
+inline bool IsPromotableMove(Square from, Square to, Color color) {
   if (color == Color::Black) {
     return from.rank <= Rank::Rank3 || to.rank <= Rank::Rank3;
   } else {

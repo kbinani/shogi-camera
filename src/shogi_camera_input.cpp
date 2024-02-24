@@ -1290,7 +1290,7 @@ void Game::Generate(Position const &position, Color color, std::deque<PieceType>
           if (p1 != 0) {
             m.newHand = PieceTypeFromPiece(p1);
           }
-          if (!IsPromotedPiece(p) && CanPromote(from, to, color)) {
+          if (CanPromote(p) && IsPromotableMove(from, to, color)) {
             // 成
             Move mp = m;
             mp.promote = 1;
