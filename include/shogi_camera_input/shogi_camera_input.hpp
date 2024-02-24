@@ -152,6 +152,9 @@ inline std::u8string LongStringFromPieceTypeAndStatus(PieceUnderlyingType p) {
 // 盤面
 struct Position {
   Piece pieces[9][9]; // [筋][段]
+
+  // 手番 color の玉に王手がかかっているかどうかを判定
+  bool isInCheck(Color color) const;
 };
 
 std::u8string DebugStringFromPosition(Position const &p);

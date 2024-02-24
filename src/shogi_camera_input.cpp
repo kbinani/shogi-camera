@@ -1083,4 +1083,34 @@ void Move::decideSuffix(Position const &p) {
     }
   }
 }
+
+bool Position::isInCheck(Color color) const {
+  Piece search = MakePiece(color, PieceType::King);
+  std::optional<Square> king;
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      if (search == pieces[x][y]) {
+        king = MakeSquare(x, y);
+        break;
+      }
+    }
+  }
+  if (!king) {
+    // 玉が居なければ王手は掛からない(?).
+    return false;
+  }
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      Piece p = pieces[x][y];
+      if (p == 0 || ColorFromPiece(p) == color) {
+        continue;
+      }
+      if (CanMove(*this, MakeSquare(x, y), *king)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 } // namespace sci
