@@ -966,7 +966,6 @@ void Move::decideSuffix(Position const &p) {
     SquareSet up;
     SquareSet down;
     SquareSet sideway;
-    SquareSet nearest;
     // piece 以外の candiate が piece に対して左右どちらに居るか.
     SquareSet left;
     SquareSet right;
@@ -1018,57 +1017,6 @@ void Move::decideSuffix(Position const &p) {
       // "直ぐ", と表現できるならそのようにする. ただし竜と馬には "直ぐ" は使わない.
       suffix = SuffixNearest;
       return;
-      //    } else if (numUp == 1 && up.size() == 2) {
-      //      up.erase(*from);
-      //      Square other = *up.begin();
-      //      if (other.file < from->file) {
-      //        if (color == Color::Black) {
-      //          suffix = SuffixRight;
-      //        } else {
-      //          suffix = SuffixLeft;
-      //        }
-      //      } else if (from->file < other.file) {
-      //        if (color == Color::Black) {
-      //          suffix = SuffixLeft;
-      //        } else {
-      //          suffix = SuffixRight;
-      //        }
-      //      }
-      //      return;
-      //    } else if (numDown == 1 && down.size() == 2) {
-      //      down.erase(*from);
-      //      Square other = *down.begin();
-      //      if (other.file < from->file) {
-      //        if (color == Color::Black) {
-      //          suffix = SuffixRight;
-      //        } else {
-      //          suffix = SuffixLeft;
-      //        }
-      //      } else if (from->file < other.file) {
-      //        if (color == Color::Black) {
-      //          suffix = SuffixLeft;
-      //        } else {
-      //          suffix = SuffixRight;
-      //        }
-      //      }
-      //      return;
-      //    } else if (numSideway == 1 && sideway.size() == 2) {
-      //      sideway.erase(*from);
-      //      Square other = *sideway.begin();
-      //      if (other.file < from->file) {
-      //        if (color == Color::Black) {
-      //          suffix = SuffixRight;
-      //        } else {
-      //          suffix = SuffixLeft;
-      //        }
-      //      } else if (from->file < other.file) {
-      //        if (color == Color::Black) {
-      //          suffix = SuffixLeft;
-      //        } else {
-      //          suffix = SuffixRight;
-      //        }
-      //      }
-      //      return;
     } else if (numUp == 1) {
       if (right.size() == 0) {
         suffix = SuffixRight;
@@ -1133,7 +1081,6 @@ void Move::decideSuffix(Position const &p) {
         return;
       }
     }
-    cout << 1 << endl;
   }
 }
 } // namespace sci
