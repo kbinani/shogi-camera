@@ -4,6 +4,7 @@
 
 #include <deque>
 #include <map>
+#include <random>
 #include <set>
 #include <string>
 #include <thread>
@@ -569,6 +570,23 @@ struct Game {
 
   static void Generate(Position const &p, std::deque<PieceType> const &handBlack, std::deque<PieceType> const &handWhite, std::deque<Move> &moves, bool enablePawnCheckByDrop);
   void generate(std::deque<Move> &moves) const;
+};
+
+class AI {
+public:
+  explicit AI(Color color) : color(color) {}
+  virtual ~AI() {}
+  virtual std::optional<Move> next(Position const &p, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) = 0;
+  Color const color;
+};
+
+class RandomAI : public AI {
+public:
+  explicit RandomAI(Color color);
+  std::optional<Move> next(Position const &p, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+
+private:
+  std::unique_ptr<std::mt19937_64> engine;
 };
 
 struct Status {
