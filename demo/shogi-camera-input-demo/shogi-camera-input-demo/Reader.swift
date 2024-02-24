@@ -302,7 +302,7 @@ class Reader {
       actions.append(.Up)
     }
     if (move.suffix & sci.SuffixType.Down.rawValue) == sci.SuffixType.Down.rawValue {
-      actions.append(.Left)
+      actions.append(.Down)
     }
     if (move.suffix & sci.SuffixType.Sideway.rawValue) == sci.SuffixType.Sideway.rawValue {
       actions.append(.Sideway)
