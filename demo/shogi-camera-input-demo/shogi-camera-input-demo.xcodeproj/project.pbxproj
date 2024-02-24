@@ -28,6 +28,11 @@
 		944ECF332B895C14001E8CF5 /* statistics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 946220102B85F32B0094B015 /* statistics.cpp */; };
 		944ECF342B895C17001E8CF5 /* img.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 946220122B85F47E0094B015 /* img.cpp */; };
 		944ECF352B895C1F001E8CF5 /* piece_book.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9462200E2B85F2C30094B015 /* piece_book.cpp */; };
+		944ECF372B8A287C001E8CF5 /* session.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF362B8A287C001E8CF5 /* session.cpp */; };
+		944ECF392B8A2A3B001E8CF5 /* game.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF382B8A2A3B001E8CF5 /* game.cpp */; };
+		944ECF3B2B8A2A96001E8CF5 /* move.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF3A2B8A2A96001E8CF5 /* move.cpp */; };
+		944ECF3D2B8A2AD5001E8CF5 /* position.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF3C2B8A2AD5001E8CF5 /* position.cpp */; };
+		944ECF3F2B8A2B1F001E8CF5 /* random_ai.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF3E2B8A2B1F001E8CF5 /* random_ai.cpp */; };
 		946220072B82FA780094B015 /* voice.wav in Resources */ = {isa = PBXBuildFile; fileRef = 946220062B82FA780094B015 /* voice.wav */; };
 		946220092B832FED0094B015 /* Reader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 946220082B832FED0094B015 /* Reader.swift */; };
 		9462200B2B8331AF0094B015 /* ShogiCameraInput+Utility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9462200A2B8331AF0094B015 /* ShogiCameraInput+Utility.swift */; };
@@ -60,6 +65,11 @@
 		940A14F22B7DEFF1006E2D01 /* DebugPreview.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DebugPreview.swift; sourceTree = "<group>"; };
 		944ECF242B895A2C001E8CF5 /* test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = test; sourceTree = BUILT_PRODUCTS_DIR; };
 		944ECF262B895A2C001E8CF5 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		944ECF362B8A287C001E8CF5 /* session.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = session.cpp; path = ../../../src/session.cpp; sourceTree = "<group>"; };
+		944ECF382B8A2A3B001E8CF5 /* game.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = game.cpp; path = ../../../src/game.cpp; sourceTree = "<group>"; };
+		944ECF3A2B8A2A96001E8CF5 /* move.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = move.cpp; path = ../../../src/move.cpp; sourceTree = "<group>"; };
+		944ECF3C2B8A2AD5001E8CF5 /* position.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = position.cpp; path = ../../../src/position.cpp; sourceTree = "<group>"; };
+		944ECF3E2B8A2B1F001E8CF5 /* random_ai.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = random_ai.cpp; path = ../../../src/random_ai.cpp; sourceTree = "<group>"; };
 		946220062B82FA780094B015 /* voice.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = voice.wav; path = ../../../res/voice/voice.wav; sourceTree = "<group>"; };
 		946220082B832FED0094B015 /* Reader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Reader.swift; sourceTree = "<group>"; };
 		9462200A2B8331AF0094B015 /* ShogiCameraInput+Utility.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ShogiCameraInput+Utility.swift"; sourceTree = "<group>"; };
@@ -156,6 +166,11 @@
 				9462200E2B85F2C30094B015 /* piece_book.cpp */,
 				946220102B85F32B0094B015 /* statistics.cpp */,
 				946220122B85F47E0094B015 /* img.cpp */,
+				944ECF362B8A287C001E8CF5 /* session.cpp */,
+				944ECF382B8A2A3B001E8CF5 /* game.cpp */,
+				944ECF3A2B8A2A96001E8CF5 /* move.cpp */,
+				944ECF3C2B8A2AD5001E8CF5 /* position.cpp */,
+				944ECF3E2B8A2B1F001E8CF5 /* random_ai.cpp */,
 			);
 			path = "shogi-camera-input-demo";
 			sourceTree = "<group>";
@@ -300,17 +315,22 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				944ECF392B8A2A3B001E8CF5 /* game.cpp in Sources */,
 				946220132B85F47E0094B015 /* img.cpp in Sources */,
 				9462200B2B8331AF0094B015 /* ShogiCameraInput+Utility.swift in Sources */,
 				9462200D2B8331E20094B015 /* OpenCV+Utility.swift in Sources */,
+				944ECF3B2B8A2A96001E8CF5 /* move.cpp in Sources */,
 				946220092B832FED0094B015 /* Reader.swift in Sources */,
 				940A14B62B7A9DE9006E2D01 /* ViewController.swift in Sources */,
 				946220112B85F32B0094B015 /* statistics.cpp in Sources */,
+				944ECF3F2B8A2B1F001E8CF5 /* random_ai.cpp in Sources */,
 				940A14F32B7DEFF1006E2D01 /* DebugPreview.swift in Sources */,
 				940A14B22B7A9DE9006E2D01 /* AppDelegate.swift in Sources */,
+				944ECF372B8A287C001E8CF5 /* session.cpp in Sources */,
 				940A14F12B7DC84D006E2D01 /* shogi_camera_input.mm in Sources */,
 				9462200F2B85F2C30094B015 /* piece_book.cpp in Sources */,
 				940A14B42B7A9DE9006E2D01 /* SceneDelegate.swift in Sources */,
+				944ECF3D2B8A2AD5001E8CF5 /* position.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

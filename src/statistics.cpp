@@ -64,7 +64,7 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   // fabs(tBeforeMean - tAfterMean) の実際の値の様子:
   // 成りの時: 727, 1418, 1293
   // 不成の時: 22.5, 1.73, 78.2, 65.9, 59.9, 65.9
-  if (fabs(tAfterMean - tBeforeMean) > 110) {
+  if (fabs(tAfterMean - tBeforeMean) > 100) {
     mv.piece = Promote(mv.piece);
     mv.promote = 1;
   } else {
@@ -286,7 +286,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   book.update(g.position, board);
   cout << (char const *)StringFromMove(*move, lastMoveTo).c_str() << endl;
   std::cout << "========================" << std::endl;
-  std::cout << (char const *)DebugStringFromPosition(g.position).c_str();
+  std::cout << (char const *)g.position.debugString().c_str();
   std::cout << "------------------------" << std::endl;
 }
 
@@ -347,7 +347,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           if (piece == 0 || ColorFromPiece(piece) == color) {
             continue;
           }
-          if (!CanMove(position, MakeSquare(ch.x, ch.y), MakeSquare(x, y))) {
+          if (!Move::CanMove(position, MakeSquare(ch.x, ch.y), MakeSquare(x, y))) {
             continue;
           }
           auto bp = Img::PieceROI(before, x, y);
@@ -395,7 +395,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           // p0 の駒が p1 の駒を取った.
           Square from = MakeSquare(ch0.x, ch0.y);
           Square to = MakeSquare(ch1.x, ch1.y);
-          if (moves.empty() || CanMove(position, from, to)) {
+          if (moves.empty() || Move::CanMove(position, from, to)) {
             mv.from = from;
             mv.to = to;
             mv.piece = p0;
@@ -411,7 +411,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           // p1 の駒が p0 の駒を取った.
           Square from = MakeSquare(ch1.x, ch1.y);
           Square to = MakeSquare(ch0.x, ch0.y);
-          if (moves.empty() || CanMove(position, from, to)) {
+          if (moves.empty() || Move::CanMove(position, from, to)) {
             mv.from = from;
             mv.to = to;
             mv.piece = p1;
@@ -430,7 +430,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         // p0 の駒が p1 に移動
         Square from = MakeSquare(ch0.x, ch0.y);
         Square to = MakeSquare(ch1.x, ch1.y);
-        if (moves.empty() || CanMove(position, from, to)) {
+        if (moves.empty() || Move::CanMove(position, from, to)) {
           Move mv;
           mv.color = color;
           mv.from = from;
@@ -451,7 +451,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         // p1 の駒が p0 に移動
         Square from = MakeSquare(ch1.x, ch1.y);
         Square to = MakeSquare(ch0.x, ch0.y);
-        if (moves.empty() || CanMove(position, from, to)) {
+        if (moves.empty() || Move::CanMove(position, from, to)) {
           Move mv;
           mv.color = color;
           mv.from = from;

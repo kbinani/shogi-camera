@@ -168,9 +168,8 @@ struct Position {
   bool isInCheck(Color color) const;
 
   void apply(Move const &, std::deque<PieceType> &handBlack, std::deque<PieceType> &handWhite);
+  std::u8string debugString() const;
 };
-
-std::u8string DebugStringFromPosition(Position const &p);
 
 // ハンデ
 enum class Handicap {
@@ -387,9 +386,6 @@ inline std::optional<Square> SquareFromString(std::u8string const &s) {
   return TrimSquarePartFromString(cp);
 }
 
-// from に居る駒が to に効いているかどうかを調べる. from が空きマスだった場合は false を返す.
-bool CanMove(Position const &p, Square from, Square to);
-
 // 手番 color の駒が from から to に移動したとき, 成れる条件かどうか.
 inline bool IsPromotableMove(Square from, Square to, Color color) {
   if (color == Color::Black) {
@@ -435,6 +431,9 @@ struct Move {
 
   // 盤面の情報から suffix を決める.
   void decideSuffix(Position const &p);
+
+  // from に居る駒が to に効いているかどうかを調べる. from が空きマスだった場合は false を返す.
+  static bool CanMove(Position const &p, Square from, Square to);
 };
 
 inline bool operator==(Move const &a, Move const &b) {
@@ -764,7 +763,7 @@ public:
   // 2 つの画像を同じサイズになるよう変形する
   static std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b);
   // 2 枚の画像を比較する. right を ±degrees 度, x と y 方向にそれぞれ ±width*translationRatio, ±height*translationRatio 移動して画像の一致度を計算し, 最大の一致度を返す.
-  static double Similarity(cv::Mat const &left, cv::Mat const &right, int degrees = 10, float translationRatio = 0.5f);
+  static double Similarity(cv::Mat const &left, cv::Mat const &right, int degrees = 5, float translationRatio = 0.5f);
   static std::string EncodeToBase64(cv::Mat const &image);
   static void Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y);
 };
