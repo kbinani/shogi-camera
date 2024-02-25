@@ -579,7 +579,7 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
 
 Session::Session(std::shared_ptr<AI> black, std::shared_ptr<AI> white) : black(black), white(white) {
   if (black) {
-    if (auto move = black->next(game.position, game.handBlack, game.handWhite); move) {
+    if (auto move = black->next(game.position, game.moves_, game.handBlack, game.handWhite); move) {
       move->decideSuffix(game.position);
       game.moves_.push_back(*move);
     }
@@ -630,7 +630,7 @@ void Session::run() {
       if (game.moves_.size() % 2 == 0) {
         // 次が先手番
         if (black && !s->blackResign) {
-          auto move = black->next(game.position, game.handBlack, game.handWhite);
+          auto move = black->next(game.position, game.moves_, game.handBlack, game.handWhite);
           if (move) {
             move->decideSuffix(game.position);
             optional<Square> lastTo;
@@ -650,7 +650,7 @@ void Session::run() {
       } else {
         // 次が後手番
         if (white && !s->whiteResign) {
-          auto move = white->next(game.position, game.handWhite, game.handBlack);
+          auto move = white->next(game.position, game.moves_, game.handWhite, game.handBlack);
           if (move) {
             move->decideSuffix(game.position);
             optional<Square> lastTo;

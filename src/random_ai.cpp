@@ -7,7 +7,7 @@ RandomAI::RandomAI(Color color) : AI(color) {
   engine = std::make_unique<std::mt19937_64>(seed_gen());
 }
 
-std::optional<Move> RandomAI::next(Position const &p, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) {
+std::optional<Move> RandomAI::next(Position const &p, std::vector<Move> const &, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) {
   std::deque<Move> moves;
   Game::Generate(p, color, color == Color::Black ? hand : handEnemy, color == Color::Black ? handEnemy : hand, moves, true);
   if (moves.empty()) {

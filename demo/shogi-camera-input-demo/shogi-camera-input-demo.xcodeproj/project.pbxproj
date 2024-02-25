@@ -33,6 +33,33 @@
 		944ECF3B2B8A2A96001E8CF5 /* move.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF3A2B8A2A96001E8CF5 /* move.cpp */; };
 		944ECF3D2B8A2AD5001E8CF5 /* position.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF3C2B8A2AD5001E8CF5 /* position.cpp */; };
 		944ECF3F2B8A2B1F001E8CF5 /* random_ai.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF3E2B8A2B1F001E8CF5 /* random_ai.cpp */; };
+		944ECF472B8B65C5001E8CF5 /* Searcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF432B8B65C5001E8CF5 /* Searcher.cpp */; };
+		944ECF482B8B65C5001E8CF5 /* RandomSearcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF442B8B65C5001E8CF5 /* RandomSearcher.cpp */; };
+		944ECF562B8B66B5001E8CF5 /* MoveGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF512B8B66B5001E8CF5 /* MoveGenerator.cpp */; };
+		944ECF572B8B66B5001E8CF5 /* Move.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF532B8B66B5001E8CF5 /* Move.cpp */; };
+		944ECF582B8B66B5001E8CF5 /* MoveTable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF542B8B66B5001E8CF5 /* MoveTable.cpp */; };
+		944ECF5C2B8B66EA001E8CF5 /* Logger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF5A2B8B66EA001E8CF5 /* Logger.cpp */; };
+		944ECF622B8B6708001E8CF5 /* Piece.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF5F2B8B6708001E8CF5 /* Piece.cpp */; };
+		944ECF632B8B6708001E8CF5 /* Square.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF612B8B6708001E8CF5 /* Square.cpp */; };
+		944ECF6C2B8B671E001E8CF5 /* Bitboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF662B8B671E001E8CF5 /* Bitboard.cpp */; };
+		944ECF6D2B8B671E001E8CF5 /* Zobrist.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF682B8B671E001E8CF5 /* Zobrist.cpp */; };
+		944ECF6E2B8B671E001E8CF5 /* Board.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF6B2B8B671E001E8CF5 /* Board.cpp */; };
+		944ECF7A2B8B673D001E8CF5 /* Wildcard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF742B8B673C001E8CF5 /* Wildcard.cpp */; };
+		944ECF7B2B8B673D001E8CF5 /* FileList.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF762B8B673C001E8CF5 /* FileList.cpp */; };
+		944ECF7C2B8B673D001E8CF5 /* Data.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF792B8B673C001E8CF5 /* Data.cpp */; };
+		944ECF862B8B6765001E8CF5 /* Material.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF7E2B8B6764001E8CF5 /* Material.cpp */; };
+		944ECF872B8B6765001E8CF5 /* Evaluator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF822B8B6764001E8CF5 /* Evaluator.cpp */; };
+		944ECF8E2B8B678F001E8CF5 /* Mate.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF8B2B8B678F001E8CF5 /* Mate.cpp */; };
+		944ECF9B2B8B67E5001E8CF5 /* Progression.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF992B8B67E4001E8CF5 /* Progression.cpp */; };
+		944ECF9F2B8B67ED001E8CF5 /* See.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECF9D2B8B67ED001E8CF5 /* See.cpp */; };
+		944ECFA52B8B67FE001E8CF5 /* TimeManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECFA42B8B67FE001E8CF5 /* TimeManager.cpp */; };
+		944ECFAD2B8B6804001E8CF5 /* Worker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECFA72B8B6804001E8CF5 /* Worker.cpp */; };
+		944ECFAE2B8B6804001E8CF5 /* Tree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECFAA2B8B6804001E8CF5 /* Tree.cpp */; };
+		944ECFB32B8B680A001E8CF5 /* TTE.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECFB12B8B680A001E8CF5 /* TTE.cpp */; };
+		944ECFB52B8B688F001E8CF5 /* sunfish3_ai.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECFB42B8B688F001E8CF5 /* sunfish3_ai.cpp */; };
+		944ECFBD2B8B6A7C001E8CF5 /* CsaReader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECFB72B8B6A7C001E8CF5 /* CsaReader.cpp */; };
+		944ECFBE2B8B6A7C001E8CF5 /* CsaWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECFBA2B8B6A7C001E8CF5 /* CsaWriter.cpp */; };
+		944ECFBF2B8B6A7C001E8CF5 /* Record.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 944ECFBB2B8B6A7C001E8CF5 /* Record.cpp */; };
 		946220072B82FA780094B015 /* voice.wav in Resources */ = {isa = PBXBuildFile; fileRef = 946220062B82FA780094B015 /* voice.wav */; };
 		946220092B832FED0094B015 /* Reader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 946220082B832FED0094B015 /* Reader.swift */; };
 		9462200B2B8331AF0094B015 /* ShogiCameraInput+Utility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9462200A2B8331AF0094B015 /* ShogiCameraInput+Utility.swift */; };
@@ -70,6 +97,83 @@
 		944ECF3A2B8A2A96001E8CF5 /* move.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = move.cpp; path = ../../../src/move.cpp; sourceTree = "<group>"; };
 		944ECF3C2B8A2AD5001E8CF5 /* position.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = position.cpp; path = ../../../src/position.cpp; sourceTree = "<group>"; };
 		944ECF3E2B8A2B1F001E8CF5 /* random_ai.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = random_ai.cpp; path = ../../../src/random_ai.cpp; sourceTree = "<group>"; };
+		944ECF422B8B65C5001E8CF5 /* RandomSearcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RandomSearcher.h; path = ../../sunfish3/src/searcher/RandomSearcher.h; sourceTree = "<group>"; };
+		944ECF432B8B65C5001E8CF5 /* Searcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Searcher.cpp; path = ../../sunfish3/src/searcher/Searcher.cpp; sourceTree = "<group>"; };
+		944ECF442B8B65C5001E8CF5 /* RandomSearcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = RandomSearcher.cpp; path = ../../sunfish3/src/searcher/RandomSearcher.cpp; sourceTree = "<group>"; };
+		944ECF452B8B65C5001E8CF5 /* SearchInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SearchInfo.h; path = ../../sunfish3/src/searcher/SearchInfo.h; sourceTree = "<group>"; };
+		944ECF462B8B65C5001E8CF5 /* Searcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Searcher.h; path = ../../sunfish3/src/searcher/Searcher.h; sourceTree = "<group>"; };
+		944ECF4B2B8B6618001E8CF5 /* sse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sse.h; path = ../../sunfish3/src/core/sse.h; sourceTree = "<group>"; };
+		944ECF4C2B8B6618001E8CF5 /* def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = def.h; path = ../../sunfish3/src/core/def.h; sourceTree = "<group>"; };
+		944ECF4D2B8B6620001E8CF5 /* bmi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = bmi.h; path = ../../sunfish3/src/core/bmi.h; sourceTree = "<group>"; };
+		944ECF4F2B8B66B5001E8CF5 /* Moves.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Moves.h; path = ../../sunfish3/src/core/move/Moves.h; sourceTree = "<group>"; };
+		944ECF502B8B66B5001E8CF5 /* Move.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Move.h; path = ../../sunfish3/src/core/move/Move.h; sourceTree = "<group>"; };
+		944ECF512B8B66B5001E8CF5 /* MoveGenerator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MoveGenerator.cpp; path = ../../sunfish3/src/core/move/MoveGenerator.cpp; sourceTree = "<group>"; };
+		944ECF522B8B66B5001E8CF5 /* MoveTable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MoveTable.h; path = ../../sunfish3/src/core/move/MoveTable.h; sourceTree = "<group>"; };
+		944ECF532B8B66B5001E8CF5 /* Move.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Move.cpp; path = ../../sunfish3/src/core/move/Move.cpp; sourceTree = "<group>"; };
+		944ECF542B8B66B5001E8CF5 /* MoveTable.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MoveTable.cpp; path = ../../sunfish3/src/core/move/MoveTable.cpp; sourceTree = "<group>"; };
+		944ECF552B8B66B5001E8CF5 /* MoveGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MoveGenerator.h; path = ../../sunfish3/src/core/move/MoveGenerator.h; sourceTree = "<group>"; };
+		944ECF5A2B8B66EA001E8CF5 /* Logger.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Logger.cpp; path = ../../sunfish3/src/logger/Logger.cpp; sourceTree = "<group>"; };
+		944ECF5B2B8B66EA001E8CF5 /* Logger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Logger.h; path = ../../sunfish3/src/logger/Logger.h; sourceTree = "<group>"; };
+		944ECF5E2B8B6708001E8CF5 /* Square.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Square.h; path = ../../sunfish3/src/core/base/Square.h; sourceTree = "<group>"; };
+		944ECF5F2B8B6708001E8CF5 /* Piece.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Piece.cpp; path = ../../sunfish3/src/core/base/Piece.cpp; sourceTree = "<group>"; };
+		944ECF602B8B6708001E8CF5 /* Piece.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Piece.h; path = ../../sunfish3/src/core/base/Piece.h; sourceTree = "<group>"; };
+		944ECF612B8B6708001E8CF5 /* Square.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Square.cpp; path = ../../sunfish3/src/core/base/Square.cpp; sourceTree = "<group>"; };
+		944ECF652B8B671E001E8CF5 /* Zobrist.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Zobrist.h; path = ../../sunfish3/src/core/board/Zobrist.h; sourceTree = "<group>"; };
+		944ECF662B8B671E001E8CF5 /* Bitboard.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Bitboard.cpp; path = ../../sunfish3/src/core/board/Bitboard.cpp; sourceTree = "<group>"; };
+		944ECF672B8B671E001E8CF5 /* Bitboard.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Bitboard.h; path = ../../sunfish3/src/core/board/Bitboard.h; sourceTree = "<group>"; };
+		944ECF682B8B671E001E8CF5 /* Zobrist.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Zobrist.cpp; path = ../../sunfish3/src/core/board/Zobrist.cpp; sourceTree = "<group>"; };
+		944ECF692B8B671E001E8CF5 /* Hand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Hand.h; path = ../../sunfish3/src/core/board/Hand.h; sourceTree = "<group>"; };
+		944ECF6A2B8B671E001E8CF5 /* Board.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Board.h; path = ../../sunfish3/src/core/board/Board.h; sourceTree = "<group>"; };
+		944ECF6B2B8B671E001E8CF5 /* Board.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Board.cpp; path = ../../sunfish3/src/core/board/Board.cpp; sourceTree = "<group>"; };
+		944ECF702B8B673C001E8CF5 /* StringUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StringUtil.h; path = ../../sunfish3/src/core/util/StringUtil.h; sourceTree = "<group>"; };
+		944ECF712B8B673C001E8CF5 /* FileList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FileList.h; path = ../../sunfish3/src/core/util/FileList.h; sourceTree = "<group>"; };
+		944ECF722B8B673C001E8CF5 /* Data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Data.h; path = ../../sunfish3/src/core/util/Data.h; sourceTree = "<group>"; };
+		944ECF732B8B673C001E8CF5 /* Random.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Random.h; path = ../../sunfish3/src/core/util/Random.h; sourceTree = "<group>"; };
+		944ECF742B8B673C001E8CF5 /* Wildcard.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Wildcard.cpp; path = ../../sunfish3/src/core/util/Wildcard.cpp; sourceTree = "<group>"; };
+		944ECF752B8B673C001E8CF5 /* Memory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Memory.h; path = ../../sunfish3/src/core/util/Memory.h; sourceTree = "<group>"; };
+		944ECF762B8B673C001E8CF5 /* FileList.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileList.cpp; path = ../../sunfish3/src/core/util/FileList.cpp; sourceTree = "<group>"; };
+		944ECF772B8B673C001E8CF5 /* Timer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Timer.h; path = ../../sunfish3/src/core/util/Timer.h; sourceTree = "<group>"; };
+		944ECF782B8B673C001E8CF5 /* Wildcard.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Wildcard.h; path = ../../sunfish3/src/core/util/Wildcard.h; sourceTree = "<group>"; };
+		944ECF792B8B673C001E8CF5 /* Data.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Data.cpp; path = ../../sunfish3/src/core/util/Data.cpp; sourceTree = "<group>"; };
+		944ECF7E2B8B6764001E8CF5 /* Material.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Material.cpp; path = ../../sunfish3/src/searcher/eval/Material.cpp; sourceTree = "<group>"; };
+		944ECF7F2B8B6764001E8CF5 /* Evaluator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Evaluator.h; path = ../../sunfish3/src/searcher/eval/Evaluator.h; sourceTree = "<group>"; };
+		944ECF802B8B6764001E8CF5 /* Value.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Value.h; path = ../../sunfish3/src/searcher/eval/Value.h; sourceTree = "<group>"; };
+		944ECF812B8B6764001E8CF5 /* material_values.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = material_values.h; path = ../../sunfish3/src/searcher/eval/material_values.h; sourceTree = "<group>"; };
+		944ECF822B8B6764001E8CF5 /* Evaluator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Evaluator.cpp; path = ../../sunfish3/src/searcher/eval/Evaluator.cpp; sourceTree = "<group>"; };
+		944ECF832B8B6764001E8CF5 /* EvaluateTable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = EvaluateTable.h; path = ../../sunfish3/src/searcher/eval/EvaluateTable.h; sourceTree = "<group>"; };
+		944ECF842B8B6764001E8CF5 /* EvaluateEntity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = EvaluateEntity.h; path = ../../sunfish3/src/searcher/eval/EvaluateEntity.h; sourceTree = "<group>"; };
+		944ECF852B8B6765001E8CF5 /* Material.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Material.h; path = ../../sunfish3/src/searcher/eval/Material.h; sourceTree = "<group>"; };
+		944ECF892B8B6777001E8CF5 /* History.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = History.h; path = ../../sunfish3/src/searcher/history/History.h; sourceTree = "<group>"; };
+		944ECF8B2B8B678F001E8CF5 /* Mate.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Mate.cpp; path = ../../sunfish3/src/searcher/mate/Mate.cpp; sourceTree = "<group>"; };
+		944ECF8C2B8B678F001E8CF5 /* MateHistory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MateHistory.h; path = ../../sunfish3/src/searcher/mate/MateHistory.h; sourceTree = "<group>"; };
+		944ECF8D2B8B678F001E8CF5 /* Mate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Mate.h; path = ../../sunfish3/src/searcher/mate/Mate.h; sourceTree = "<group>"; };
+		944ECF942B8B67D2001E8CF5 /* HandSet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HandSet.h; sourceTree = "<group>"; };
+		944ECF952B8B67D2001E8CF5 /* ShekStat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShekStat.h; sourceTree = "<group>"; };
+		944ECF962B8B67D2001E8CF5 /* ShekTable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShekTable.h; sourceTree = "<group>"; };
+		944ECF972B8B67D2001E8CF5 /* ShekEntity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShekEntity.h; sourceTree = "<group>"; };
+		944ECF992B8B67E4001E8CF5 /* Progression.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Progression.cpp; sourceTree = "<group>"; };
+		944ECF9A2B8B67E4001E8CF5 /* Progression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Progression.h; sourceTree = "<group>"; };
+		944ECF9D2B8B67ED001E8CF5 /* See.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = See.cpp; sourceTree = "<group>"; };
+		944ECF9E2B8B67ED001E8CF5 /* See.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = See.h; sourceTree = "<group>"; };
+		944ECFA12B8B67F6001E8CF5 /* HashTable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HashTable.h; sourceTree = "<group>"; };
+		944ECFA32B8B67FE001E8CF5 /* TimeManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TimeManager.h; sourceTree = "<group>"; };
+		944ECFA42B8B67FE001E8CF5 /* TimeManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TimeManager.cpp; sourceTree = "<group>"; };
+		944ECFA72B8B6804001E8CF5 /* Worker.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Worker.cpp; sourceTree = "<group>"; };
+		944ECFA82B8B6804001E8CF5 /* Tree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Tree.h; sourceTree = "<group>"; };
+		944ECFA92B8B6804001E8CF5 /* PV.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PV.h; sourceTree = "<group>"; };
+		944ECFAA2B8B6804001E8CF5 /* Tree.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Tree.cpp; sourceTree = "<group>"; };
+		944ECFAB2B8B6804001E8CF5 /* Worker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Worker.h; sourceTree = "<group>"; };
+		944ECFAC2B8B6804001E8CF5 /* NodeStat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NodeStat.h; sourceTree = "<group>"; };
+		944ECFB02B8B680A001E8CF5 /* TTE.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TTE.h; sourceTree = "<group>"; };
+		944ECFB12B8B680A001E8CF5 /* TTE.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TTE.cpp; sourceTree = "<group>"; };
+		944ECFB22B8B680A001E8CF5 /* TT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TT.h; sourceTree = "<group>"; };
+		944ECFB42B8B688F001E8CF5 /* sunfish3_ai.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = sunfish3_ai.cpp; path = ../../../src/sunfish3_ai.cpp; sourceTree = "<group>"; };
+		944ECFB72B8B6A7C001E8CF5 /* CsaReader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CsaReader.cpp; sourceTree = "<group>"; };
+		944ECFB82B8B6A7C001E8CF5 /* CsaReader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CsaReader.h; sourceTree = "<group>"; };
+		944ECFB92B8B6A7C001E8CF5 /* Record.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Record.h; sourceTree = "<group>"; };
+		944ECFBA2B8B6A7C001E8CF5 /* CsaWriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CsaWriter.cpp; sourceTree = "<group>"; };
+		944ECFBB2B8B6A7C001E8CF5 /* Record.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Record.cpp; sourceTree = "<group>"; };
+		944ECFBC2B8B6A7C001E8CF5 /* CsaWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CsaWriter.h; sourceTree = "<group>"; };
 		946220062B82FA780094B015 /* voice.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = voice.wav; path = ../../../res/voice/voice.wav; sourceTree = "<group>"; };
 		946220082B832FED0094B015 /* Reader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Reader.swift; sourceTree = "<group>"; };
 		9462200A2B8331AF0094B015 /* ShogiCameraInput+Utility.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ShogiCameraInput+Utility.swift"; sourceTree = "<group>"; };
@@ -144,6 +248,7 @@
 		940A14B02B7A9DE9006E2D01 /* shogi-camera-input-demo */ = {
 			isa = PBXGroup;
 			children = (
+				944ECF402B8B6590001E8CF5 /* sunfish3 */,
 				940A14C72B7AA079006E2D01 /* opencv2.xcframework */,
 				94BB050B2B82010D003FB8B8 /* opencv2.framework */,
 				940A14B12B7A9DE9006E2D01 /* AppDelegate.swift */,
@@ -171,6 +276,7 @@
 				944ECF3A2B8A2A96001E8CF5 /* move.cpp */,
 				944ECF3C2B8A2AD5001E8CF5 /* position.cpp */,
 				944ECF3E2B8A2B1F001E8CF5 /* random_ai.cpp */,
+				944ECFB42B8B688F001E8CF5 /* sunfish3_ai.cpp */,
 			);
 			path = "shogi-camera-input-demo";
 			sourceTree = "<group>";
@@ -192,6 +298,241 @@
 				944ECF262B895A2C001E8CF5 /* main.cpp */,
 			);
 			path = test;
+			sourceTree = "<group>";
+		};
+		944ECF402B8B6590001E8CF5 /* sunfish3 */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF592B8B66D7001E8CF5 /* logger */,
+				944ECF4A2B8B65E6001E8CF5 /* core */,
+				944ECF412B8B65B5001E8CF5 /* searcher */,
+			);
+			name = sunfish3;
+			sourceTree = "<group>";
+		};
+		944ECF412B8B65B5001E8CF5 /* searcher */ = {
+			isa = PBXGroup;
+			children = (
+				944ECFAF2B8B680A001E8CF5 /* tt */,
+				944ECFA62B8B6804001E8CF5 /* tree */,
+				944ECFA22B8B67FE001E8CF5 /* time */,
+				944ECFA02B8B67F6001E8CF5 /* table */,
+				944ECF9C2B8B67ED001E8CF5 /* see */,
+				944ECF982B8B67E4001E8CF5 /* progress */,
+				944ECF932B8B67D2001E8CF5 /* shek */,
+				944ECF8A2B8B6784001E8CF5 /* mate */,
+				944ECF882B8B6769001E8CF5 /* history */,
+				944ECF7D2B8B6759001E8CF5 /* eval */,
+				944ECF442B8B65C5001E8CF5 /* RandomSearcher.cpp */,
+				944ECF422B8B65C5001E8CF5 /* RandomSearcher.h */,
+				944ECF432B8B65C5001E8CF5 /* Searcher.cpp */,
+				944ECF462B8B65C5001E8CF5 /* Searcher.h */,
+				944ECF452B8B65C5001E8CF5 /* SearchInfo.h */,
+			);
+			name = searcher;
+			sourceTree = "<group>";
+		};
+		944ECF4A2B8B65E6001E8CF5 /* core */ = {
+			isa = PBXGroup;
+			children = (
+				944ECFB62B8B6A7C001E8CF5 /* record */,
+				944ECF6F2B8B6730001E8CF5 /* util */,
+				944ECF642B8B6714001E8CF5 /* board */,
+				944ECF5D2B8B66FB001E8CF5 /* base */,
+				944ECF4E2B8B66A9001E8CF5 /* move */,
+				944ECF4D2B8B6620001E8CF5 /* bmi.h */,
+				944ECF4C2B8B6618001E8CF5 /* def.h */,
+				944ECF4B2B8B6618001E8CF5 /* sse.h */,
+			);
+			name = core;
+			sourceTree = "<group>";
+		};
+		944ECF4E2B8B66A9001E8CF5 /* move */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF532B8B66B5001E8CF5 /* Move.cpp */,
+				944ECF502B8B66B5001E8CF5 /* Move.h */,
+				944ECF512B8B66B5001E8CF5 /* MoveGenerator.cpp */,
+				944ECF552B8B66B5001E8CF5 /* MoveGenerator.h */,
+				944ECF4F2B8B66B5001E8CF5 /* Moves.h */,
+				944ECF542B8B66B5001E8CF5 /* MoveTable.cpp */,
+				944ECF522B8B66B5001E8CF5 /* MoveTable.h */,
+			);
+			name = move;
+			sourceTree = "<group>";
+		};
+		944ECF592B8B66D7001E8CF5 /* logger */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF5A2B8B66EA001E8CF5 /* Logger.cpp */,
+				944ECF5B2B8B66EA001E8CF5 /* Logger.h */,
+			);
+			name = logger;
+			sourceTree = "<group>";
+		};
+		944ECF5D2B8B66FB001E8CF5 /* base */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF5F2B8B6708001E8CF5 /* Piece.cpp */,
+				944ECF602B8B6708001E8CF5 /* Piece.h */,
+				944ECF612B8B6708001E8CF5 /* Square.cpp */,
+				944ECF5E2B8B6708001E8CF5 /* Square.h */,
+			);
+			name = base;
+			sourceTree = "<group>";
+		};
+		944ECF642B8B6714001E8CF5 /* board */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF662B8B671E001E8CF5 /* Bitboard.cpp */,
+				944ECF672B8B671E001E8CF5 /* Bitboard.h */,
+				944ECF6B2B8B671E001E8CF5 /* Board.cpp */,
+				944ECF6A2B8B671E001E8CF5 /* Board.h */,
+				944ECF692B8B671E001E8CF5 /* Hand.h */,
+				944ECF682B8B671E001E8CF5 /* Zobrist.cpp */,
+				944ECF652B8B671E001E8CF5 /* Zobrist.h */,
+			);
+			name = board;
+			sourceTree = "<group>";
+		};
+		944ECF6F2B8B6730001E8CF5 /* util */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF792B8B673C001E8CF5 /* Data.cpp */,
+				944ECF722B8B673C001E8CF5 /* Data.h */,
+				944ECF762B8B673C001E8CF5 /* FileList.cpp */,
+				944ECF712B8B673C001E8CF5 /* FileList.h */,
+				944ECF752B8B673C001E8CF5 /* Memory.h */,
+				944ECF732B8B673C001E8CF5 /* Random.h */,
+				944ECF702B8B673C001E8CF5 /* StringUtil.h */,
+				944ECF772B8B673C001E8CF5 /* Timer.h */,
+				944ECF742B8B673C001E8CF5 /* Wildcard.cpp */,
+				944ECF782B8B673C001E8CF5 /* Wildcard.h */,
+			);
+			name = util;
+			sourceTree = "<group>";
+		};
+		944ECF7D2B8B6759001E8CF5 /* eval */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF842B8B6764001E8CF5 /* EvaluateEntity.h */,
+				944ECF832B8B6764001E8CF5 /* EvaluateTable.h */,
+				944ECF822B8B6764001E8CF5 /* Evaluator.cpp */,
+				944ECF7F2B8B6764001E8CF5 /* Evaluator.h */,
+				944ECF812B8B6764001E8CF5 /* material_values.h */,
+				944ECF7E2B8B6764001E8CF5 /* Material.cpp */,
+				944ECF852B8B6765001E8CF5 /* Material.h */,
+				944ECF802B8B6764001E8CF5 /* Value.h */,
+			);
+			name = eval;
+			sourceTree = "<group>";
+		};
+		944ECF882B8B6769001E8CF5 /* history */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF892B8B6777001E8CF5 /* History.h */,
+			);
+			name = history;
+			sourceTree = "<group>";
+		};
+		944ECF8A2B8B6784001E8CF5 /* mate */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF8B2B8B678F001E8CF5 /* Mate.cpp */,
+				944ECF8D2B8B678F001E8CF5 /* Mate.h */,
+				944ECF8C2B8B678F001E8CF5 /* MateHistory.h */,
+			);
+			name = mate;
+			sourceTree = "<group>";
+		};
+		944ECF932B8B67D2001E8CF5 /* shek */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF942B8B67D2001E8CF5 /* HandSet.h */,
+				944ECF952B8B67D2001E8CF5 /* ShekStat.h */,
+				944ECF962B8B67D2001E8CF5 /* ShekTable.h */,
+				944ECF972B8B67D2001E8CF5 /* ShekEntity.h */,
+			);
+			name = shek;
+			path = ../../sunfish3/src/searcher/shek;
+			sourceTree = "<group>";
+		};
+		944ECF982B8B67E4001E8CF5 /* progress */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF992B8B67E4001E8CF5 /* Progression.cpp */,
+				944ECF9A2B8B67E4001E8CF5 /* Progression.h */,
+			);
+			name = progress;
+			path = ../../sunfish3/src/searcher/progress;
+			sourceTree = "<group>";
+		};
+		944ECF9C2B8B67ED001E8CF5 /* see */ = {
+			isa = PBXGroup;
+			children = (
+				944ECF9D2B8B67ED001E8CF5 /* See.cpp */,
+				944ECF9E2B8B67ED001E8CF5 /* See.h */,
+			);
+			name = see;
+			path = ../../sunfish3/src/searcher/see;
+			sourceTree = "<group>";
+		};
+		944ECFA02B8B67F6001E8CF5 /* table */ = {
+			isa = PBXGroup;
+			children = (
+				944ECFA12B8B67F6001E8CF5 /* HashTable.h */,
+			);
+			name = table;
+			path = ../../sunfish3/src/searcher/table;
+			sourceTree = "<group>";
+		};
+		944ECFA22B8B67FE001E8CF5 /* time */ = {
+			isa = PBXGroup;
+			children = (
+				944ECFA32B8B67FE001E8CF5 /* TimeManager.h */,
+				944ECFA42B8B67FE001E8CF5 /* TimeManager.cpp */,
+			);
+			name = time;
+			path = ../../sunfish3/src/searcher/time;
+			sourceTree = "<group>";
+		};
+		944ECFA62B8B6804001E8CF5 /* tree */ = {
+			isa = PBXGroup;
+			children = (
+				944ECFA72B8B6804001E8CF5 /* Worker.cpp */,
+				944ECFA82B8B6804001E8CF5 /* Tree.h */,
+				944ECFA92B8B6804001E8CF5 /* PV.h */,
+				944ECFAA2B8B6804001E8CF5 /* Tree.cpp */,
+				944ECFAB2B8B6804001E8CF5 /* Worker.h */,
+				944ECFAC2B8B6804001E8CF5 /* NodeStat.h */,
+			);
+			name = tree;
+			path = ../../sunfish3/src/searcher/tree;
+			sourceTree = "<group>";
+		};
+		944ECFAF2B8B680A001E8CF5 /* tt */ = {
+			isa = PBXGroup;
+			children = (
+				944ECFB02B8B680A001E8CF5 /* TTE.h */,
+				944ECFB12B8B680A001E8CF5 /* TTE.cpp */,
+				944ECFB22B8B680A001E8CF5 /* TT.h */,
+			);
+			name = tt;
+			path = ../../sunfish3/src/searcher/tt;
+			sourceTree = "<group>";
+		};
+		944ECFB62B8B6A7C001E8CF5 /* record */ = {
+			isa = PBXGroup;
+			children = (
+				944ECFB72B8B6A7C001E8CF5 /* CsaReader.cpp */,
+				944ECFB82B8B6A7C001E8CF5 /* CsaReader.h */,
+				944ECFB92B8B6A7C001E8CF5 /* Record.h */,
+				944ECFBA2B8B6A7C001E8CF5 /* CsaWriter.cpp */,
+				944ECFBB2B8B6A7C001E8CF5 /* Record.cpp */,
+				944ECFBC2B8B6A7C001E8CF5 /* CsaWriter.h */,
+			);
+			name = record;
+			path = ../../sunfish3/src/core/record;
 			sourceTree = "<group>";
 		};
 		94BB05022B81FC81003FB8B8 /* opencv-study */ = {
@@ -315,20 +656,47 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				944ECF9F2B8B67ED001E8CF5 /* See.cpp in Sources */,
+				944ECF7B2B8B673D001E8CF5 /* FileList.cpp in Sources */,
+				944ECF9B2B8B67E5001E8CF5 /* Progression.cpp in Sources */,
+				944ECF6E2B8B671E001E8CF5 /* Board.cpp in Sources */,
 				944ECF392B8A2A3B001E8CF5 /* game.cpp in Sources */,
+				944ECFBF2B8B6A7C001E8CF5 /* Record.cpp in Sources */,
+				944ECFAD2B8B6804001E8CF5 /* Worker.cpp in Sources */,
 				946220132B85F47E0094B015 /* img.cpp in Sources */,
+				944ECFA52B8B67FE001E8CF5 /* TimeManager.cpp in Sources */,
+				944ECF7A2B8B673D001E8CF5 /* Wildcard.cpp in Sources */,
 				9462200B2B8331AF0094B015 /* ShogiCameraInput+Utility.swift in Sources */,
+				944ECF6C2B8B671E001E8CF5 /* Bitboard.cpp in Sources */,
+				944ECFAE2B8B6804001E8CF5 /* Tree.cpp in Sources */,
 				9462200D2B8331E20094B015 /* OpenCV+Utility.swift in Sources */,
+				944ECF632B8B6708001E8CF5 /* Square.cpp in Sources */,
+				944ECF8E2B8B678F001E8CF5 /* Mate.cpp in Sources */,
+				944ECF7C2B8B673D001E8CF5 /* Data.cpp in Sources */,
+				944ECFBE2B8B6A7C001E8CF5 /* CsaWriter.cpp in Sources */,
+				944ECF572B8B66B5001E8CF5 /* Move.cpp in Sources */,
+				944ECF472B8B65C5001E8CF5 /* Searcher.cpp in Sources */,
 				944ECF3B2B8A2A96001E8CF5 /* move.cpp in Sources */,
 				946220092B832FED0094B015 /* Reader.swift in Sources */,
+				944ECFB52B8B688F001E8CF5 /* sunfish3_ai.cpp in Sources */,
 				940A14B62B7A9DE9006E2D01 /* ViewController.swift in Sources */,
+				944ECFBD2B8B6A7C001E8CF5 /* CsaReader.cpp in Sources */,
 				946220112B85F32B0094B015 /* statistics.cpp in Sources */,
 				944ECF3F2B8A2B1F001E8CF5 /* random_ai.cpp in Sources */,
+				944ECF872B8B6765001E8CF5 /* Evaluator.cpp in Sources */,
 				940A14F32B7DEFF1006E2D01 /* DebugPreview.swift in Sources */,
 				940A14B22B7A9DE9006E2D01 /* AppDelegate.swift in Sources */,
 				944ECF372B8A287C001E8CF5 /* session.cpp in Sources */,
+				944ECF482B8B65C5001E8CF5 /* RandomSearcher.cpp in Sources */,
+				944ECF622B8B6708001E8CF5 /* Piece.cpp in Sources */,
 				940A14F12B7DC84D006E2D01 /* shogi_camera_input.mm in Sources */,
 				9462200F2B85F2C30094B015 /* piece_book.cpp in Sources */,
+				944ECF582B8B66B5001E8CF5 /* MoveTable.cpp in Sources */,
+				944ECF6D2B8B671E001E8CF5 /* Zobrist.cpp in Sources */,
+				944ECF562B8B66B5001E8CF5 /* MoveGenerator.cpp in Sources */,
+				944ECF5C2B8B66EA001E8CF5 /* Logger.cpp in Sources */,
+				944ECF862B8B6765001E8CF5 /* Material.cpp in Sources */,
+				944ECFB32B8B680A001E8CF5 /* TTE.cpp in Sources */,
 				940A14B42B7A9DE9006E2D01 /* SceneDelegate.swift in Sources */,
 				944ECF3D2B8A2AD5001E8CF5 /* position.cpp in Sources */,
 			);
@@ -510,7 +878,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = XM695N4A7T;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../include";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../../include",
+					"$(SRCROOT)/../sunfish3/src",
+				);
 				INFOPLIST_FILE = "shogi-camera-input-demo/Info.plist";
 				INFOPLIST_KEY_NSCameraUsageDescription = "";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -542,7 +913,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = XM695N4A7T;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../include";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../../include",
+					"$(SRCROOT)/../sunfish3/src",
+				);
 				INFOPLIST_FILE = "shogi-camera-input-demo/Info.plist";
 				INFOPLIST_KEY_NSCameraUsageDescription = "";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

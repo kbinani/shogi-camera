@@ -98,7 +98,7 @@ std::shared_ptr<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const 
 Status::Status() {
 }
 
-SessionWrapper::SessionWrapper() : ptr(std::make_shared<Session>(std::make_shared<RandomAI>(Color::Black), nullptr)) {
+SessionWrapper::SessionWrapper() : ptr(std::make_shared<Session>(nullptr, std::make_shared<Sunfish3AI>(Color::White))) {
 }
 
 } // namespace sci

@@ -609,17 +609,27 @@ class AI {
 public:
   explicit AI(Color color) : color(color) {}
   virtual ~AI() {}
-  virtual std::optional<Move> next(Position const &p, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) = 0;
+  virtual std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) = 0;
   Color const color;
 };
 
 class RandomAI : public AI {
 public:
   explicit RandomAI(Color color);
-  std::optional<Move> next(Position const &p, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+  std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
 
 private:
   std::unique_ptr<std::mt19937_64> engine;
+};
+
+class Sunfish3AI : public AI {
+public:
+  explicit Sunfish3AI(Color color);
+  std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+
+private:
+  struct Impl;
+  std::shared_ptr<Impl> impl;
 };
 
 struct Status {
