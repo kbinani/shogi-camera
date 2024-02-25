@@ -395,11 +395,13 @@ class DebugView: UIView {
       defer {
         ctx.restoreGState()
       }
+      // 文字の幅として fontSize を使うと中心からズレる(謎)のでズレを補正するための係数.
+      let ratio: CGFloat = 0.04
       let mtx: CGAffineTransform =
         if rotate {
           CGAffineTransform.identity
             .concatenating(
-              .init(translationX: -fontSize * 0.5, y: descent - (ascent + descent) * 0.5)
+              .init(translationX: -fontSize * (0.5 - ratio), y: descent - (ascent + descent) * 0.5)
             )
             .concatenating(.init(scaleX: 1, y: -1))
             .concatenating(.init(rotationAngle: .pi))
@@ -413,7 +415,7 @@ class DebugView: UIView {
             .concatenating(.init(scaleX: 1, y: -1))
             .concatenating(
               .init(
-                translationX: box.minX + box.width * 0.5 - fontSize * 0.5,
+                translationX: box.minX + box.width * 0.5 - fontSize * (0.5 - ratio),
                 y: box.minY + box.height * 0.5))
         }
       ctx.concatenate(mtx)
