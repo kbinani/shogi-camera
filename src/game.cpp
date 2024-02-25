@@ -170,11 +170,6 @@ void Game::Generate(Position const &position, Color color, std::deque<PieceType>
       }
     }
   }
-
-  for (Move m : all) {
-    cout << (char const *)StringFromMove(m).c_str() << endl;
-  }
-
   moves.swap(all);
 }
 

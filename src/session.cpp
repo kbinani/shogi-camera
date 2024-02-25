@@ -706,6 +706,8 @@ void Session::run() {
     auto s = std::make_shared<Status>();
     s->stableBoardMaxSimilarity = BoardImage::kStableBoardMaxSimilarity;
     s->stableBoardThreshold = BoardImage::kStableBoardThreshold;
+    s->blackResign = this->s->blackResign;
+    s->whiteResign = this->s->whiteResign;
     FindContours(frame, *s);
     FindBoard(frame, *s);
     FindPieces(frame, *s);
@@ -715,7 +717,7 @@ void Session::run() {
     if (detected.size() == game.moves_.size()) {
       if (game.moves_.size() % 2 == 0) {
         // 次が先手番
-        if (black) {
+        if (black && !s->blackResign) {
           auto move = black->next(game.position, game.handBlack, game.handWhite);
           if (move) {
             move->decideSuffix(game.position);
@@ -724,18 +726,18 @@ void Session::run() {
               lastTo = game.moves_.back().to;
             }
             game.moves_.push_back(*move);
-            std::cout << (char const *)StringFromMove(*move, lastTo).c_str() << std::endl;
-            std::cout << "========================" << std::endl;
-            std::cout << (char const *)game.position.debugString().c_str();
-            std::cout << "------------------------" << std::endl;
+            cout << (char const *)StringFromMove(*move, lastTo).c_str() << endl;
           } else {
             s->blackResign = true;
-            std::cout << "先手番AIが投了" << std::endl;
+            cout << "先手番AIが投了" << endl;
           }
+          cout << "========================" << endl;
+          cout << (char const *)game.position.debugString().c_str();
+          cout << "------------------------" << endl;
         }
       } else {
         // 次が後手番
-        if (white) {
+        if (white && !s->whiteResign) {
           auto move = white->next(game.position, game.handWhite, game.handBlack);
           if (move) {
             move->decideSuffix(game.position);
@@ -744,14 +746,14 @@ void Session::run() {
               lastTo = game.moves_.back().to;
             }
             game.moves_.push_back(*move);
-            std::cout << (char const *)StringFromMove(*move, lastTo).c_str() << std::endl;
-            std::cout << "========================" << std::endl;
-            std::cout << (char const *)game.position.debugString().c_str();
-            std::cout << "------------------------" << std::endl;
+            cout << (char const *)StringFromMove(*move, lastTo).c_str() << endl;
           } else {
             s->whiteResign = true;
-            std::cout << "後手番AIが投了" << std::endl;
+            cout << "後手番AIが投了" << endl;
           }
+          cout << "========================" << endl;
+          cout << (char const *)game.position.debugString().c_str();
+          cout << "------------------------" << endl;
         }
       }
     }
