@@ -5,6 +5,8 @@ voices=(
   "m_White"
   "m_Resign"
   "m_Ready"
+  "m_WrongMoveWarningLeading"
+  "m_WrongMoveWarningTrailing"
 
   "sq_1_1"
   "sq_1_2"
