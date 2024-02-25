@@ -137,10 +137,12 @@ void Game::Generate(Position const &position, Color color, std::deque<PieceType>
             Move mp = m;
             mp.promote = 1;
             all.push_back(mp);
-            // 不成
-            Move mnp = m;
-            mnp.promote = -1;
-            all.push_back(mnp);
+            if (!MustPromote(PieceTypeFromPiece(p), from, to, color)) {
+              // 不成
+              Move mnp = m;
+              mnp.promote = -1;
+              all.push_back(mnp);
+            }
           } else {
             all.push_back(m);
           }

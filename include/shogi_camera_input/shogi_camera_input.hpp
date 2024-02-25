@@ -395,6 +395,30 @@ inline bool IsPromotableMove(Square from, Square to, Color color) {
   }
 }
 
+// type の種類の駒が from から to に移動した時, 成らないと反則になる時 true を返す.
+inline bool MustPromote(PieceType type, Square from, Square to, Color color) {
+  if (!IsPromotableMove(from, to, color)) {
+    return false;
+  }
+  switch (type) {
+  case PieceType::Lance:
+  case PieceType::Pawn:
+    if (color == Color::Black) {
+      return to.rank < Rank::Rank2;
+    } else {
+      return to.rank > Rank::Rank8;
+    }
+  case PieceType::Knight:
+    if (color == Color::Black) {
+      return to.rank < Rank::Rank3;
+    } else {
+      return to.rank > Rank::Rank7;
+    }
+  default:
+    return false;
+  }
+}
+
 using SuffixUnderlyingType = uint32_t;
 
 // 符号を読み上げるのに必要な追加情報.
