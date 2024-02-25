@@ -482,6 +482,7 @@ class DebugView: UIView {
   init() {
     self.ciContext = CIContext()
     self.reader = Reader()
+    self.status = .init()
     super.init(frame: .zero)
 
     guard
@@ -498,7 +499,7 @@ class DebugView: UIView {
     videoDataOutput.videoSettings = [
       kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
     ]
-    videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue.main)
+    videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue.global())
     videoDataOutput.alwaysDiscardsLateVideoFrames = true
     let session = AVCaptureSession()
     guard session.canAddInput(deviceInput) else {
@@ -584,6 +585,38 @@ class DebugView: UIView {
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
+
+  private var status: sci.Status {
+    didSet {
+      overlayLayer?.status = status
+      imageViewLayer?.status = status
+      if !status.game.moves_.empty() {
+        if let moveIndex {
+          if moveIndex + 1 < status.game.moves_.size() {
+            let mv = status.game.moves_[moveIndex + 1]
+            reader?.play(move: mv, last: status.game.moves_[moveIndex])
+            self.moveIndex = moveIndex + 1
+          }
+        } else {
+          let mv = status.game.moves_[0]
+          reader?.play(move: mv, last: nil)
+          moveIndex = 0
+        }
+      }
+      if let moveIndex {
+        if moveIndex + 1 == status.game.moves_.size() {
+          if (status.blackResign || status.whiteResign) && !resigned {
+            reader?.playResign()
+            resigned = true
+          }
+        }
+      }
+      boardViewLayer?.board = .init(
+        position: status.game.position, blackHand: .init(status.game.handBlack),
+        whiteHand: .init(status.game.handWhite), move: status.game.moves_.last,
+        showArrow: status.waitingMove)
+    }
+  }
 }
 
 extension DebugView: AVCaptureVideoDataOutputSampleBufferDelegate {
@@ -607,32 +640,8 @@ extension DebugView: AVCaptureVideoDataOutputSampleBufferDelegate {
     let mat = sci.Utility.MatFromCGImage(Unmanaged.passUnretained(cgImage).toOpaque())
     session.push(mat)
     let status = session.status()
-    overlayLayer?.status = status
-    imageViewLayer?.status = status
-    if !status.game.moves_.empty() {
-      if let moveIndex {
-        if moveIndex + 1 < status.game.moves_.size() {
-          let mv = status.game.moves_[moveIndex + 1]
-          reader?.play(move: mv, last: status.game.moves_[moveIndex])
-          self.moveIndex = moveIndex + 1
-        }
-      } else {
-        let mv = status.game.moves_[0]
-        reader?.play(move: mv, last: nil)
-        moveIndex = 0
-      }
+    DispatchQueue.main.async { [weak self] in
+      self?.status = status
     }
-    if let moveIndex {
-      if moveIndex + 1 == status.game.moves_.size() {
-        if (status.blackResign || status.whiteResign) && !resigned {
-          reader?.playResign()
-          resigned = true
-        }
-      }
-    }
-    boardViewLayer?.board = .init(
-      position: status.game.position, blackHand: .init(status.game.handBlack),
-      whiteHand: .init(status.game.handWhite), move: status.game.moves_.last,
-      showArrow: status.waitingMove)
   }
 }
