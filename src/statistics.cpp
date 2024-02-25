@@ -2,6 +2,7 @@
 
 #include <opencv2/imgproc.hpp>
 
+#include "base64.hpp"
 #include <iostream>
 
 namespace sci {
@@ -59,6 +60,10 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   // before の平均値の, after から見たときの偏差値
   float tBeforeMean = (10 * meanBefore - meanAfter) / stddevAfter + 50;
   float tAfterMean = (10 * meanAfter - meanBefore) / stddevBefore + 50;
+  static int count = 0;
+  count++;
+  cout << "b64png(bp" << count << "):" << (char const *)Img::EncodeToBase64(bp).c_str() << endl;
+  cout << "b64png(ap" << count << "):" << (char const *)Img::EncodeToBase64(ap).c_str() << endl;
   cout << "tBefore=" << tBeforeMean << ", tAfter=" << tAfterMean << ", fabs(tBefore - tAfter)=" << fabs(tBeforeMean - tAfterMean) << endl;
   // before と after で, book の駒画像との類似度の分布を調べる. before 対 book の分布が, after 対 book の分布とだいたい同じなら不成, 大きくずれていれば成りと判定する.
   // fabs(tBeforeMean - tAfterMean) の実際の値の様子:
@@ -284,6 +289,9 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   detected.push_back(*move);
   g.apply(*move);
   book.update(g.position, board);
+  static int count = 0;
+  count++;
+  cout << "b64png(book" << count << "):" << base64::to_base64(book.toPng()) << endl;
   cout << (char const *)StringFromMove(*move, lastMoveTo).c_str() << endl;
   std::cout << "========================" << std::endl;
   std::cout << (char const *)g.position.debugString().c_str();
