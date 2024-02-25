@@ -643,6 +643,8 @@ struct Status {
   std::optional<cv::Mat> stableBoard;
   bool blackResign = false;
   bool whiteResign = false;
+  // session.detected.size() != game.moves.size() の時 true. AI の指し手の駒を人間が動かすのを待っている時に true.
+  bool waitingMove = false;
 };
 
 // 盤面画像.

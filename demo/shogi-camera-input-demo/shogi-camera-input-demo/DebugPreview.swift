@@ -234,10 +234,11 @@ class DebugView: UIView {
       let blackHand: [PieceType]
       let whiteHand: [PieceType]
       let move: Move?
+      let showArrow: Bool
     }
 
     var board: Board = .init(
-      position: sci.MakePosition(.None), blackHand: [], whiteHand: [], move: nil)
+      position: sci.MakePosition(.None), blackHand: [], whiteHand: [], move: nil, showArrow: false)
     {
       didSet {
         setNeedsDisplay()
@@ -254,6 +255,7 @@ class DebugView: UIView {
       let h = w * aspect
       let cx = size.width * 0.5
       let cy = size.height * 0.5
+      let lineWidth = w * 0.05
 
       // 移動
       if let move = board.move {
@@ -273,6 +275,7 @@ class DebugView: UIView {
       }
 
       // 縦線
+      ctx.setLineWidth(lineWidth)
       ctx.setStrokeColor(UIColor.gray.cgColor)
       for i in 1..<9 {
         let x = cx + w * (-4.5 + CGFloat(i))
@@ -352,6 +355,12 @@ class DebugView: UIView {
       }
       var by = cy + 3.5 * h
       var wy = cy - 4.5 * h
+      var arrowFrom: CGPoint? = nil
+      if let from = board.move?.from.value {
+        arrowFrom = CGPoint(
+          x: cx + (-4 + CGFloat(from.file.rawValue)) * w,
+          y: cy + (-4 + CGFloat(from.rank.rawValue)) * h)
+      }
       for piece in [
         PieceType.Pawn, PieceType.Lance, PieceType.Knight, PieceType.Silver, PieceType.Gold,
         PieceType.Bishop, PieceType.Rook,
@@ -363,17 +372,25 @@ class DebugView: UIView {
         let s = cf as String
         if let count = black[piece] {
           let ss = count > 1 ? s + String(count) : s
-          Self.Draw(
-            str: ss, font: font, ctx: ctx, box: .init(x: cx + 4.5 * w, y: by, width: w, height: h),
-            rotate: false)
+          let box = CGRect(x: cx + 4.5 * w, y: by, width: w, height: h)
+          Self.Draw(str: ss, font: font, ctx: ctx, box: box, rotate: false)
           by -= h
+          if let move = board.move, board.showArrow, move.color == .Black,
+            !move.from.__convertToBool(), piece == sci.PieceTypeFromPiece(move.piece)
+          {
+            arrowFrom = CGPoint(x: box.midX, y: box.midY)
+          }
         }
         if let count = white[piece] {
           let ss = count > 1 ? s + String(count) : s
-          Self.Draw(
-            str: ss, font: font, ctx: ctx, box: .init(x: cx - 5.5 * w, y: wy, width: w, height: h),
-            rotate: true)
+          let box = CGRect(x: cx - 5.5 * w, y: wy, width: w, height: h)
+          Self.Draw(str: ss, font: font, ctx: ctx, box: box, rotate: true)
           wy += h
+          if let move = board.move, board.showArrow, move.color == .White,
+            !move.from.__convertToBool(), piece == sci.PieceTypeFromPiece(move.piece)
+          {
+            arrowFrom = CGPoint(x: box.midX, y: box.midY)
+          }
         }
       }
       Self.Draw(
@@ -382,6 +399,44 @@ class DebugView: UIView {
       Self.Draw(
         str: "☖", font: font, ctx: ctx, box: .init(x: cx - 5.5 * w, y: wy, width: w, height: h),
         rotate: true)
+
+      if let arrowFrom, board.showArrow, let move = board.move {
+        let arrowTo = CGPoint(
+          x: cx + (-4 + CGFloat(move.to.file.rawValue)) * w,
+          y: cy + (-4 + CGFloat(move.to.rank.rawValue)) * h)
+        let color = UIColor.red.cgColor
+        ctx.setStrokeColor(color)
+        ctx.move(to: arrowFrom)
+        ctx.addLine(to: arrowTo)
+        ctx.setLineWidth(lineWidth * 2)
+        ctx.strokePath()
+
+        // 矢印の傘の角度(片側)
+        let arrowAngle: CGFloat = 10
+        // 矢印の傘の長さ
+        let arrowLength: CGFloat = w * 0.25
+        let dx = arrowTo.x - arrowFrom.x
+        let dy = arrowTo.y - arrowFrom.y
+        let angle = atan2(dy, dx)
+        let tip1 = CGPoint(
+          x: arrowTo.x + arrowLength * cos(angle + arrowAngle),
+          y: arrowTo.y + arrowLength * sin(angle + arrowAngle))
+        let tip2 = CGPoint(
+          x: arrowTo.x + arrowLength * cos(angle - arrowAngle),
+          y: arrowTo.y + arrowLength * sin(angle - arrowAngle))
+        ctx.move(to: tip1)
+        ctx.addLine(to: arrowTo)
+        ctx.addLine(to: tip2)
+        ctx.strokePath()
+
+        ctx.setFillColor(color)
+        let radius = dotRadius * 2
+        ctx.addEllipse(
+          in: .init(
+            x: arrowFrom.x - radius, y: arrowFrom.y - radius, width: radius * 2,
+            height: radius * 2))
+        ctx.fillPath()
+      }
     }
 
     private static func Draw(str: String, font: CTFont, ctx: CGContext, box: CGRect, rotate: Bool) {
@@ -577,6 +632,7 @@ extension DebugView: AVCaptureVideoDataOutputSampleBufferDelegate {
     }
     boardViewLayer?.board = .init(
       position: status.game.position, blackHand: .init(status.game.handBlack),
-      whiteHand: .init(status.game.handWhite), move: status.game.moves_.last)
+      whiteHand: .init(status.game.handWhite), move: status.game.moves_.last,
+      showArrow: status.waitingMove)
   }
 }

@@ -755,6 +755,7 @@ void Session::run() {
         }
       }
     }
+    s->waitingMove = detected.size() != game.moves_.size();
     s->game = game;
     if (!stat.stableBoardHistory.empty()) {
       s->stableBoard = stat.stableBoardHistory.back().back().image;
