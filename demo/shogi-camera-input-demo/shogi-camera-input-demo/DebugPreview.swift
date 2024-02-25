@@ -15,6 +15,7 @@ class DebugView: UIView {
   private var moveIndex: Int?
   private let ciContext: CIContext
   private var resigned: Bool = false
+  private var wrongMoveLastNotified: Date?
 
   class OverlayLayer: CALayer {
     var status: sci.Status? {
@@ -614,6 +615,18 @@ class DebugView: UIView {
           let mv = status.game.moves_[0]
           reader?.play(move: mv, last: nil)
           moveIndex = 0
+        }
+
+        if status.wrongMove {
+          if wrongMoveLastNotified == nil || Date.now.timeIntervalSince(wrongMoveLastNotified!) > 20 {
+            wrongMoveLastNotified = Date.now
+            if let mv = status.game.moves_.last {
+              let last = status.game.moves_.dropLast().last
+              reader?.playWrongMoveWarning(expected: mv, last: last)
+            }
+          }
+        } else {
+          wrongMoveLastNotified = nil
         }
       }
       if let moveIndex {

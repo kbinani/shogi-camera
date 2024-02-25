@@ -617,6 +617,7 @@ void Session::run() {
     s->blackResign = this->s->blackResign;
     s->whiteResign = this->s->whiteResign;
     s->boardReady = this->s->boardReady;
+    s->wrongMove = this->s->wrongMove;
     s->width = frame.size().width;
     s->height = frame.size().height;
     Img::FindContours(frame, s->contours, s->squares, s->pieces);

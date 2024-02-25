@@ -671,6 +671,8 @@ struct Status {
   bool waitingMove = false;
   // 盤面の画像認識が準備完了となった時 true
   bool boardReady = false;
+  // AI の示した手と違う手が指されている時に true
+  bool wrongMove = false;
 };
 
 // 盤面画像.

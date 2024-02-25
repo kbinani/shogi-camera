@@ -292,12 +292,14 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   if (detected.size() + 1 == g.moves_.size()) {
     // g.moves_.back() は AI が生成した手なので, それと合致しているか調べる.
     if (*move != g.moves_.back()) {
+      s.wrongMove = true;
       cout << "AIの示した手と違う手が指されている" << endl;
       return;
     }
   } else {
     g.moves_.push_back(*move);
   }
+  s.wrongMove = false;
   stableBoardHistory.push_back(history);
   detected.push_back(*move);
   g.apply(*move);
