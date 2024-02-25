@@ -10,7 +10,7 @@ namespace sci {
 namespace {
 
 optional<PieceType> PieceTypeFromSunfishPiece(sunfish::Piece p) {
-  switch (static_cast<uint8_t>(p.kindOnly())) {
+  switch (sunfish::Piece::HandMask & static_cast<uint8_t>(p.kindOnly())) {
   case sunfish::Piece::Pawn:
     return PieceType::Pawn;
   case sunfish::Piece::Lance:
@@ -46,12 +46,14 @@ optional<Move> MoveFromSunfishMove(sunfish::Move const &move, Color color) {
   sunfish::Piece piece = move.piece();
   auto type = PieceTypeFromSunfishPiece(move.piece());
   if (!type) {
+    cout << "PieceType を特定できなかった" << endl;
     return nullopt;
   }
   mv.piece = MakePiece(color, *type, piece.isPromoted() ? PieceStatus::Promoted : PieceStatus::Default);
   if (move.isCapturing()) {
     auto captured = PieceTypeFromSunfishPiece(move.captured());
     if (!captured) {
+      cout << "取った駒の PieceType を特定できなかった" << endl;
       return nullopt;
     }
     mv.newHand = captured;
@@ -131,25 +133,26 @@ optional<sunfish::Move> SunfishMoveFromMove(Move const &move) {
 } // namespace
 
 struct Sunfish3AI::Impl {
-  explicit Impl(Color color) : color(color) {
-  }
-
   optional<Move> next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+    Color color = moves.size() % 2 == 0 ? Color::Black : Color::White;
     sunfish::Move move = sunfish::Move::empty();
     sunfish::Record record;
     record.init(sunfish::Board::Handicap::Even);
     for (auto const &m : moves) {
       auto sm = SunfishMoveFromMove(m);
       if (!sm) {
+        cout << "move を sunfish 形式に変換できなかった" << endl;
         return nullopt;
       }
       cout << sm->toString() << endl;
       if (!record.makeMove(*sm)) {
+        cout << "move を record に適用できなかった" << endl;
         return nullopt;
       }
     }
     searcher.setRecord(record);
     if (!searcher.idsearch(record.getBoard(), move)) {
+      cout << "idsearch が false を返した" << endl;
       return nullopt;
     }
     cout << "result: " << move.toString() << endl;
@@ -158,11 +161,10 @@ struct Sunfish3AI::Impl {
     return MoveFromSunfishMove(move, color);
   }
 
-  Color const color;
   sunfish::Searcher searcher;
 };
 
-Sunfish3AI::Sunfish3AI(Color color) : AI(color), impl(make_shared<Impl>(color)) {
+Sunfish3AI::Sunfish3AI() : impl(make_shared<Impl>()) {
 }
 
 optional<Move> Sunfish3AI::next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {

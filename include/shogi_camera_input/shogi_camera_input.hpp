@@ -607,15 +607,13 @@ struct Game {
 
 class AI {
 public:
-  explicit AI(Color color) : color(color) {}
   virtual ~AI() {}
   virtual std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) = 0;
-  Color const color;
 };
 
 class RandomAI : public AI {
 public:
-  explicit RandomAI(Color color);
+  RandomAI();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
 
 private:
@@ -624,7 +622,7 @@ private:
 
 class Sunfish3AI : public AI {
 public:
-  explicit Sunfish3AI(Color color);
+  Sunfish3AI();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
 
 private:
