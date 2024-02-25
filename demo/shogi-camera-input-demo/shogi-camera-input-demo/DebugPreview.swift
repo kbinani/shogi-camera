@@ -597,6 +597,12 @@ class DebugView: UIView {
     didSet {
       overlayLayer?.status = status
       imageViewLayer?.status = status
+      guard status.boardReady else {
+        return
+      }
+      if !oldValue.boardReady {
+        reader?.playReady()
+      }
       if !status.game.moves_.empty() {
         if let moveIndex {
           if moveIndex + 1 < status.game.moves_.size() {

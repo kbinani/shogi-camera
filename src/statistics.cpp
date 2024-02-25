@@ -211,14 +211,17 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
       changeset.push_back(changes);
     }
   }
-  cout << "minChanges=" << minChange << "; maxChanges=" << maxChange << endl;
   if (changeset.empty() || minChange != maxChange) {
     // 有効な変化が発見できなかった
     if ((minChange > 2 || maxChange > 4) && stableBoardHistory.size() == 1 && detected.empty()) {
       // まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
-      stableBoardHistory.pop_back();
-      stableBoardHistory.push_back(history);
-      cout << "stableBoardHistoryをリセット" << endl;
+      stableBoardInitialResetCounter++;
+      stableBoardInitialReadyCounter = 0;
+      if (stableBoardInitialResetCounter > kStableBoardCounterThreshold) {
+        stableBoardHistory.pop_back();
+        stableBoardHistory.push_back(history);
+        cout << "stableBoardHistoryをリセット" << endl;
+      }
     }
     return;
   }
@@ -228,6 +231,11 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
       return;
     }
   }
+
+  stableBoardInitialResetCounter = 0;
+  stableBoardInitialReadyCounter = std::min(stableBoardInitialReadyCounter + 1, kStableBoardCounterThreshold + 1);
+  s.boardReady = stableBoardInitialReadyCounter > kStableBoardCounterThreshold;
+
   // index 番目の手.
   size_t const index = detected.size();
   Color const color = ColorFromIndex(index);

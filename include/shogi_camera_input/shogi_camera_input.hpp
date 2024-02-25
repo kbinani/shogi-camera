@@ -669,6 +669,8 @@ struct Status {
   bool whiteResign = false;
   // session.detected.size() != game.moves.size() の時 true. AI の指し手の駒を人間が動かすのを待っている時に true.
   bool waitingMove = false;
+  // 盤面の画像認識が準備完了となった時 true
+  bool boardReady = false;
 };
 
 // 盤面画像.
@@ -750,6 +752,12 @@ struct Statistics {
                                     std::deque<PieceType> const &hand,
                                     PieceBook &book);
   PieceBook book;
+  // stableBoardHistory をリセットする処理で, 最初の stableBoardHistory との差分がデカいフレームがいくつ連続したかを数えるカウンター.
+  // これが閾値を超えたら stableBoardHistory をリセットする.
+  int stableBoardInitialResetCounter = 0;
+  // stableBoardHistory を ready 判定とする閾値
+  int stableBoardInitialReadyCounter = 0;
+  static int constexpr kStableBoardCounterThreshold = 10;
 };
 
 class Session {
