@@ -255,7 +255,6 @@ class DebugView: UIView {
       let h = w * aspect
       let cx = size.width * 0.5
       let cy = size.height * 0.5
-      let lineWidth = w * 0.03
 
       // 移動
       if let move = board.move {
@@ -275,7 +274,7 @@ class DebugView: UIView {
       }
 
       // 縦線
-      ctx.setLineWidth(lineWidth)
+      ctx.setLineWidth(w * 0.03)
       ctx.setStrokeColor(UIColor.gray.cgColor)
       for i in 1..<9 {
         let x = cx + w * (-4.5 + CGFloat(i))
@@ -293,6 +292,7 @@ class DebugView: UIView {
         ctx.strokePath()
       }
       // 枠
+      ctx.setLineWidth(w * 0.04)
       ctx.setStrokeColor(UIColor.black.cgColor)
       ctx.beginPath()
       ctx.addRect(.init(x: cx - w * 4.5, y: cy - h * 4.5, width: w * 9, height: h * 9))
