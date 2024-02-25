@@ -9,17 +9,6 @@ namespace sci {
 
 namespace {
 
-int const N = 11;
-int const thresh = 50;
-
-double Angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) {
-  double dx1 = pt1.x - pt0.x;
-  double dy1 = pt1.y - pt0.y;
-  double dx2 = pt2.x - pt0.x;
-  double dy2 = pt2.y - pt0.y;
-  return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
-}
-
 float Angle(cv::Point2f const &a) {
   return atan2f(a.y, a.x);
 }
@@ -37,87 +26,6 @@ float Normalize90To90(float a) {
     a -= numbers::pi;
   }
   return a;
-}
-
-void FindContours(cv::Mat const &image, Status &s) {
-  using namespace std;
-  s.contours.clear();
-  s.squares.clear();
-  s.pieces.clear();
-
-  cv::Mat timg(image);
-  cv::cvtColor(image, timg, cv::COLOR_RGB2GRAY);
-
-  cv::Size size = image.size();
-  s.width = size.width;
-  s.height = size.height;
-
-  cv::Mat gray0(image.size(), CV_8U), gray;
-
-  vector<vector<cv::Point>> contours;
-  double area = size.width * size.height;
-
-  int ch[] = {0, 0};
-  mixChannels(&timg, 1, &gray0, 1, ch, 1);
-
-  for (int l = 0; l < N; l++) {
-    if (l == 0) {
-      Canny(gray0, gray, 5, thresh, 5);
-    } else {
-      gray = gray0 >= (l + 1) * 255 / N;
-    }
-
-    findContours(gray, contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
-
-    for (size_t i = 0; i < contours.size(); i++) {
-      auto contour = make_shared<Contour>();
-      approxPolyDP(cv::Mat(contours[i]), contour->points, arcLength(cv::Mat(contours[i]), true) * 0.02, true);
-
-      if (!isContourConvex(cv::Mat(contour->points))) {
-        continue;
-      }
-      contour->area = fabs(contourArea(cv::Mat(contour->points)));
-
-      if (contour->area <= area / 648.0) {
-        continue;
-      }
-      s.contours.push_back(contour);
-
-      if (area / 81.0 <= contour->area) {
-        continue;
-      }
-      switch (contour->points.size()) {
-      case 4: {
-        // アスペクト比が 0.6 未満の四角形を除去
-        if (contour->aspectRatio() < 0.6) {
-          break;
-        }
-        double maxCosine = 0;
-
-        for (int j = 2; j < 5; j++) {
-          // find the maximum cosine of the angle between joint edges
-          double cosine = fabs(Angle(contour->points[j % 4], contour->points[j - 2], contour->points[j - 1]));
-          maxCosine = std::max(maxCosine, cosine);
-        }
-
-        // if cosines of all angles are small
-        // (all angles are ~90 degree) then write quandrange
-        // vertices to resultant sequence
-        if (maxCosine >= 0.3) {
-          break;
-        }
-        s.squares.push_back(contour);
-        break;
-      }
-      case 5: {
-        if (auto pc = PieceContour::Make(contour->points); pc && pc->aspectRatio >= 0.6) {
-          s.pieces.push_back(pc);
-        }
-        break;
-      }
-      }
-    }
-  }
 }
 
 struct RadianAverage {
@@ -658,14 +566,12 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
       cv::Point2f(0, 0),
   });
   cv::Mat mtx = cv::getPerspectiveTransform(stat.preciseOutline->points, dst);
-  cv::Mat tmp1;
-  cv::warpPerspective(frame, tmp1, mtx, cv::Size(width, height));
   if (stat.rotate) {
-    cv::Mat tmp2;
-    cv::rotate(tmp1, tmp2, cv::ROTATE_180);
-    cv::cvtColor(tmp2, s.boardWarped, cv::COLOR_RGB2GRAY);
+    cv::Mat tmp1;
+    cv::warpPerspective(frame, tmp1, mtx, cv::Size(width, height));
+    cv::rotate(tmp1, s.boardWarped, cv::ROTATE_180);
   } else {
-    cv::cvtColor(tmp1, s.boardWarped, cv::COLOR_RGB2GRAY);
+    cv::warpPerspective(frame, s.boardWarped, mtx, cv::Size(width, height));
   }
 }
 
@@ -703,12 +609,16 @@ void Session::run() {
     queue.pop_front();
     lock.unlock();
 
+    cv::cvtColor(frame, frame, cv::COLOR_RGB2GRAY);
+
     auto s = std::make_shared<Status>();
     s->stableBoardMaxSimilarity = BoardImage::kStableBoardMaxSimilarity;
     s->stableBoardThreshold = BoardImage::kStableBoardThreshold;
     s->blackResign = this->s->blackResign;
     s->whiteResign = this->s->whiteResign;
-    FindContours(frame, *s);
+    s->width = frame.size().width;
+    s->height = frame.size().height;
+    Img::FindContours(frame, s->contours, s->squares, s->pieces);
     FindBoard(frame, *s);
     FindPieces(frame, *s);
     stat.update(*s);

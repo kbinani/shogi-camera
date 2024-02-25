@@ -8,6 +8,18 @@
 
 namespace sci {
 
+namespace {
+
+double Angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) {
+  double dx1 = pt1.x - pt0.x;
+  double dy1 = pt1.y - pt0.y;
+  double dx2 = pt2.x - pt0.x;
+  double dy2 = pt2.y - pt0.y;
+  return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
+}
+
+} // namespace
+
 cv::Mat Img::PieceROI(cv::Mat const &board, int x, int y, float shrink) {
   int w = board.size().width;
   int h = board.size().height;
@@ -128,6 +140,85 @@ void Img::Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y) {
   t[0][2] = x;
   t[1][2] = y;
   cv::warpAffine(src, dst, cv::Mat(2, 3, CV_32F, t), dst.size(), cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
+}
+
+void Img::FindContours(cv::Mat const &image, std::vector<std::shared_ptr<Contour>> &contours, std::vector<std::shared_ptr<Contour>> &squares, std::vector<std::shared_ptr<PieceContour>> &pieces) {
+  using namespace std;
+  int const N = 11;
+  int const thresh = 50;
+
+  contours.clear();
+  squares.clear();
+  pieces.clear();
+
+  cv::Size size = image.size();
+
+  cv::Mat gray0(image.size(), CV_8U), gray;
+
+  vector<vector<cv::Point>> all;
+  double area = size.width * size.height;
+
+  int ch[] = {0, 0};
+  mixChannels(&image, 1, &gray0, 1, ch, 1);
+
+  for (int l = 0; l < N; l++) {
+    if (l == 0) {
+      Canny(gray0, gray, 5, thresh, 5);
+    } else {
+      gray = gray0 >= (l + 1) * 255 / N;
+    }
+
+    findContours(gray, all, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+
+    for (size_t i = 0; i < all.size(); i++) {
+      auto contour = make_shared<Contour>();
+      approxPolyDP(cv::Mat(all[i]), contour->points, arcLength(cv::Mat(all[i]), true) * 0.02, true);
+
+      if (!isContourConvex(cv::Mat(contour->points))) {
+        continue;
+      }
+      contour->area = fabs(contourArea(cv::Mat(contour->points)));
+
+      if (contour->area <= area / 648.0) {
+        continue;
+      }
+      contours.push_back(contour);
+
+      if (area / 81.0 <= contour->area) {
+        continue;
+      }
+      switch (contour->points.size()) {
+      case 4: {
+        // アスペクト比が 0.6 未満の四角形を除去
+        if (contour->aspectRatio() < 0.6) {
+          break;
+        }
+        double maxCosine = 0;
+
+        for (int j = 2; j < 5; j++) {
+          // find the maximum cosine of the angle between joint edges
+          double cosine = fabs(Angle(contour->points[j % 4], contour->points[j - 2], contour->points[j - 1]));
+          maxCosine = std::max(maxCosine, cosine);
+        }
+
+        // if cosines of all angles are small
+        // (all angles are ~90 degree) then write quandrange
+        // vertices to resultant sequence
+        if (maxCosine >= 0.3) {
+          break;
+        }
+        squares.push_back(contour);
+        break;
+      }
+      case 5: {
+        if (auto pc = PieceContour::Make(contour->points); pc && pc->aspectRatio >= 0.6) {
+          pieces.push_back(pc);
+        }
+        break;
+      }
+      }
+    }
+  }
 }
 
 } // namespace sci
