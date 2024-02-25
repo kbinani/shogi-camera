@@ -405,13 +405,13 @@ enum class SuffixType : SuffixUnderlyingType {
   Left = 0b10,    // 左
   Nearest = 0b11, // 直
   // 動作を表す Suffix
-  Up = 0b00100,      // 上
-  Down = 0b01000,    // 引
-  Sideway = 0b01100, // 寄
-  Drop = 0b10000,    // 打ち
+  Up = 0b000100,      // 上
+  Down = 0b001000,    // 引
+  Sideway = 0b010000, // 寄
+  Drop = 0b100000,    // 打ち
 
-  MaskPosition = 0b00011,
-  MaskAction = 0b11100,
+  MaskPosition = 0b000011,
+  MaskAction = 0b111100,
 };
 
 using Suffix = SuffixUnderlyingType;
