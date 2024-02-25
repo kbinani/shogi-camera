@@ -117,7 +117,7 @@ void Game::Generate(Position const &position, Color color, std::deque<PieceType>
             continue;
           }
           Piece p1 = position.pieces[i][j];
-          if (ColorFromPiece(p1) == color) {
+          if (p1 != 0 && ColorFromPiece(p1) == color) {
             continue;
           }
           Square to = MakeSquare(i, j);
