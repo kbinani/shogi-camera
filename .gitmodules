@@ -4,3 +4,6 @@
 [submodule "test/doctest"]
 	path = test/doctest
 	url = https://github.com/doctest/doctest.git
+[submodule "demo/sunfish3"]
+	path = demo/sunfish3
+	url = https://github.com/sunfish-shogi/sunfish3.git
