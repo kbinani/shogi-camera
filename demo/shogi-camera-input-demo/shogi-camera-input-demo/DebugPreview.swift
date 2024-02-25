@@ -255,7 +255,7 @@ class DebugView: UIView {
       let h = w * aspect
       let cx = size.width * 0.5
       let cy = size.height * 0.5
-      let lineWidth = w * 0.05
+      let lineWidth = w * 0.03
 
       // 移動
       if let move = board.move {
@@ -401,6 +401,11 @@ class DebugView: UIView {
         rotate: true)
 
       if let arrowFrom, board.showArrow, let move = board.move {
+        ctx.setAlpha(0.7)
+        ctx.beginTransparencyLayer(auxiliaryInfo: nil)
+        defer {
+          ctx.endTransparencyLayer()
+        }
         let arrowTo = CGPoint(
           x: cx + (-4 + CGFloat(move.to.file.rawValue)) * w,
           y: cy + (-4 + CGFloat(move.to.rank.rawValue)) * h)
@@ -408,13 +413,15 @@ class DebugView: UIView {
         ctx.setStrokeColor(color)
         ctx.move(to: arrowFrom)
         ctx.addLine(to: arrowTo)
-        ctx.setLineWidth(lineWidth * 2)
+        ctx.setLineWidth(w * 0.1)
+        ctx.setLineJoin(.round)
+        ctx.setLineCap(.round)
         ctx.strokePath()
 
         // 矢印の傘の角度(片側)
         let arrowAngle: CGFloat = 10
         // 矢印の傘の長さ
-        let arrowLength: CGFloat = w * 0.25
+        let arrowLength: CGFloat = w * 0.3
         let dx = arrowTo.x - arrowFrom.x
         let dy = arrowTo.y - arrowFrom.y
         let angle = atan2(dy, dx)
@@ -429,8 +436,8 @@ class DebugView: UIView {
         ctx.addLine(to: tip2)
         ctx.strokePath()
 
-        ctx.setFillColor(color)
         let radius = dotRadius * 2
+        ctx.setFillColor(color)
         ctx.addEllipse(
           in: .init(
             x: arrowFrom.x - radius, y: arrowFrom.y - radius, width: radius * 2,
