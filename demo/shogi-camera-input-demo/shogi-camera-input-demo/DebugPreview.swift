@@ -622,6 +622,9 @@ class DebugView: UIView {
         position: status.game.position, blackHand: .init(status.game.handBlack),
         whiteHand: .init(status.game.handWhite), move: status.game.moves_.last,
         showArrow: status.waitingMove)
+      if oldValue.waitingMove && !status.waitingMove {
+        reader?.playNextMoveReady()
+      }
     }
   }
 }

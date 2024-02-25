@@ -1,4 +1,5 @@
 import AVFoundation
+import AudioToolbox
 import ShogiCameraInput
 
 class Reader {
@@ -203,6 +204,11 @@ class Reader {
     .init(misc: Misc.Resign.rawValue, time: 1.536000),
     .init(misc: UInt32.max, time: 2.549333),
   ]
+
+  func playNextMoveReady() {
+    // ct-keytone2
+    AudioServicesPlaySystemSound(1075)
+  }
 
   func playResign() {
     let rate = file.fileFormat.sampleRate
