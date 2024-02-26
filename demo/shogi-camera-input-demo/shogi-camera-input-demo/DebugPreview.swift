@@ -17,6 +17,8 @@ class DebugView: UIView {
   private var resigned: Bool = false
   private var wrongMoveLastNotified: Date?
 
+  private let kWrongMoveNotificationInterval: TimeInterval = 10
+
   class OverlayLayer: CALayer {
     var status: sci.Status? {
       didSet {
@@ -618,7 +620,9 @@ class DebugView: UIView {
         }
 
         if status.wrongMove {
-          if wrongMoveLastNotified == nil || Date.now.timeIntervalSince(wrongMoveLastNotified!) > 20 {
+          if wrongMoveLastNotified == nil
+            || Date.now.timeIntervalSince(wrongMoveLastNotified!) > kWrongMoveNotificationInterval
+          {
             wrongMoveLastNotified = Date.now
             if let mv = status.game.moves_.last {
               let last = status.game.moves_.dropLast().last
