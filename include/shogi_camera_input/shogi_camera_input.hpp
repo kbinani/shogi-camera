@@ -623,11 +623,12 @@ private:
 class Sunfish3AI : public AI {
 public:
   Sunfish3AI();
+  ~Sunfish3AI();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
 
 private:
   struct Impl;
-  std::shared_ptr<Impl> impl;
+  std::unique_ptr<Impl> impl;
 };
 
 struct Status {

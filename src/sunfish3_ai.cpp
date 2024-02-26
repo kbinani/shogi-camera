@@ -61,7 +61,7 @@ optional<Move> MoveFromSunfishMove(sunfish::Move const &move, Color color) {
   if (move.promote()) {
     mv.promote = 1;
   } else {
-    if (mv.from && !piece.isPromoted() && IsPromotableMove(*mv.from, mv.to, color)) {
+    if (mv.from && CanPromote(mv.piece) && !piece.isPromoted() && IsPromotableMove(*mv.from, mv.to, color)) {
       mv.promote = -1;
     }
   }
@@ -164,8 +164,10 @@ struct Sunfish3AI::Impl {
   sunfish::Searcher searcher;
 };
 
-Sunfish3AI::Sunfish3AI() : impl(make_shared<Impl>()) {
+Sunfish3AI::Sunfish3AI() : impl(make_unique<Impl>()) {
 }
+
+Sunfish3AI::~Sunfish3AI() {}
 
 optional<Move> Sunfish3AI::next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
   return impl->next(p, moves, hand, handEnemy);
