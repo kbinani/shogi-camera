@@ -121,6 +121,67 @@ inline std::u8string ShortStringFromPieceTypeAndStatus(PieceUnderlyingType p) {
   return u8"？";
 }
 
+inline std::optional<PieceUnderlyingType> TrimPieceTypeAndStatusPartFromString(std::u8string &inout) {
+  using namespace std;
+  if (inout.starts_with(u8"玉")) {
+    inout = inout.substr(u8string(u8"玉").size());
+    return static_cast<PieceUnderlyingType>(PieceType::King);
+  } else if (inout.starts_with(u8"飛")) {
+    inout = inout.substr(u8string(u8"飛").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Rook);
+  } else if (inout.starts_with(u8"角")) {
+    inout = inout.substr(u8string(u8"角").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Bishop);
+  } else if (inout.starts_with(u8"金")) {
+    inout = inout.substr(u8string(u8"金").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Gold);
+  } else if (inout.starts_with(u8"銀")) {
+    inout = inout.substr(u8string(u8"銀").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Silver);
+  } else if (inout.starts_with(u8"桂")) {
+    inout = inout.substr(u8string(u8"桂").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Knight);
+  } else if (inout.starts_with(u8"香")) {
+    inout = inout.substr(u8string(u8"香").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Lance);
+  } else if (inout.starts_with(u8"歩")) {
+    inout = inout.substr(u8string(u8"歩").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Pawn);
+  } else if (inout.starts_with(u8"龍")) {
+    inout = inout.substr(u8string(u8"龍").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Rook) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (inout.starts_with(u8"馬")) {
+    inout = inout.substr(u8string(u8"馬").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Bishop) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (inout.starts_with(u8"成銀")) {
+    inout = inout.substr(u8string(u8"成銀").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Silver) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (inout.starts_with(u8"全")) {
+    inout = inout.substr(u8string(u8"全").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Silver) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (inout.starts_with(u8"成桂")) {
+    inout = inout.substr(u8string(u8"成桂").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Knight) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (inout.starts_with(u8"圭")) {
+    inout = inout.substr(u8string(u8"圭").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Knight) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (inout.starts_with(u8"成香")) {
+    inout = inout.substr(u8string(u8"成香").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Lance) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (inout.starts_with(u8"杏")) {
+    inout = inout.substr(u8string(u8"杏").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Lance) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (inout.starts_with(u8"と金")) {
+    inout = inout.substr(u8string(u8"と金").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Pawn) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (inout.starts_with(u8"と")) {
+    inout = inout.substr(u8string(u8"と").size());
+    return static_cast<PieceUnderlyingType>(PieceType::Pawn) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else {
+    return std::nullopt;
+  }
+}
+
 inline std::u8string LongStringFromPieceTypeAndStatus(PieceUnderlyingType p) {
   auto i = RemoveColorFromPiece(p);
   switch (i) {
@@ -358,7 +419,7 @@ inline std::optional<Square> TrimSquarePartFromString(std::u8string &inout) {
   std::optional<File> f;
   for (auto const &it : sMap) {
     if (s.starts_with(it.first)) {
-      f = static_cast<File>(it.second);
+      f = static_cast<File>(8 - it.second);
       s = s.substr(it.first.size());
       break;
     }
