@@ -217,7 +217,14 @@ struct Sunfish3AI::Impl {
 
   optional<Move> next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
     Color color = moves.size() % 2 == 0 ? Color::Black : Color::White;
-    sunfish::Move move = sunfish::Move::empty();
+
+    // 有効手があるか確認して, なければ詰みなので投了する.
+    deque<Move> candidates;
+    Game::Generate(p, color, color == Color::Black ? hand : handEnemy, color == Color::Black ? handEnemy : hand, candidates, true);
+    if (candidates.empty()) {
+      return nullopt;
+    }
+
     sunfish::Record record;
     record.init(sunfish::Board::Handicap::Even);
     for (auto const &m : moves) {
@@ -237,9 +244,13 @@ struct Sunfish3AI::Impl {
     config.maxDepth = 2;
     config.limitSeconds = 3;
     searcher.setConfig(config);
+    sunfish::Move move = sunfish::Move::empty();
     if (!searcher.idsearch(record.getBoard(), move)) {
+      // idsearch が失敗したら有効手の中からランダムな手を選ぶ.
       cout << "idsearch が false を返した" << endl;
-      return nullopt;
+      uniform_int_distribution<int> dist(0, (int)candidates.size() - 1);
+      int index = dist(*engine);
+      return candidates[index];
     }
     cout << "result: " << move.toString() << endl;
     searcher.clearRecord();
@@ -248,6 +259,7 @@ struct Sunfish3AI::Impl {
   }
 
   sunfish::Searcher searcher;
+  unique_ptr<mt19937_64> engine;
 };
 
 Sunfish3AI::Sunfish3AI() : impl(make_unique<Impl>()) {
