@@ -110,7 +110,9 @@ sunfish::Piece SunfishPieceFromPiece(Piece p) {
 
 optional<sunfish::Move> SunfishMoveFromMove(Move const &move) {
   sunfish::Square from;
-  sunfish::Piece piece = SunfishPieceFromPiece(move.piece);
+  PieceType type = PieceTypeFromPiece(move.piece);
+  Color color = ColorFromPiece(move.piece);
+  sunfish::Piece piece = SunfishPieceFromPiece(MakePiece(color, type));
   if (move.from) {
     from = SunfishSquareFromSquare(*move.from);
   } else {
@@ -151,6 +153,10 @@ struct Sunfish3AI::Impl {
       }
     }
     searcher.setRecord(record);
+    sunfish::Searcher::Config config = searcher.getConfig();
+    config.maxDepth = 2;
+    config.limitSeconds = 3;
+    searcher.setConfig(config);
     if (!searcher.idsearch(record.getBoard(), move)) {
       cout << "idsearch が false を返した" << endl;
       return nullopt;
