@@ -6,6 +6,8 @@ class Reader {
   private let engine = AVAudioEngine()
   private let node = AVAudioPlayerNode()
   private var file: AVAudioFile!
+  // 読み上げ中のメッセージが読み終わる時刻
+  private var latest: Date?
 
   init?() {
     guard let voice = Bundle.main.url(forResource: "voice", withExtension: "wav") else {
@@ -211,19 +213,35 @@ class Reader {
     .init(misc: UInt32.max, time: 10.240000),
   ]
 
+  private var availableOffset: TimeInterval {
+    if let latest {
+      let now = Date.now
+      let delta = latest.timeIntervalSince(now)
+      return max(0, delta)
+    } else {
+      return 0
+    }
+  }
+
   func playWrongMoveWarning(expected: Move, last: Move?) {
-    var offset = schedule(misc: .WrongMoveWarningLeading, offset: 0)
+    var offset = schedule(misc: .WrongMoveWarningLeading, offset: availableOffset)
     offset = schedule(move: expected, last: last, offset: offset)
     offset = schedule(misc: .WrongMoveWarningTrailing, offset: offset)
+    updateLatestAfter(seconds: offset)
   }
 
   func playReady() {
-    schedule(misc: .Ready, offset: 0)
+    let offset = schedule(misc: .Ready, offset: availableOffset)
+    updateLatestAfter(seconds: offset)
   }
 
   func playNextMoveReady() {
     // ct-keytone2
     AudioServicesPlaySystemSound(1075)
+  }
+
+  private func updateLatestAfter(seconds: TimeInterval) {
+    latest = Date.now.addingTimeInterval(seconds)
   }
 
   @discardableResult
@@ -243,7 +261,8 @@ class Reader {
   }
 
   func playResign() {
-    schedule(misc: .Resign, offset: 0)
+    let offset = schedule(misc: .Resign, offset: availableOffset)
+    updateLatestAfter(seconds: offset)
   }
 
   @discardableResult
@@ -377,7 +396,9 @@ class Reader {
   }
 
   func play(move: Move, last: Move?) {
-    var offset = schedule(misc: move.color == .Black ? Misc.Black : Misc.White, offset: 0)
+    var offset = schedule(
+      misc: move.color == .Black ? Misc.Black : Misc.White, offset: availableOffset)
     offset = schedule(move: move, last: last, offset: offset)
+    updateLatestAfter(seconds: offset)
   }
 }
