@@ -56,8 +56,8 @@ void Position::apply(Move const &mv, std::deque<PieceType> &handBlack, std::dequ
   } else {
     pieces[mv.to.file][mv.to.rank] = mv.piece;
   }
-  if (mv.newHand) {
-    hand.push_back(*mv.newHand);
+  if (mv.newHand_) {
+    hand.push_back(PieceTypeFromPiece(Unpromote(*mv.newHand_)));
   }
 }
 

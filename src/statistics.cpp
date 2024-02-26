@@ -388,7 +388,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.color = color;
         mv.from = MakeSquare(ch.x, ch.y);
         mv.to = *minSquare;
-        mv.newHand = PieceTypeFromPiece(position.pieces[minSquare->file][minSquare->rank]);
+        mv.newHand_ = RemoveColorFromPiece(position.pieces[minSquare->file][minSquare->rank]);
         mv.piece = p;
         if (!moves.empty()) {
           AppendPromotion(mv, before, after, book);
@@ -422,7 +422,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
             mv.from = from;
             mv.to = to;
             mv.piece = p0;
-            mv.newHand = PieceTypeFromPiece(p1);
+            mv.newHand_ = RemoveColorFromPiece(p1);
             if (!moves.empty()) {
               AppendPromotion(mv, before, after, book);
             }
@@ -438,7 +438,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
             mv.from = from;
             mv.to = to;
             mv.piece = p1;
-            mv.newHand = PieceTypeFromPiece(p0);
+            mv.newHand_ = RemoveColorFromPiece(p0);
             if (!moves.empty()) {
               AppendPromotion(mv, before, after, book);
             }

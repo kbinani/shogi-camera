@@ -58,7 +58,11 @@ optional<Move> MoveFromSunfishMove(sunfish::Move const &move, Color color) {
       cout << "取った駒の PieceType を特定できなかった" << endl;
       return nullopt;
     }
-    mv.newHand = captured;
+    if (move.captured().isPromoted()) {
+      mv.newHand_ = static_cast<PieceUnderlyingType>(*captured) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+    } else {
+      mv.newHand_ = static_cast<PieceUnderlyingType>(*captured);
+    }
   }
   if (move.promote()) {
     mv.promote = 1;
@@ -127,9 +131,13 @@ optional<sunfish::Move> SunfishMoveFromMove(Move const &move) {
   sunfish::Square to = SunfishSquareFromSquare(move.to);
   bool promote = move.promote == 1;
   sunfish::Move mv(piece, from, to, promote);
-  if (auto hand = move.newHand; hand) {
-    auto kind = SunfishPieceKindFromPieceType(*hand);
-    mv.setCaptured(sunfish::Piece(kind));
+  if (auto hand = move.newHand_; hand) {
+    auto kind = SunfishPieceKindFromPieceType(PieceTypeFromPiece(*hand));
+    if (IsPromotedPiece(*hand)) {
+      mv.setCaptured(sunfish::Piece(kind | sunfish::Piece::Promotion));
+    } else {
+      mv.setCaptured(sunfish::Piece(kind));
+    }
   }
   if (mv.isEmpty()) {
     return nullopt;
@@ -319,6 +327,8 @@ struct Sunfish3AI::Impl {
     config.limitSeconds = 3;
     searcher.setConfig(config);
 
+    vector<sunfish::Move> smoves;
+
     while (offset != u8string::npos) {
       auto found = kif.find(u8"\n", offset);
       if (found == string::npos) {
@@ -380,7 +390,7 @@ struct Sunfish3AI::Impl {
       mv.piece = MakePiece(color, static_cast<PieceType>(RemoveStatusFromPiece(*pieceTypeAndStatus)), IsPromotedPiece(*pieceTypeAndStatus) ? PieceStatus::Promoted : PieceStatus::Default);
       auto captured = p.pieces[mv.to.file][mv.to.rank];
       if (captured != 0) {
-        mv.newHand = PieceTypeFromPiece(captured);
+        mv.newHand_ = RemoveColorFromPiece(captured);
       }
       if (!fromHand) {
         auto index = line.find(u8"(");
@@ -403,9 +413,22 @@ struct Sunfish3AI::Impl {
         cout << "sunfish 形式に変換できない" << endl;
         break;
       }
+      smoves.push_back(*smove);
       if (!record.makeMove(*smove)) {
         cout << "makeMove が失敗" << endl;
         break;
+      }
+
+      if (smoves.size() == 45) {
+        cout << "expected:" << endl;
+        cout << record.getBoard().toString() << endl;
+        cout << "--" << endl;
+      }
+      if (backup == u8"▽同銀(31)") {
+        sunfish::Board tmpBoard = record.getBoard();
+        for (int i = (int)smoves.size() - 1; i >= 0; i--) {
+          tmpBoard.unmakeMove(smoves[i], i == 45 || i == 44);
+        }
       }
 
       searcher.setRecord(record);
@@ -417,76 +440,6 @@ struct Sunfish3AI::Impl {
       searcher.clearRecord();
       last = to;
       offset = found + 1;
-    }
-  }
-
-  static void Test1() {
-    sunfish::Record record;
-    record.init(sunfish::Board::Handicap::Even);
-
-    static auto Make = [](Color color, optional<Square> from, Square to, Piece p, bool promote = false, optional<PieceType> newHand = nullopt) {
-      Move m;
-      m.color = color;
-      m.from = from;
-      m.to = to;
-      m.piece = p;
-      if (promote) {
-        m.promote = 1;
-      }
-      m.newHand = newHand;
-      return m;
-    };
-
-    vector<Move> moves = {
-        // ▲７六歩(77)
-        Make(Color::Black, MakeSquare(File::File7, Rank::Rank7), MakeSquare(File::File7, Rank::Rank6), MakePiece(Color::Black, PieceType::Pawn)),
-        // ▽９四歩(93)
-        Make(Color::White, MakeSquare(File::File9, Rank::Rank3), MakeSquare(File::File9, Rank::Rank4), MakePiece(Color::White, PieceType::Pawn)),
-        // ▲９六歩(97)
-        Make(Color::Black, MakeSquare(File::File9, Rank::Rank7), MakeSquare(File::File9, Rank::Rank6), MakePiece(Color::Black, PieceType::Pawn)),
-        // ▽９三桂(81)
-        Make(Color::White, MakeSquare(File::File8, Rank::Rank1), MakeSquare(File::File9, Rank::Rank3), MakePiece(Color::White, PieceType::Knight)),
-        // ▲９七角(88)
-        Make(Color::Black, MakeSquare(File::File8, Rank::Rank8), MakeSquare(File::File9, Rank::Rank7), MakePiece(Color::Black, PieceType::Bishop)),
-        // ▽５二飛(82)
-        Make(Color::White, MakeSquare(File::File8, Rank::Rank2), MakeSquare(File::File5, Rank::Rank2), MakePiece(Color::White, PieceType::Rook)),
-        // ▲２六歩(27)
-        Make(Color::Black, MakeSquare(File::File2, Rank::Rank7), MakeSquare(File::File2, Rank::Rank6), MakePiece(Color::Black, PieceType::Pawn)),
-        // ▽４二玉(51)
-        Make(Color::White, MakeSquare(File::File5, Rank::Rank1), MakeSquare(File::File4, Rank::Rank2), MakePiece(Color::White, PieceType::King)),
-        // ▲２五歩(26)
-        Make(Color::Black, MakeSquare(File::File2, Rank::Rank6), MakeSquare(File::File2, Rank::Rank5), MakePiece(Color::Black, PieceType::Pawn)),
-        // ▽８二飛(52)
-        Make(Color::White, MakeSquare(File::File5, Rank::Rank2), MakeSquare(File::File8, Rank::Rank2), MakePiece(Color::White, PieceType::Rook)),
-        // ▲２四歩(25)
-        Make(Color::Black, MakeSquare(File::File2, Rank::Rank5), MakeSquare(File::File2, Rank::Rank4), MakePiece(Color::Black, PieceType::Pawn)),
-        // ▽３四歩(33)
-        Make(Color::White, MakeSquare(File::File3, Rank::Rank3), MakeSquare(File::File3, Rank::Rank4), MakePiece(Color::White, PieceType::Pawn)),
-        // ▲８八銀(79)
-        Make(Color::Black, MakeSquare(File::File7, Rank::Rank9), MakeSquare(File::File8, Rank::Rank8), MakePiece(Color::Black, PieceType::Silver)),
-        // ▽２四歩(23)
-        Make(Color::White, MakeSquare(File::File2, Rank::Rank3), MakeSquare(File::File2, Rank::Rank4), MakePiece(Color::White, PieceType::Pawn), false, PieceType::Pawn),
-        // ▲同飛(28)
-        Make(Color::Black, MakeSquare(File::File2, Rank::Rank8), MakeSquare(File::File2, Rank::Rank4), MakePiece(Color::Black, PieceType::Rook), false, PieceType::Pawn),
-        // ▽８五桂(93)
-        Make(Color::White, MakeSquare(File::File9, Rank::Rank3), MakeSquare(File::File8, Rank::Rank5), MakePiece(Color::White, PieceType::Knight)),
-        // ▲８六角(97)
-        Make(Color::Black, MakeSquare(File::File9, Rank::Rank7), MakeSquare(File::File8, Rank::Rank6), MakePiece(Color::Black, PieceType::Bishop)),
-        // ▽８八角成(22)
-        Make(Color::White, MakeSquare(File::File2, Rank::Rank2), MakeSquare(File::File8, Rank::Rank8), MakePiece(Color::White, PieceType::Bishop), true, PieceType::Silver),
-        // ▲２二歩打
-        Make(Color::Black, nullopt, MakeSquare(File::File2, Rank::Rank2), MakePiece(Color::Black, PieceType::Pawn)),
-        // ▽同馬(88)
-        Make(Color::White, MakeSquare(File::File8, Rank::Rank8), MakeSquare(File::File2, Rank::Rank2), MakePiece(Color::White, PieceType::Bishop, PieceStatus::Promoted), false, PieceType::Pawn),
-        // ▲３四飛(24)
-        Make(Color::Black, MakeSquare(File::File2, Rank::Rank4), MakeSquare(File::File3, Rank::Rank4), MakePiece(Color::Black, PieceType::Rook), false, PieceType::Pawn),
-    };
-    for (int i = 0; i < moves.size(); i++) {
-      Move move = moves[i];
-      auto mv = SunfishMoveFromMove(move);
-      if (!record.makeMove(*mv)) {
-        cout << "ng" << endl;
-      }
     }
   }
 

@@ -76,6 +76,10 @@ inline Piece Promote(Piece p) {
   return p | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
 }
 
+inline Piece Unpromote(Piece p) {
+  return p & ~static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+}
+
 inline bool CanPromote(Piece p) {
   if (IsPromotedPiece(p)) {
     return false;
@@ -510,8 +514,8 @@ struct Move {
   Square to;
   // 成る場合に 1, 不成の場合に -1, 変更なしの場合 0
   int promote = 0;
-  // 相手の駒を取った場合, その駒の種類
-  std::optional<PieceType> newHand;
+  // 相手の駒を取った場合, その駒の種類. 成駒を取った場合, promoted フラグは付けたまま, color フラグだけ落とされた状態とする.
+  std::optional<PieceUnderlyingType> newHand_;
   Suffix suffix = static_cast<SuffixUnderlyingType>(SuffixType::None);
 
   // 盤面の情報から suffix を決める.

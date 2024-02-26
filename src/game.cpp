@@ -130,7 +130,7 @@ void Game::Generate(Position const &position, Color color, std::deque<PieceType>
           m.from = from;
           m.to = to;
           if (p1 != 0) {
-            m.newHand = PieceTypeFromPiece(p1);
+            m.newHand_ = RemoveColorFromPiece(p1);
           }
           if (CanPromote(p) && IsPromotableMove(from, to, color)) {
             // 成
