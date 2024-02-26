@@ -606,15 +606,15 @@ class DebugView: UIView {
       if !oldValue.boardReady {
         reader?.playReady()
       }
-      if !status.game.moves_.empty() {
+      if !status.game.moves.empty() {
         if let moveIndex {
-          if moveIndex + 1 < status.game.moves_.size() {
-            let mv = status.game.moves_[moveIndex + 1]
-            reader?.play(move: mv, last: status.game.moves_[moveIndex])
+          if moveIndex + 1 < status.game.moves.size() {
+            let mv = status.game.moves[moveIndex + 1]
+            reader?.play(move: mv, last: status.game.moves[moveIndex])
             self.moveIndex = moveIndex + 1
           }
         } else {
-          let mv = status.game.moves_[0]
+          let mv = status.game.moves[0]
           reader?.play(move: mv, last: nil)
           moveIndex = 0
         }
@@ -624,8 +624,8 @@ class DebugView: UIView {
             || Date.now.timeIntervalSince(wrongMoveLastNotified!) > kWrongMoveNotificationInterval
           {
             wrongMoveLastNotified = Date.now
-            if let mv = status.game.moves_.last {
-              let last = status.game.moves_.dropLast().last
+            if let mv = status.game.moves.last {
+              let last = status.game.moves.dropLast().last
               reader?.playWrongMoveWarning(expected: mv, last: last)
             }
           }
@@ -634,7 +634,7 @@ class DebugView: UIView {
         }
       }
       if let moveIndex {
-        if moveIndex + 1 == status.game.moves_.size() {
+        if moveIndex + 1 == status.game.moves.size() {
           if (status.blackResign || status.whiteResign) && !resigned {
             reader?.playResign()
             resigned = true
@@ -643,7 +643,7 @@ class DebugView: UIView {
       }
       boardViewLayer?.board = .init(
         position: status.game.position, blackHand: .init(status.game.handBlack),
-        whiteHand: .init(status.game.handWhite), move: status.game.moves_.last,
+        whiteHand: .init(status.game.handWhite), move: status.game.moves.last,
         showArrow: status.waitingMove)
       if oldValue.waitingMove && !status.waitingMove {
         reader?.playNextMoveReady()

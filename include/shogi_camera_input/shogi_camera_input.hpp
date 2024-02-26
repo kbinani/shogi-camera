@@ -515,7 +515,7 @@ struct Move {
   // 成る場合に 1, 不成の場合に -1, 変更なしの場合 0
   int promote = 0;
   // 相手の駒を取った場合, その駒の種類. 成駒を取った場合, promoted フラグは付けたまま, color フラグだけ落とされた状態とする.
-  std::optional<PieceUnderlyingType> newHand_;
+  std::optional<PieceUnderlyingType> captured;
   Suffix suffix = static_cast<SuffixUnderlyingType>(SuffixType::None);
 
   // 盤面の情報から suffix を決める.
@@ -640,7 +640,7 @@ struct PieceContour {
 
 struct Game {
   Position position;
-  std::vector<Move> moves_;
+  std::vector<Move> moves;
   std::deque<PieceType> handBlack;
   std::deque<PieceType> handWhite;
 

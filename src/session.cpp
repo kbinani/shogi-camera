@@ -579,9 +579,9 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
 
 Session::Session(std::shared_ptr<AI> black, std::shared_ptr<AI> white) : black(black), white(white) {
   if (black) {
-    if (auto move = black->next(game.position, game.moves_, game.handBlack, game.handWhite); move) {
+    if (auto move = black->next(game.position, game.moves, game.handBlack, game.handWhite); move) {
       move->decideSuffix(game.position);
-      game.moves_.push_back(*move);
+      game.moves.push_back(*move);
     }
   }
   s = std::make_shared<Status>();
@@ -626,18 +626,18 @@ void Session::run() {
     stat.update(*s);
     CreateWarpedBoard(frame, *s, stat);
     stat.push(s->boardWarped, *s, game, detected);
-    if (detected.size() == game.moves_.size()) {
-      if (game.moves_.size() % 2 == 0) {
+    if (detected.size() == game.moves.size()) {
+      if (game.moves.size() % 2 == 0) {
         // 次が先手番
         if (black && !s->blackResign) {
-          auto move = black->next(game.position, game.moves_, game.handBlack, game.handWhite);
+          auto move = black->next(game.position, game.moves, game.handBlack, game.handWhite);
           if (move) {
             move->decideSuffix(game.position);
             optional<Square> lastTo;
-            if (game.moves_.size() > 0) {
-              lastTo = game.moves_.back().to;
+            if (game.moves.size() > 0) {
+              lastTo = game.moves.back().to;
             }
-            game.moves_.push_back(*move);
+            game.moves.push_back(*move);
             cout << (char const *)StringFromMove(*move, lastTo).c_str() << endl;
           } else {
             s->blackResign = true;
@@ -650,14 +650,14 @@ void Session::run() {
       } else {
         // 次が後手番
         if (white && !s->whiteResign) {
-          auto move = white->next(game.position, game.moves_, game.handWhite, game.handBlack);
+          auto move = white->next(game.position, game.moves, game.handWhite, game.handBlack);
           if (move) {
             move->decideSuffix(game.position);
             optional<Square> lastTo;
-            if (game.moves_.size() > 0) {
-              lastTo = game.moves_.back().to;
+            if (game.moves.size() > 0) {
+              lastTo = game.moves.back().to;
             }
-            game.moves_.push_back(*move);
+            game.moves.push_back(*move);
             cout << (char const *)StringFromMove(*move, lastTo).c_str() << endl;
           } else {
             s->whiteResign = true;
@@ -669,7 +669,7 @@ void Session::run() {
         }
       }
     }
-    s->waitingMove = detected.size() != game.moves_.size();
+    s->waitingMove = detected.size() != game.moves.size();
     s->game = game;
     if (!stat.stableBoardHistory.empty()) {
       s->stableBoard = stat.stableBoardHistory.back().back().image;

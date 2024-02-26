@@ -59,9 +59,9 @@ optional<Move> MoveFromSunfishMove(sunfish::Move const &move, Color color) {
       return nullopt;
     }
     if (move.captured().isPromoted()) {
-      mv.newHand_ = static_cast<PieceUnderlyingType>(*captured) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+      mv.captured = static_cast<PieceUnderlyingType>(*captured) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
     } else {
-      mv.newHand_ = static_cast<PieceUnderlyingType>(*captured);
+      mv.captured = static_cast<PieceUnderlyingType>(*captured);
     }
   }
   if (move.promote()) {
@@ -131,7 +131,7 @@ optional<sunfish::Move> SunfishMoveFromMove(Move const &move) {
   sunfish::Square to = SunfishSquareFromSquare(move.to);
   bool promote = move.promote == 1;
   sunfish::Move mv(piece, from, to, promote);
-  if (auto hand = move.newHand_; hand) {
+  if (auto hand = move.captured; hand) {
     auto kind = SunfishPieceKindFromPieceType(PieceTypeFromPiece(*hand));
     if (IsPromotedPiece(*hand)) {
       mv.setCaptured(sunfish::Piece(kind | sunfish::Piece::Promotion));
@@ -390,7 +390,7 @@ struct Sunfish3AI::Impl {
       mv.piece = MakePiece(color, static_cast<PieceType>(RemoveStatusFromPiece(*pieceTypeAndStatus)), IsPromotedPiece(*pieceTypeAndStatus) ? PieceStatus::Promoted : PieceStatus::Default);
       auto captured = p.pieces[mv.to.file][mv.to.rank];
       if (captured != 0) {
-        mv.newHand_ = RemoveColorFromPiece(captured);
+        mv.captured = RemoveColorFromPiece(captured);
       }
       if (!fromHand) {
         auto index = line.find(u8"(");
@@ -417,18 +417,6 @@ struct Sunfish3AI::Impl {
       if (!record.makeMove(*smove)) {
         cout << "makeMove が失敗" << endl;
         break;
-      }
-
-      if (smoves.size() == 45) {
-        cout << "expected:" << endl;
-        cout << record.getBoard().toString() << endl;
-        cout << "--" << endl;
-      }
-      if (backup == u8"▽同銀(31)") {
-        sunfish::Board tmpBoard = record.getBoard();
-        for (int i = (int)smoves.size() - 1; i >= 0; i--) {
-          tmpBoard.unmakeMove(smoves[i], i == 45 || i == 44);
-        }
       }
 
       searcher.setRecord(record);
@@ -467,6 +455,8 @@ struct Sunfish3AI::Impl {
     }
     searcher.setRecord(record);
     if (!searcher.idsearch(record.getBoard(), move)) {
+      searcher.clearRecord();
+
       // idsearch が失敗したら有効手の中からランダムな手を選ぶ.
       cout << "idsearch が false を返した" << endl;
       deque<Move> candidates;
@@ -478,9 +468,7 @@ struct Sunfish3AI::Impl {
       int index = dist(*engine);
       return candidates[index];
     }
-    cout << "result: " << move.toString() << endl;
     searcher.clearRecord();
-    cout << searcher.getInfoString() << endl;
     return MoveFromSunfishMove(move, color);
   }
 

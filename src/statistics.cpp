@@ -289,15 +289,15 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
     book.update(g.position, last.back().image);
   }
   move->decideSuffix(g.position);
-  if (detected.size() + 1 == g.moves_.size()) {
+  if (detected.size() + 1 == g.moves.size()) {
     // g.moves_.back() は AI が生成した手なので, それと合致しているか調べる.
-    if (*move != g.moves_.back()) {
+    if (*move != g.moves.back()) {
       s.wrongMove = true;
       cout << "AIの示した手と違う手が指されている" << endl;
       return;
     }
   } else {
-    g.moves_.push_back(*move);
+    g.moves.push_back(*move);
   }
   s.wrongMove = false;
   stableBoardHistory.push_back(history);
@@ -388,7 +388,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.color = color;
         mv.from = MakeSquare(ch.x, ch.y);
         mv.to = *minSquare;
-        mv.newHand_ = RemoveColorFromPiece(position.pieces[minSquare->file][minSquare->rank]);
+        mv.captured = RemoveColorFromPiece(position.pieces[minSquare->file][minSquare->rank]);
         mv.piece = p;
         if (!moves.empty()) {
           AppendPromotion(mv, before, after, book);
@@ -422,7 +422,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
             mv.from = from;
             mv.to = to;
             mv.piece = p0;
-            mv.newHand_ = RemoveColorFromPiece(p1);
+            mv.captured = RemoveColorFromPiece(p1);
             if (!moves.empty()) {
               AppendPromotion(mv, before, after, book);
             }
@@ -438,7 +438,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
             mv.from = from;
             mv.to = to;
             mv.piece = p1;
-            mv.newHand_ = RemoveColorFromPiece(p0);
+            mv.captured = RemoveColorFromPiece(p0);
             if (!moves.empty()) {
               AppendPromotion(mv, before, after, book);
             }
