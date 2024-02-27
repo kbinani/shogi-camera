@@ -22,11 +22,16 @@ add_library(shogi-camera STATIC
   src/sunfish3_ai.cpp
   src/objc/shogi_camera_input.mm
   build/opencv/build/opencv2.xcframework
+  test/main.cpp
+  test/move.test.hpp
 )
 target_include_directories(shogi-camera PUBLIC
   include
   deps/sunfish3/src
   deps/base64/include
+)
+target_include_directories(shogi-camera PRIVATE
+  deps/doctest
 )
 set_target_properties(shogi-camera PROPERTIES
   XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++20"

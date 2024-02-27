@@ -909,4 +909,6 @@ private:
   std::shared_ptr<Session> ptr;
 };
 
+void RunTests();
+
 } // namespace sci
