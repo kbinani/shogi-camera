@@ -1,4 +1,5 @@
 /build
+/xcode
 xcuserdata
 *.sublime-workspace
 *.wav
