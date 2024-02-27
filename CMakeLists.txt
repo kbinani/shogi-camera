@@ -38,8 +38,9 @@ set_target_properties(shogi-camera PROPERTIES
   XCODE_ATTRIBUTE_SWIFT_OBJC_INTEROP_MODE "objcxx"
 )
 target_link_libraries(shogi-camera
-  searcher
-  core
+  sunfish_searcher
+  sunfish_core
+  sunfish_logger
 )
 
 add_executable(shogi-camera-demo-ios MACOSX_BUNDLE
