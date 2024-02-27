@@ -49,17 +49,14 @@ add_executable(shogi-camera-demo-ios MACOSX_BUNDLE
   demo/DebugPreview.swift
   demo/OpenCV+Utility.swift
   demo/Reader.swift
-  demo/SceneDelegate.swift
   demo/ShogiCameraInput+Utility.swift
   demo/ViewController.swift
-  demo/Main.storyboard
   demo/LaunchScreen.storyboard
   demo/Assets.xcassets
   include/shogi_camera_input/module.modulemap
   res/voice/voice.wav
 )
 set(shogi_camera_input_demo_resources
-  demo/Main.storyboard
   demo/LaunchScreen.storyboard
   demo/Assets.xcassets
   res/voice/voice.wav
@@ -78,7 +75,6 @@ set_target_properties(shogi-camera-demo-ios PROPERTIES
   XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++20"
   XCODE_ATTRIBUTE_SWIFT_OBJC_INTEROP_MODE "objcxx"
   XCODE_ATTRIBUTE_INFOPLIST_KEY_UILaunchStoryboardName "LaunchScreen"
-  XCODE_ATTRIBUTE_INFOPLIST_KEY_UIMainStoryboardFile "Main"
   XCODE_ATTRIBUTE_INFOPLIST_KEY_NSCameraUsageDescription "wip"
   XCODE_ATTRIBUTE_GENERATE_INFOPLIST_FILE "YES"
 )
