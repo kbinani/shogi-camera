@@ -157,7 +157,9 @@ struct Sunfish3AI::Impl {
     config.maxDepth = 2;
     config.limitSeconds = 3;
     searcher.setConfig(config);
+  }
 
+  static void RunTests() {
     Test2();
   }
 
@@ -494,6 +496,10 @@ Sunfish3AI::~Sunfish3AI() {}
 
 optional<Move> Sunfish3AI::next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
   return impl->next(p, moves, hand, handEnemy);
+}
+
+void Sunfish3AI::RunTests() {
+  Impl::RunTests();
 }
 
 } // namespace sci

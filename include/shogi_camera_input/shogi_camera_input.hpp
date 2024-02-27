@@ -691,6 +691,8 @@ public:
   ~Sunfish3AI();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
 
+  static void RunTests();
+
 private:
   struct Impl;
   std::unique_ptr<Impl> impl;

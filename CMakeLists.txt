@@ -22,8 +22,9 @@ add_library(shogi-camera STATIC
   src/sunfish3_ai.cpp
   src/objc/shogi_camera_input.mm
   build/opencv/build/opencv2.xcframework
-  test/main.cpp
+  test/doctest_main.cpp
   test/move.test.hpp
+  test/sunfish3.test.hpp
 )
 target_include_directories(shogi-camera PUBLIC
   include

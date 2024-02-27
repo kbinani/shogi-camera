@@ -1,8 +1,3 @@
-#include <doctest/doctest.h>
-#include <shogi_camera_input/shogi_camera_input.hpp>
-
-using namespace sci;
-
 static Position EmptyPosition() {
   Position p;
   for (int y = 0; y < 9; y++) {
