@@ -1,5 +1,6 @@
 /build
 /xcode
+/deps/opencv
 xcuserdata
 *.sublime-workspace
 *.wav
