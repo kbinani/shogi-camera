@@ -448,12 +448,14 @@ struct Sunfish3AI::Impl {
         return nullopt;
       }
     }
-    sunfish::Move move = sunfish::Move::empty();
     searcher.forceInterrupt();
-    while (searcher.isRunning()) {
-      this_thread::yield();
-    }
+    unique_lock<mutex> lock(mut);
+    searcher.wait(lock, chrono::duration<double>(1), [&](){
+      return !searcher.isRunning();
+    });
+    lock.unlock();
     searcher.setRecord(record);
+    sunfish::Move move = sunfish::Move::empty();
     if (!searcher.idsearch(record.getBoard(), move)) {
       searcher.clearRecord();
 
@@ -474,6 +476,7 @@ struct Sunfish3AI::Impl {
 
   sunfish::Searcher searcher;
   unique_ptr<mt19937_64> engine;
+  std::mutex mut;
 };
 
 Sunfish3AI::Sunfish3AI() : impl(make_unique<Impl>()) {
