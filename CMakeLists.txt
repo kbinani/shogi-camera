@@ -38,23 +38,23 @@ target_link_libraries(shogi-camera
 )
 
 add_executable(shogi-camera-demo-ios MACOSX_BUNDLE
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/AppDelegate.swift
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/DebugPreview.swift
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/OpenCV+Utility.swift
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/Reader.swift
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/SceneDelegate.swift
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/ShogiCameraInput+Utility.swift
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/ViewController.swift
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/Base.lproj/Main.storyboard
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/Base.lproj/LaunchScreen.storyboard
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/Assets.xcassets
+  demo/AppDelegate.swift
+  demo/DebugPreview.swift
+  demo/OpenCV+Utility.swift
+  demo/Reader.swift
+  demo/SceneDelegate.swift
+  demo/ShogiCameraInput+Utility.swift
+  demo/ViewController.swift
+  demo/Main.storyboard
+  demo/LaunchScreen.storyboard
+  demo/Assets.xcassets
   include/shogi_camera_input/module.modulemap
   res/voice/voice.wav
 )
 set(shogi_camera_input_demo_resources
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/Base.lproj/Main.storyboard
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/Base.lproj/LaunchScreen.storyboard
-  demo/shogi-camera-input-demo/shogi-camera-input-demo/Assets.xcassets
+  demo/Main.storyboard
+  demo/LaunchScreen.storyboard
+  demo/Assets.xcassets
   res/voice/voice.wav
 )
 set_target_properties(shogi-camera-demo-ios PROPERTIES
