@@ -450,10 +450,14 @@ struct Sunfish3AI::Impl {
     }
     searcher.forceInterrupt();
     unique_lock<mutex> lock(mut);
-    searcher.wait(lock, chrono::duration<double>(1), [&](){
+    bool stopped = searcher.wait(lock, chrono::duration<double>(10), [&]() {
       return !searcher.isRunning();
     });
     lock.unlock();
+    if (!stopped) {
+      cout << "searcher が停止しなかった" << endl;
+      return random(p, color, hand, handEnemy);
+    }
     searcher.setRecord(record);
     sunfish::Move move = sunfish::Move::empty();
     if (!searcher.idsearch(record.getBoard(), move)) {
@@ -461,17 +465,21 @@ struct Sunfish3AI::Impl {
 
       // idsearch が失敗したら有効手の中からランダムな手を選ぶ.
       cout << "idsearch が false を返した" << endl;
-      deque<Move> candidates;
-      Game::Generate(p, color, color == Color::Black ? hand : handEnemy, color == Color::Black ? handEnemy : hand, candidates, true);
-      if (candidates.empty()) {
-        return nullopt;
-      }
-      uniform_int_distribution<int> dist(0, (int)candidates.size() - 1);
-      int index = dist(*engine);
-      return candidates[index];
+      return random(p, color, hand, handEnemy);
     }
     searcher.clearRecord();
     return MoveFromSunfishMove(move, color);
+  }
+
+  optional<Move> random(Position const &p, Color color, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+    deque<Move> candidates;
+    Game::Generate(p, color, color == Color::Black ? hand : handEnemy, color == Color::Black ? handEnemy : hand, candidates, true);
+    if (candidates.empty()) {
+      return nullopt;
+    }
+    uniform_int_distribution<int> dist(0, (int)candidates.size() - 1);
+    int index = dist(*engine);
+    return candidates[index];
   }
 
   sunfish::Searcher searcher;
