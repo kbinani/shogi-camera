@@ -9,7 +9,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    sci.RunTests()
+    Task.detached {
+      sci.RunTests()
+    }
 
     let window = UIWindow(frame: UIScreen.main.bounds)
     self.window = window
