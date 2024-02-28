@@ -442,12 +442,12 @@ struct Sunfish3AI::Impl {
       auto sm = SunfishMoveFromMove(m);
       if (!sm) {
         cout << "move を sunfish 形式に変換できなかった" << endl;
-        return nullopt;
+        return random(p, color, hand, handEnemy);
       }
       cout << sm->toString() << endl;
       if (!record.makeMove(*sm)) {
         cout << "move を record に適用できなかった" << endl;
-        return nullopt;
+        return random(p, color, hand, handEnemy);
       }
     }
     searcher.forceInterrupt();
@@ -470,7 +470,11 @@ struct Sunfish3AI::Impl {
       return random(p, color, hand, handEnemy);
     }
     searcher.clearRecord();
-    return MoveFromSunfishMove(move, color);
+    if (auto m = MoveFromSunfishMove(move, color); m) {
+      return m;
+    } else {
+      return random(p, color, hand, handEnemy);
+    }
   }
 
   optional<Move> random(Position const &p, Color color, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
@@ -478,10 +482,13 @@ struct Sunfish3AI::Impl {
     Game::Generate(p, color, color == Color::Black ? hand : handEnemy, color == Color::Black ? handEnemy : hand, candidates, true);
     if (candidates.empty()) {
       return nullopt;
+    } else if (candidates.size() == 1) {
+      return candidates[0];
+    } else {
+      uniform_int_distribution<int> dist(0, (int)candidates.size() - 1);
+      int index = dist(*engine);
+      return candidates[index];
     }
-    uniform_int_distribution<int> dist(0, (int)candidates.size() - 1);
-    int index = dist(*engine);
-    return candidates[index];
   }
 
   sunfish::Searcher searcher;
