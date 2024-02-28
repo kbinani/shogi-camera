@@ -4,7 +4,7 @@ CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=XM695N4A7T
 
 project_dir="$(cd "$(dirname "$0")/.."; pwd)"
 
-cmake "$project_dir" -G Xcode -Wno-dev \
+cmake "$project_dir" -G Xcode \
   -DCMAKE_TOOLCHAIN_FILE="$project_dir/deps/ios-cmake/ios.toolchain.cmake" \
   -DENABLE_BITCODE=FALSE \
   -DPLATFORM=OS64COMBINED \
