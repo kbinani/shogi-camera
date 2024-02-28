@@ -1,3 +1,4 @@
+#if !defined(NDEBUG)
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
 
@@ -5,7 +6,6 @@
 
 using namespace sci;
 
-#if !defined(NDEBUG)
 #include "move.test.hpp"
 #include "sunfish3.test.hpp"
 #endif
