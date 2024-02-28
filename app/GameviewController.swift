@@ -1,6 +1,6 @@
 import UIKit
 
-class ViewController: UIViewController {
+class GameViewController: UIViewController {
   private weak var debugView: DebugView?
 
   override func viewDidLoad() {
