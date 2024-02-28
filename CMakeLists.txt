@@ -6,7 +6,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_subdirectory(deps/sunfish3/src EXCLUDE_FROM_ALL)
+add_subdirectory(deps/sunfish3/src/core EXCLUDE_FROM_ALL)
+target_include_directories(sunfish_core PRIVATE deps/sunfish3/src)
+add_subdirectory(deps/sunfish3/src/searcher EXCLUDE_FROM_ALL)
+target_include_directories(sunfish_searcher PRIVATE deps/sunfish3/src)
+add_subdirectory(deps/sunfish3/src/logger EXCLUDE_FROM_ALL)
+target_include_directories(sunfish_logger PRIVATE deps/sunfish3/src)
 
 add_library(shogi-camera STATIC
   include/shogi_camera/shogi_camera.hpp
