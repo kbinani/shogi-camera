@@ -1,6 +1,6 @@
 import AVFoundation
 import AudioToolbox
-import ShogiCameraInput
+import ShogiCamera
 
 class Reader {
   private let engine = AVAudioEngine()

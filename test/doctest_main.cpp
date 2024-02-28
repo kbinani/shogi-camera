@@ -1,7 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
 
-#include <shogi_camera_input/shogi_camera_input.hpp>
+#include <shogi_camera/shogi_camera.hpp>
 
 using namespace sci;
 

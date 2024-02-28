@@ -1,5 +1,0 @@
-module ShogiCameraInput {
-    header "shogi_camera_input.hpp"
-
-    export *
-}

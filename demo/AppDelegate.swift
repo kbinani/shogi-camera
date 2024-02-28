@@ -1,4 +1,4 @@
-import ShogiCameraInput
+import ShogiCamera
 import UIKit
 
 @main

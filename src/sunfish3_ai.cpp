@@ -1,7 +1,7 @@
 #include "core/record/Record.h"
 #include "searcher/Searcher.h"
 
-#include <shogi_camera_input/shogi_camera_input.hpp>
+#include <shogi_camera/shogi_camera.hpp>
 
 #include <thread>
 

@@ -9,7 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_subdirectory(deps/sunfish3/src EXCLUDE_FROM_ALL)
 
 add_library(shogi-camera STATIC
-  include/shogi_camera_input/shogi_camera_input.hpp
+  include/shogi_camera/shogi_camera.hpp
   src/game.cpp
   src/img.cpp
   src/move.cpp
@@ -17,10 +17,10 @@ add_library(shogi-camera STATIC
   src/position.cpp
   src/random_ai.cpp
   src/session.cpp
-  src/shogi_camera_input.cpp
+  src/shogi_camera.cpp
   src/statistics.cpp
   src/sunfish3_ai.cpp
-  src/objc/shogi_camera_input.mm
+  src/objc/shogi_camera.mm
   deps/opencv/opencv/build-ios/opencv2.xcframework
   test/doctest_main.cpp
   test/move.test.hpp
@@ -53,17 +53,17 @@ add_executable(shogi-camera-demo-ios MACOSX_BUNDLE
   demo/ViewController.swift
   demo/LaunchScreen.storyboard
   demo/Assets.xcassets
-  include/shogi_camera_input/module.modulemap
+  include/shogi_camera/module.modulemap
   res/voice/voice.wav
 )
-set(shogi_camera_input_demo_resources
+set(shogi_camera_demo_resources
   demo/LaunchScreen.storyboard
   demo/Assets.xcassets
   res/voice/voice.wav
 )
 set_target_properties(shogi-camera-demo-ios PROPERTIES
   BUNDLE True
-  RESOURCE "${shogi_camera_input_demo_resources}"
+  RESOURCE "${shogi_camera_demo_resources}"
   MACOSX_BUNDLE_GUI_IDENTIFIER "com.github.kbinani.shogi-camera-demo-ios"
   XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.github.kbinani.shogi-camera-demo-ios"
   MACOSX_BUNDLE_BUNDLE_NAME shogi-camera-demo-ios

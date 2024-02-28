@@ -1,0 +1,5 @@
+module ShogiCamera {
+    header "shogi_camera.hpp"
+
+    export *
+}

@@ -1,4 +1,4 @@
-#include <shogi_camera_input/shogi_camera_input.hpp>
+#include <shogi_camera/shogi_camera.hpp>
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>

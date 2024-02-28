@@ -1,4 +1,4 @@
-#include <shogi_camera_input/shogi_camera_input.hpp>
+#include <shogi_camera/shogi_camera.hpp>
 
 #include <opencv2/imgproc.hpp>
 
@@ -98,7 +98,7 @@ std::shared_ptr<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const 
 Status::Status() {
 }
 
-SessionWrapper::SessionWrapper() : ptr(std::make_shared<Session>(nullptr, std::make_shared<Sunfish3AI>(Color::White))) {
+SessionWrapper::SessionWrapper() : ptr(std::make_shared<Session>(nullptr, std::make_shared<Sunfish3AI>())) {
 }
 
 } // namespace sci

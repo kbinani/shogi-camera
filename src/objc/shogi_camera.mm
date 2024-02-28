@@ -1,4 +1,4 @@
-#include "../shogi_camera_input.cpp"
+#include "../shogi_camera.cpp"
 #include <opencv2/imgcodecs/ios.h>
 namespace sci {
 cv::Mat Utility::MatFromUIImage(void *ptr) {

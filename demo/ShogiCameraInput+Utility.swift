@@ -1,4 +1,4 @@
-import ShogiCameraInput
+import ShogiCamera
 
 typealias Move = sci.Move
 typealias PieceType = sci.PieceType
