@@ -7,9 +7,17 @@ class MainViewController: UIViewController {
   private let session: AVCaptureSession?
   private var videoView: UIView!
   private var previewLayer: AVCaptureVideoPreviewLayer?
+  private var videoOverlay: VideoOverlay!
+  private let videoDimension: CGSize?
 
   override init(nibName: String?, bundle: Bundle?) {
-    self.session = Self.CreateCaptureSession()
+    if let (session, dimension) = Self.CreateCaptureSession() {
+      self.session = session
+      self.videoDimension = dimension
+    } else {
+      self.session = nil
+      self.videoDimension = nil
+    }
     super.init(nibName: nibName, bundle: bundle)
   }
 
@@ -21,7 +29,6 @@ class MainViewController: UIViewController {
     super.viewDidLoad()
 
     self.view.backgroundColor = .darkGray
-    print(self.view.window?.safeAreaInsets)
 
     let videoView = UIView(frame: .zero)
     self.view.addSubview(videoView)
@@ -37,9 +44,13 @@ class MainViewController: UIViewController {
       }
       videoView.layer.addSublayer(preview)
       self.previewLayer = preview
-    } else {
-
     }
+
+    let videoOverlay = VideoOverlay(
+      status: session == nil ? .cameraNotAvailable : .waitingStableBoard)
+    self.videoOverlay = videoOverlay
+    videoView.layer.insertSublayer(videoOverlay, above: self.previewLayer)
+    videoOverlay.contentsScale = self.traitCollection.displayScale
 
     let startAsBlackButton = styleButton(UIButton(type: .custom))
     startAsBlackButton.setTitle("先手でスタート", for: .normal)
@@ -73,6 +84,11 @@ class MainViewController: UIViewController {
     }
   }
 
+  override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+    super.traitCollectionDidChange(previousTraitCollection)
+    self.videoOverlay.contentsScale = self.traitCollection.displayScale
+  }
+
   private func styleButton(_ button: UIButton) -> UIButton {
     button.titleLabel?.textAlignment = .center
     button.layer.cornerRadius = 15
@@ -93,6 +109,15 @@ class MainViewController: UIViewController {
     video.removeFromBottom(margin)
     self.videoView.frame = video
     self.previewLayer?.frame = .init(origin: .zero, size: video.size)
+    if let videoDimension {
+      let scale = min(videoDimension.width / video.width, videoDimension.height / video.height)
+      let x = video.width / 2 - video.width * scale / 2
+      let y = video.height / 2 - video.height * scale / 2
+      videoOverlay.frame = .init(
+        x: x, y: y, width: video.width * scale, height: video.height * scale)
+    } else {
+      videoOverlay.frame = .init(origin: .zero, size: video.size)
+    }
 
     var buttons = bounds.removeFromTop(90)
     let buttonWidth = (buttons.width - margin) / 2
@@ -116,7 +141,7 @@ class MainViewController: UIViewController {
     self.startAsWhiteButton.backgroundColor = .gray
   }
 
-  private static func CreateCaptureSession() -> AVCaptureSession? {
+  private static func CreateCaptureSession() -> (session: AVCaptureSession, dimension: CGSize)? {
     guard
       let device = AVCaptureDevice.devices().first(where: {
         $0.position == AVCaptureDevice.Position.back
@@ -155,10 +180,80 @@ class MainViewController: UIViewController {
         let rate = min(max(5, range.minFrameRate), range.maxFrameRate)
         device.activeVideoMinFrameDuration = CMTime(
           seconds: 1 / rate, preferredTimescale: 1_000_000)
+        let dimension = device.activeFormat.formatDescription.dimensions
+        return (session, CGSize(width: CGFloat(dimension.width), height: CGFloat(dimension.height)))
       } catch {
         print(error)
       }
     }
-    return session
+    return nil
+  }
+}
+
+class VideoOverlay: CALayer {
+  enum Status {
+    case waitingStableBoard
+    case ready
+    case cameraNotAvailable
+  }
+
+  private var textLayer: CATextLayer!
+
+  init(status: Status) {
+    self.status = status
+    super.init()
+    let textLayer = CATextLayer()
+    textLayer.isWrapped = true
+    textLayer.alignmentMode = .center
+    textLayer.allowsFontSubpixelQuantization = true
+    self.textLayer = textLayer
+    self.addSublayer(textLayer)
+    self.update()
+  }
+
+  override init(layer: Any) {
+    guard let layer = layer as? Self else {
+      fatalError()
+    }
+    self.status = layer.status
+    self.textLayer = layer.textLayer
+    super.init(layer: layer)
+  }
+
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+
+  override func layoutSublayers() {
+    super.layoutSublayers()
+    var bounds = CGRect(origin: .zero, size: self.bounds.size)
+    bounds.expand(-15, -15)
+    self.textLayer.frame = bounds
+  }
+
+  var status: Status {
+    didSet {
+      guard self.status != oldValue else {
+        return
+      }
+      self.update()
+    }
+  }
+
+  override var contentsScale: CGFloat {
+    didSet {
+      self.textLayer.contentsScale = self.contentsScale
+    }
+  }
+
+  private func update() {
+    switch status {
+    case .cameraNotAvailable:
+      self.textLayer.string = "カメラを初期化できませんでした"
+    case .waitingStableBoard:
+      self.textLayer.string = "将棋盤全体が映る位置でカメラを固定してください"
+    case .ready:
+      break
+    }
   }
 }
