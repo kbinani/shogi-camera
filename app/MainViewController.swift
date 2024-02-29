@@ -13,7 +13,8 @@ class MainViewController: UIViewController {
   override init(nibName: String?, bundle: Bundle?) {
     if let (session, dimension) = Self.CreateCaptureSession() {
       self.session = session
-      self.videoDimension = dimension
+      // videoRotationAngle = 90 で回転しているので幅と高さを交換
+      self.videoDimension = CGSize(width: dimension.height, height: dimension.width)
     } else {
       self.session = nil
       self.videoDimension = nil
@@ -110,11 +111,11 @@ class MainViewController: UIViewController {
     self.videoView.frame = video
     self.previewLayer?.frame = .init(origin: .zero, size: video.size)
     if let videoDimension {
-      let scale = min(videoDimension.width / video.width, videoDimension.height / video.height)
-      let x = video.width / 2 - video.width * scale / 2
-      let y = video.height / 2 - video.height * scale / 2
+      let scale = min(video.width / videoDimension.width, video.height / videoDimension.height)
+      let x = video.width / 2 - videoDimension.width * scale / 2
+      let y = video.height / 2 - videoDimension.height * scale / 2
       videoOverlay.frame = .init(
-        x: x, y: y, width: video.width * scale, height: video.height * scale)
+        x: x, y: y, width: videoDimension.width * scale, height: videoDimension.height * scale)
     } else {
       videoOverlay.frame = .init(origin: .zero, size: video.size)
     }
