@@ -101,4 +101,18 @@ Status::Status() {
 SessionWrapper::SessionWrapper() : ptr(std::make_shared<Session>()) {
 }
 
+void SessionWrapper::startGame(Color userColor, int aiLevel) {
+  std::shared_ptr<AI> ai;
+  if (aiLevel == 0) {
+    ai = std::make_shared<RandomAI>();
+  } else {
+    ai = std::make_shared<Sunfish3AI>();
+  }
+  if (userColor == Color::White) {
+    ptr->setPlayers(ai, nullptr);
+  } else {
+    ptr->setPlayers(nullptr, ai);
+  }
+}
+
 } // namespace sci

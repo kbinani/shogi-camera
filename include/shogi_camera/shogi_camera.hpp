@@ -848,7 +848,12 @@ public:
   Session();
   ~Session();
   void push(cv::Mat const &frame);
-  void setPlayers(std::shared_ptr<AI> black, std::shared_ptr<AI> white);
+  void setPlayers(std::shared_ptr<AI> black, std::shared_ptr<AI> white) {
+    auto pp = std::make_shared<Players>();
+    pp->black = black;
+    pp->white = white;
+    this->prePlayers = pp;
+  }
 
   Status status() {
     auto cp = s;
@@ -868,6 +873,7 @@ private:
   Statistics stat;
   Game game;
   std::vector<Move> detected;
+  std::shared_ptr<Players> prePlayers;
   std::shared_ptr<Players> players;
 };
 
@@ -911,6 +917,8 @@ public:
   Status status() const {
     return ptr->status();
   }
+
+  void startGame(Color userColor, int aiLevel);
 
 private:
   std::shared_ptr<Session> ptr;

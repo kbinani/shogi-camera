@@ -10,7 +10,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     Task.detached {
-      sci.RunTests()
+      //      sci.RunTests()
     }
 
     let window = UIWindow(frame: UIScreen.main.bounds)

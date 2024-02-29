@@ -590,19 +590,6 @@ Session::~Session() {
   th.join();
 }
 
-void Session::setPlayers(std::shared_ptr<AI> black, std::shared_ptr<AI> white) {
-  auto players = std::make_shared<Players>();
-  players->black = black;
-  players->white = white;
-  if (black) {
-    if (auto move = black->next(game.position, game.moves, game.handBlack, game.handWhite); move) {
-      move->decideSuffix(game.position);
-      game.moves.push_back(*move);
-    }
-  }
-  this->players = players;
-}
-
 void Session::run() {
   using namespace std;
   while (!stop) {
@@ -632,6 +619,15 @@ void Session::run() {
     FindPieces(frame, *s);
     stat.update(*s);
     CreateWarpedBoard(frame, *s, stat);
+    if (auto prePlayers = this->prePlayers; !players && prePlayers) {
+      if (prePlayers->black) {
+        if (auto move = prePlayers->black->next(game.position, game.moves, game.handBlack, game.handWhite); move) {
+          move->decideSuffix(game.position);
+          game.moves.push_back(*move);
+        }
+      }
+      players = prePlayers;
+    }
     stat.push(s->boardWarped, *s, game, detected, players != nullptr);
     if (players && detected.size() == game.moves.size()) {
       if (game.moves.size() % 2 == 0) {

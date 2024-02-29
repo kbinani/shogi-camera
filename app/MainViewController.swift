@@ -124,6 +124,7 @@ class MainViewController: UIViewController {
 
   @objc private func startAsBlackButtonDidTouchUpInside(_ sender: UIButton) {
     self.startAsBlackButton.backgroundColor = .black
+    analyzer?.startGame(userColor: .Black, aiLevel: 0)
   }
 
   @objc private func startAsBlackButtonDidTouchDown(_ sender: UIButton) {
@@ -132,6 +133,7 @@ class MainViewController: UIViewController {
 
   @objc private func startAsWhiteButtonDidTouchUpInside(_ sender: UIButton) {
     self.startAsWhiteButton.backgroundColor = .white
+    analyzer?.startGame(userColor: .White, aiLevel: 0)
   }
 
   @objc private func startAsWhiteButtonDidTouchDown(_ sender: UIButton) {

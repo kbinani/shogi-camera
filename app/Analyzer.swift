@@ -84,6 +84,10 @@ class Analyzer {
       return nil
     }
   }
+
+  func startGame(userColor: sci.Color, aiLevel: Int) {
+    session.startGame(userColor, Int32(aiLevel))
+  }
 }
 
 extension Analyzer.CaptureDelegate: AVCaptureVideoDataOutputSampleBufferDelegate {
