@@ -1,24 +1,17 @@
 import AVFoundation
+import ShogiCamera
 import UIKit
 
 class MainViewController: UIViewController {
   private var startAsBlackButton: UIButton!
   private var startAsWhiteButton: UIButton!
-  private let session: AVCaptureSession?
+  private let analyzer: Analyzer?
   private var videoView: UIView!
   private var previewLayer: AVCaptureVideoPreviewLayer?
   private var videoOverlay: VideoOverlay!
-  private let videoDimension: CGSize?
 
   override init(nibName: String?, bundle: Bundle?) {
-    if let (session, dimension) = Self.CreateCaptureSession() {
-      self.session = session
-      // videoRotationAngle = 90 で回転しているので幅と高さを交換
-      self.videoDimension = CGSize(width: dimension.height, height: dimension.width)
-    } else {
-      self.session = nil
-      self.videoDimension = nil
-    }
+    self.analyzer = .init()
     super.init(nibName: nibName, bundle: bundle)
   }
 
@@ -35,8 +28,8 @@ class MainViewController: UIViewController {
     self.view.addSubview(videoView)
     self.videoView = videoView
 
-    if let session {
-      let preview = AVCaptureVideoPreviewLayer(session: session)
+    if let analyzer {
+      let preview = AVCaptureVideoPreviewLayer(session: analyzer.captureSession)
       preview.videoGravity = .resizeAspect
       if #available(iOS 17, *) {
         preview.connection?.videoRotationAngle = 90
@@ -48,7 +41,7 @@ class MainViewController: UIViewController {
     }
 
     let videoOverlay = VideoOverlay(
-      status: session == nil ? .cameraNotAvailable : .waitingStableBoard)
+      state: analyzer == nil ? .cameraNotAvailable : .waitingStableBoard)
     self.videoOverlay = videoOverlay
     videoView.layer.insertSublayer(videoOverlay, above: self.previewLayer)
     videoOverlay.contentsScale = self.traitCollection.displayScale
@@ -80,8 +73,11 @@ class MainViewController: UIViewController {
     self.view.addSubview(startAsWhiteButton)
     self.startAsWhiteButton = startAsWhiteButton
 
-    DispatchQueue.global().async { [weak session] in
-      session?.startRunning()
+    if let session = analyzer?.captureSession {
+      analyzer?.delegate = self
+      DispatchQueue.global().async { [weak session] in
+        session?.startRunning()
+      }
     }
   }
 
@@ -110,7 +106,7 @@ class MainViewController: UIViewController {
     video.removeFromBottom(margin)
     self.videoView.frame = video
     self.previewLayer?.frame = .init(origin: .zero, size: video.size)
-    if let videoDimension {
+    if let videoDimension = analyzer?.dimension {
       let scale = min(video.width / videoDimension.width, video.height / videoDimension.height)
       let x = video.width / 2 - videoDimension.width * scale / 2
       let y = video.height / 2 - videoDimension.height * scale / 2
@@ -141,120 +137,24 @@ class MainViewController: UIViewController {
   @objc private func startAsWhiteButtonDidTouchDown(_ sender: UIButton) {
     self.startAsWhiteButton.backgroundColor = .gray
   }
-
-  private static func CreateCaptureSession() -> (session: AVCaptureSession, dimension: CGSize)? {
-    guard
-      let device = AVCaptureDevice.devices().first(where: {
-        $0.position == AVCaptureDevice.Position.back
-      })
-    else {
-      return nil
-    }
-    guard let deviceInput = try? AVCaptureDeviceInput(device: device) else {
-      return nil
-    }
-    let videoDataOutput = AVCaptureVideoDataOutput()
-    videoDataOutput.videoSettings = [
-      kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
-    ]
-    //    videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue.global())
-    videoDataOutput.alwaysDiscardsLateVideoFrames = true
-    let session = AVCaptureSession()
-    guard session.canAddInput(deviceInput) else {
-      return nil
-    }
-    session.addInput(deviceInput)
-    guard session.canAddOutput(videoDataOutput) else {
-      return nil
-    }
-    session.addOutput(videoDataOutput)
-
-    session.sessionPreset = AVCaptureSession.Preset.medium
-    if let range = device.activeFormat.videoSupportedFrameRateRanges.max(by: { left, right in
-      left.maxFrameRate < right.maxFrameRate
-    }) {
-      do {
-        try device.lockForConfiguration()
-        defer {
-          device.unlockForConfiguration()
-        }
-        let rate = min(max(5, range.minFrameRate), range.maxFrameRate)
-        device.activeVideoMinFrameDuration = CMTime(
-          seconds: 1 / rate, preferredTimescale: 1_000_000)
-        let dimension = device.activeFormat.formatDescription.dimensions
-        return (session, CGSize(width: CGFloat(dimension.width), height: CGFloat(dimension.height)))
-      } catch {
-        print(error)
-      }
-    }
-    return nil
-  }
 }
 
-class VideoOverlay: CALayer {
-  enum Status {
-    case waitingStableBoard
-    case ready
-    case cameraNotAvailable
-  }
-
-  private var textLayer: CATextLayer!
-
-  init(status: Status) {
-    self.status = status
-    super.init()
-    let textLayer = CATextLayer()
-    textLayer.isWrapped = true
-    textLayer.alignmentMode = .center
-    textLayer.allowsFontSubpixelQuantization = true
-    self.textLayer = textLayer
-    self.addSublayer(textLayer)
-    self.update()
-  }
-
-  override init(layer: Any) {
-    guard let layer = layer as? Self else {
-      fatalError()
-    }
-    self.status = layer.status
-    self.textLayer = layer.textLayer
-    super.init(layer: layer)
-  }
-
-  required init?(coder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
-  }
-
-  override func layoutSublayers() {
-    super.layoutSublayers()
-    var bounds = CGRect(origin: .zero, size: self.bounds.size)
-    bounds.expand(-15, -15)
-    self.textLayer.frame = bounds
-  }
-
-  var status: Status {
-    didSet {
-      guard self.status != oldValue else {
-        return
-      }
-      self.update()
+extension MainViewController: AnalyzerDelegate {
+  func analyzerDidChangeBoardReadieness(_ analyzer: Analyzer) {
+    if analyzer.status.boardReady {
+      self.startAsBlackButton.backgroundColor = .black
+      self.startAsWhiteButton.backgroundColor = .white
+      self.startAsBlackButton.isEnabled = true
+      self.startAsWhiteButton.isEnabled = true
+    } else {
+      self.startAsBlackButton.isEnabled = true
+      self.startAsWhiteButton.isEnabled = true
+      self.startAsBlackButton.backgroundColor = .gray
+      self.startAsWhiteButton.backgroundColor = .gray
     }
   }
 
-  override var contentsScale: CGFloat {
-    didSet {
-      self.textLayer.contentsScale = self.contentsScale
-    }
-  }
-
-  private func update() {
-    switch status {
-    case .cameraNotAvailable:
-      self.textLayer.string = "カメラを初期化できませんでした"
-    case .waitingStableBoard:
-      self.textLayer.string = "将棋盤全体が映る位置でカメラを固定してください"
-    case .ready:
-      break
-    }
+  func analyzerDidUpdateStatus(_ analyzer: Analyzer) {
+    self.videoOverlay.status = analyzer.status
   }
 }
