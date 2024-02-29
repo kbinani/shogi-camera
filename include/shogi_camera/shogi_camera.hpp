@@ -815,7 +815,7 @@ struct Statistics {
 
   std::deque<BoardImage> boardHistory;
   std::deque<std::array<BoardImage, 3>> stableBoardHistory;
-  void push(cv::Mat const &board, Status &s, Game &g, std::vector<Move> &detected);
+  void push(cv::Mat const &board, Status &s, Game &g, std::vector<Move> &detected, bool detectMove);
   // 盤面画像を180度回転してから盤面認識処理すべき場合に true.
   bool rotate = false;
 
@@ -838,11 +838,17 @@ struct Statistics {
   static int constexpr kStableBoardCounterThreshold = 10;
 };
 
+struct Players {
+  std::shared_ptr<AI> black;
+  std::shared_ptr<AI> white;
+};
+
 class Session {
 public:
-  Session(std::shared_ptr<AI> black, std::shared_ptr<AI> white);
+  Session();
   ~Session();
   void push(cv::Mat const &frame);
+  void setPlayers(std::shared_ptr<AI> black, std::shared_ptr<AI> white);
 
   Status status() {
     auto cp = s;
@@ -862,8 +868,7 @@ private:
   Statistics stat;
   Game game;
   std::vector<Move> detected;
-  std::shared_ptr<AI> black;
-  std::shared_ptr<AI> white;
+  std::shared_ptr<Players> players;
 };
 
 class Img {

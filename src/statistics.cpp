@@ -146,7 +146,7 @@ void Statistics::update(Status const &s) {
   }
 }
 
-void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move> &detected) {
+void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move> &detected, bool detectMove) {
   using namespace std;
   if (board.size().area() <= 0) {
     return;
@@ -236,6 +236,9 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   stableBoardInitialReadyCounter = std::min(stableBoardInitialReadyCounter + 1, kStableBoardCounterThreshold + 1);
   s.boardReady = stableBoardInitialReadyCounter > kStableBoardCounterThreshold;
 
+  if (!detectMove) {
+    return;
+  }
   // index 番目の手.
   size_t const index = detected.size();
   Color const color = ColorFromIndex(index);

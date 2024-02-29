@@ -577,13 +577,7 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
 
 } // namespace
 
-Session::Session(std::shared_ptr<AI> black, std::shared_ptr<AI> white) : black(black), white(white) {
-  if (black) {
-    if (auto move = black->next(game.position, game.moves, game.handBlack, game.handWhite); move) {
-      move->decideSuffix(game.position);
-      game.moves.push_back(*move);
-    }
-  }
+Session::Session() {
   s = std::make_shared<Status>();
   stop = false;
   std::thread th(std::bind(&Session::run, this));
@@ -594,6 +588,19 @@ Session::~Session() {
   stop = true;
   cv.notify_one();
   th.join();
+}
+
+void Session::setPlayers(std::shared_ptr<AI> black, std::shared_ptr<AI> white) {
+  auto players = std::make_shared<Players>();
+  players->black = black;
+  players->white = white;
+  if (black) {
+    if (auto move = black->next(game.position, game.moves, game.handBlack, game.handWhite); move) {
+      move->decideSuffix(game.position);
+      game.moves.push_back(*move);
+    }
+  }
+  this->players = players;
 }
 
 void Session::run() {
@@ -625,12 +632,12 @@ void Session::run() {
     FindPieces(frame, *s);
     stat.update(*s);
     CreateWarpedBoard(frame, *s, stat);
-    stat.push(s->boardWarped, *s, game, detected);
-    if (detected.size() == game.moves.size()) {
+    stat.push(s->boardWarped, *s, game, detected, players != nullptr);
+    if (players && detected.size() == game.moves.size()) {
       if (game.moves.size() % 2 == 0) {
         // 次が先手番
-        if (black && !s->blackResign) {
-          auto move = black->next(game.position, game.moves, game.handBlack, game.handWhite);
+        if (players->black && !s->blackResign) {
+          auto move = players->black->next(game.position, game.moves, game.handBlack, game.handWhite);
           if (move) {
             move->decideSuffix(game.position);
             optional<Square> lastTo;
@@ -649,8 +656,8 @@ void Session::run() {
         }
       } else {
         // 次が後手番
-        if (white && !s->whiteResign) {
-          auto move = white->next(game.position, game.moves, game.handWhite, game.handBlack);
+        if (players->white && !s->whiteResign) {
+          auto move = players->white->next(game.position, game.moves, game.handWhite, game.handBlack);
           if (move) {
             move->decideSuffix(game.position);
             optional<Square> lastTo;
