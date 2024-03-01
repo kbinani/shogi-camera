@@ -20,6 +20,7 @@ class GameView: UIView {
   private var exportKifButton: RoundButton!
   private var resignButton: RoundButton!
   private var historyView: UITextView!
+  private var boardRotated = false
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
@@ -46,6 +47,7 @@ class GameView: UIView {
 
     let cameraButton = RoundButton(type: .custom)
     cameraButton.setTitle("カメラに切り替え", for: .normal)
+    cameraButton.isHidden = true
     self.addSubview(cameraButton)
     self.cameraButton = cameraButton
 
@@ -71,6 +73,9 @@ class GameView: UIView {
     exportKifButton.tintColor = .white
     self.addSubview(exportKifButton)
     self.exportKifButton = exportKifButton
+
+    let tap = UITapGestureRecognizer(target: self, action: #selector(tapGestureRecognizer(_:)))
+    addGestureRecognizer(tap)
   }
 
   required init?(coder: NSCoder) {
@@ -237,6 +242,18 @@ class GameView: UIView {
           delegate?.gameViewDidAbort(self)
         }))
     delegate?.gameView(self, presentAlertController: controller)
+  }
+
+  @objc private func tapGestureRecognizer(_ sender: UITapGestureRecognizer) {
+    guard case .ended = sender.state else {
+      return
+    }
+    let location = sender.location(in: self)
+    guard boardLayer.frame.contains(location) else {
+      return
+    }
+    boardRotated.toggle()
+    boardLayer.setAffineTransform(boardRotated ? .init(rotationAngle: .pi) : .identity)
   }
 }
 
