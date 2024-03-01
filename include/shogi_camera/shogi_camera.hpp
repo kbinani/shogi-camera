@@ -849,10 +849,13 @@ public:
   ~Session();
   void push(cv::Mat const &frame);
   void setPlayers(std::shared_ptr<AI> black, std::shared_ptr<AI> white) {
+    if (!game.moves.empty() || players) {
+      return;
+    }
     auto pp = std::make_shared<Players>();
     pp->black = black;
     pp->white = white;
-    this->prePlayers = pp;
+    prePlayers = pp;
   }
 
   Status status() {

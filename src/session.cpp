@@ -627,6 +627,7 @@ void Session::run() {
         }
       }
       players = prePlayers;
+      this->prePlayers = nullptr;
     }
     stat.push(s->boardWarped, *s, game, detected, players != nullptr);
     if (players && detected.size() == game.moves.size()) {
