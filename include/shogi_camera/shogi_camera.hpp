@@ -875,6 +875,8 @@ public:
     return *cp;
   }
 
+  void resign(Color color);
+
 private:
   void run();
 
@@ -934,6 +936,10 @@ public:
   }
 
   void startGame(Color userColor, int aiLevel);
+
+  void resign(Color color) {
+    ptr->resign(color);
+  }
 
 private:
   std::shared_ptr<Session> ptr;

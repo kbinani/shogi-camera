@@ -11,6 +11,8 @@ class Analyzer {
   let dimension: CGSize
   weak var delegate: AnalyzerDelegate?
 
+  private var userColor: sci.Color?
+
   private var session: sci.SessionWrapper
   private let captureDelegate: CaptureDelegate
   private(set) var status: sci.Status = .init() {
@@ -87,7 +89,15 @@ class Analyzer {
   }
 
   func startGame(userColor: sci.Color, aiLevel: Int) {
-    session.startGame(userColor, Int32(aiLevel))
+    self.userColor = userColor
+    self.session.startGame(userColor, Int32(aiLevel))
+  }
+
+  func resign() {
+    guard let userColor else {
+      return
+    }
+    self.session.resign(userColor)
   }
 }
 

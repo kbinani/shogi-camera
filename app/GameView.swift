@@ -1,7 +1,13 @@
 import ShogiCamera
 import UIKit
 
+protocol GameViewDelegate: AnyObject {
+  func gameView(_ sender: GameView, presentAlertController controller: UIAlertController)
+}
+
 class GameView: UIView {
+  weak var delegate: GameViewDelegate?
+
   private let analyzer: Analyzer
   private var boardLayer: BoardLayer!
   private let reader: Reader?
@@ -42,6 +48,8 @@ class GameView: UIView {
 
     let resignButton = RoundButton(type: .custom)
     resignButton.setTitle("投了", for: .normal)
+    resignButton.addTarget(
+      self, action: #selector(resignButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(resignButton)
     self.resignButton = resignButton
 
@@ -140,6 +148,7 @@ class GameView: UIView {
           if (status.blackResign || status.whiteResign) && !self.resigned {
             self.reader?.playResign()
             self.resigned = true
+            self.resignButton.isEnabled = false
           }
         }
       }
@@ -179,6 +188,24 @@ class GameView: UIView {
       historyView.text = text
       historyView.scrollRangeToVisible(.init(location: text.utf8.count, length: 0))
     }
+  }
+
+  @objc private func resignButtonDidTouchUpInside(_ sender: UIButton) {
+    let controller = UIAlertController(title: nil, message: "投了しますか?", preferredStyle: .alert)
+    controller.addAction(.init(title: "キャンセル", style: .cancel))
+    controller.addAction(
+      .init(
+        title: "投了", style: .destructive,
+        handler: { [weak self] _ in
+          self?.resign()
+        }))
+    delegate?.gameView(self, presentAlertController: controller)
+  }
+
+  private func resign() {
+    self.resigned = true
+    self.resignButton.isEnabled = false
+    self.analyzer.resign()
   }
 }
 

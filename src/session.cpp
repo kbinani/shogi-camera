@@ -691,4 +691,14 @@ void Session::push(cv::Mat const &frame) {
   cv.notify_all();
 }
 
+void Session::resign(Color color) {
+  if (color == Color::Black) {
+    s->blackResign = true;
+    std::cout << "先手番が投了" << std::endl;
+  } else {
+    s->whiteResign = true;
+    std::cout << "後手番が投了" << std::endl;
+  }
+}
+
 } // namespace sci

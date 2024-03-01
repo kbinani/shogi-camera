@@ -21,8 +21,15 @@ extension MainViewController: StartViewDelegate {
   func startViewDidStartGame(_ view: StartView, with analyzer: Analyzer) {
     let gameView = GameView(analyzer: analyzer)
     gameView.frame = .init(origin: .zero, size: self.view.bounds.size)
+    gameView.delegate = self
     self.current?.removeFromSuperview()
     self.view.addSubview(gameView)
     self.current = gameView
+  }
+}
+
+extension MainViewController: GameViewDelegate {
+  func gameView(_ sender: GameView, presentAlertController controller: UIAlertController) {
+    self.present(controller, animated: true)
   }
 }
