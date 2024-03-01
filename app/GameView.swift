@@ -10,6 +10,8 @@ class GameView: UIView {
   private var wrongMoveLastNotified: Date?
   private var abortButton: RoundButton!
   private var cameraButton: RoundButton!
+  private var exportKifButton: RoundButton!
+  private var resignButton: RoundButton!
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
@@ -36,6 +38,19 @@ class GameView: UIView {
     cameraButton.setTitle("カメラに切り替え", for: .normal)
     self.addSubview(cameraButton)
     self.cameraButton = cameraButton
+
+    let resignButton = RoundButton(type: .custom)
+    resignButton.setTitle("投了", for: .normal)
+    self.addSubview(resignButton)
+    self.resignButton = resignButton
+
+    let exportKifButton = RoundButton(type: .custom)
+    exportKifButton.setTitle("KIF", for: .normal)
+    exportKifButton.setImage(.init(systemName: "square.and.arrow.up"), for: .normal)
+    exportKifButton.imageTitlePadding = 10
+    exportKifButton.tintColor = .white
+    self.addSubview(exportKifButton)
+    self.exportKifButton = exportKifButton
   }
 
   required init?(coder: NSCoder) {
@@ -55,10 +70,16 @@ class GameView: UIView {
     header.removeFromLeft(margin)
     self.cameraButton.frame = header.removeFromLeft(
       self.cameraButton.intrinsicContentSize.width + 2 * margin)
+    self.resignButton.frame = header.removeFromRight(
+      self.resignButton.intrinsicContentSize.width + 2 * margin)
 
     bounds.removeFromTop(margin)
 
     self.boardLayer.frame = bounds.removeFromTop(bounds.height / 2)
+
+    var footer = bounds.removeFromBottom(44)
+    exportKifButton.frame = footer.removeFromRight(
+      exportKifButton.intrinsicContentSize.width + 2 * margin)
   }
 
   override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
