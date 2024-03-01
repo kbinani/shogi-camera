@@ -3,6 +3,7 @@ import UIKit
 
 protocol GameViewDelegate: AnyObject {
   func gameView(_ sender: GameView, presentAlertController controller: UIAlertController)
+  func gameViewDidAbort(_ sender: GameView)
 }
 
 class GameView: UIView {
@@ -38,6 +39,8 @@ class GameView: UIView {
 
     let abortButton = RoundButton(type: .custom)
     abortButton.setTitle("中断", for: .normal)
+    abortButton.addTarget(
+      self, action: #selector(abortButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(abortButton)
     self.abortButton = abortButton
 
@@ -217,6 +220,23 @@ class GameView: UIView {
     self.resignButton.isEnabled = false
     self.abortButton.setTitle("戻る", for: .normal)
     self.analyzer.resign()
+  }
+
+  @objc private func abortButtonDidTouchUpInside(_ sender: UIButton) {
+    let message = self.resigned ? "元の画面に戻りますか?" : "対局を中断しますか?"
+    let destructive = self.resigned ? "戻る" : "中断する"
+    let controller = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+    controller.addAction(.init(title: "キャンセル", style: .cancel))
+    controller.addAction(
+      .init(
+        title: destructive, style: .destructive,
+        handler: { [weak self] _ in
+          guard let self else {
+            return
+          }
+          delegate?.gameViewDidAbort(self)
+        }))
+    delegate?.gameView(self, presentAlertController: controller)
   }
 }
 

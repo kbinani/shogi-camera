@@ -32,4 +32,13 @@ extension MainViewController: GameViewDelegate {
   func gameView(_ sender: GameView, presentAlertController controller: UIAlertController) {
     self.present(controller, animated: true)
   }
+
+  func gameViewDidAbort(_ sender: GameView) {
+    let startView = StartView()
+    startView.delegate = self
+    self.current?.removeFromSuperview()
+    self.current = startView
+    self.view.addSubview(startView)
+    self.current = startView
+  }
 }
