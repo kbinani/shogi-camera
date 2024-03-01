@@ -98,6 +98,8 @@ class Analyzer {
       return
     }
     self.session.resign(userColor)
+    let s = self.session.status()
+    self.status = s
   }
 }
 

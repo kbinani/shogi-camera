@@ -184,6 +184,15 @@ class GameView: UIView {
       }
       last = move.to
     }
+    if lines.count % 2 == 0 {
+      if status.blackResign {
+        lines.append("▲投了")
+      }
+    } else {
+      if status.whiteResign {
+        lines.append("▽投了")
+      }
+    }
     let text = lines.enumerated().map({ "\($0.offset + 1): \($0.element)" }).joined(separator: "\n")
     if text != historyView.text {
       historyView.text = text
