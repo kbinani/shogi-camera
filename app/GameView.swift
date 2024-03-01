@@ -8,6 +8,8 @@ class GameView: UIView {
   private var moveIndex: Int?
   private var resigned: Bool = false
   private var wrongMoveLastNotified: Date?
+  private var backButton: UIButton!
+  private var cameraButton: UIButton!
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
@@ -24,6 +26,16 @@ class GameView: UIView {
     boardLayer.contentsScale = self.traitCollection.displayScale
     self.boardLayer = boardLayer
     self.layer.addSublayer(boardLayer)
+
+    let backButton = styleButton(UIButton(type: .custom))
+    backButton.setTitle("戻る", for: .normal)
+    self.addSubview(backButton)
+    self.backButton = backButton
+
+    let cameraButton = styleButton(UIButton(type: .custom))
+    cameraButton.setTitle("カメラに切り替え", for: .normal)
+    self.addSubview(cameraButton)
+    self.cameraButton = cameraButton
   }
 
   required init?(coder: NSCoder) {
@@ -35,6 +47,16 @@ class GameView: UIView {
     var bounds = CGRect(origin: .zero, size: self.bounds.size)
     let margin: CGFloat = 15
     bounds.expand(-margin, -margin)
+
+    var header = bounds.removeFromTop(44)
+    self.backButton.frame = header.removeFromLeft(
+      self.backButton.intrinsicContentSize.width + 2 * margin)
+    header.removeFromLeft(margin)
+    self.cameraButton.frame = header.removeFromLeft(
+      self.cameraButton.intrinsicContentSize.width + 2 * margin)
+
+    bounds.removeFromTop(margin)
+
     self.boardLayer.frame = bounds.removeFromTop(bounds.height / 2)
   }
 
@@ -89,6 +111,13 @@ class GameView: UIView {
         self.reader?.playNextMoveReady()
       }
     }
+  }
+
+  private func styleButton(_ button: UIButton) -> UIButton {
+    button.titleLabel?.textAlignment = .center
+    button.layer.cornerRadius = 15
+    button.backgroundColor = .black
+    return button
   }
 }
 
