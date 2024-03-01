@@ -9,8 +9,8 @@ protocol StartViewDelegate: AnyObject {
 class StartView: UIView {
   weak var delegate: StartViewDelegate?
 
-  private var startAsBlackButton: UIButton!
-  private var startAsWhiteButton: UIButton!
+  private var startAsBlackButton: RoundButton!
+  private var startAsWhiteButton: RoundButton!
   private let analyzer: Analyzer?
   private var videoView: UIView!
   private var previewLayer: AVCaptureVideoPreviewLayer?
@@ -44,30 +44,24 @@ class StartView: UIView {
     videoView.layer.insertSublayer(videoOverlay, above: self.previewLayer)
     videoOverlay.contentsScale = self.traitCollection.displayScale
 
-    let startAsBlackButton = styleButton(UIButton(type: .custom))
+    let startAsBlackButton = RoundButton(type: .custom)
     startAsBlackButton.setTitle("先手でスタート", for: .normal)
-    startAsBlackButton.setTitleColor(.white, for: .normal)
-    startAsBlackButton.setTitleColor(.black, for: .highlighted)
-    startAsBlackButton.backgroundColor = .gray
-    startAsBlackButton.tintColor = .white
     startAsBlackButton.isEnabled = false
     startAsBlackButton.addTarget(
       self, action: #selector(startAsBlackButtonDidTouchUpInside(_:)), for: .touchUpInside)
-    startAsBlackButton.addTarget(
-      self, action: #selector(startAsBlackButtonDidTouchDown(_:)), for: .touchDown)
     self.addSubview(startAsBlackButton)
     self.startAsBlackButton = startAsBlackButton
 
-    let startAsWhiteButton = styleButton(UIButton(type: .custom))
+    let startAsWhiteButton = RoundButton(type: .custom)
+    startAsWhiteButton.colorSet = .init(
+      normal: .init(title: .black, background: .white),
+      disabled: RoundButton.ColorSet.default.disabled,
+      highlighted: .init(title: .white, background: .black)
+    )
     startAsWhiteButton.setTitle("後手でスタート", for: .normal)
-    startAsWhiteButton.setTitleColor(.black, for: .normal)
-    startAsWhiteButton.setTitleColor(.white, for: .highlighted)
-    startAsWhiteButton.backgroundColor = .gray
     startAsWhiteButton.isEnabled = false
     startAsWhiteButton.addTarget(
       self, action: #selector(startAsWhiteButtonDidTouchUpInside(_:)), for: .touchUpInside)
-    startAsWhiteButton.addTarget(
-      self, action: #selector(startAsWhiteButtonDidTouchDown(_:)), for: .touchDown)
     self.addSubview(startAsWhiteButton)
     self.startAsWhiteButton = startAsWhiteButton
 
@@ -86,13 +80,6 @@ class StartView: UIView {
   override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
     super.traitCollectionDidChange(previousTraitCollection)
     self.videoOverlay.contentsScale = self.traitCollection.displayScale
-  }
-
-  private func styleButton(_ button: UIButton) -> UIButton {
-    button.titleLabel?.textAlignment = .center
-    button.layer.cornerRadius = 15
-    button.setTitleColor(.lightGray, for: .disabled)
-    return button
   }
 
   override func layoutSubviews() {
@@ -125,7 +112,6 @@ class StartView: UIView {
   }
 
   @objc private func startAsBlackButtonDidTouchUpInside(_ sender: UIButton) {
-    self.startAsBlackButton.backgroundColor = .black
     guard let analyzer else {
       return
     }
@@ -133,37 +119,20 @@ class StartView: UIView {
     delegate?.startViewDidStartGame(self, with: analyzer)
   }
 
-  @objc private func startAsBlackButtonDidTouchDown(_ sender: UIButton) {
-    self.startAsBlackButton.backgroundColor = .gray
-  }
-
   @objc private func startAsWhiteButtonDidTouchUpInside(_ sender: UIButton) {
-    self.startAsWhiteButton.backgroundColor = .white
     guard let analyzer else {
       return
     }
     analyzer.startGame(userColor: .White, aiLevel: 0)
     delegate?.startViewDidStartGame(self, with: analyzer)
   }
-
-  @objc private func startAsWhiteButtonDidTouchDown(_ sender: UIButton) {
-    self.startAsWhiteButton.backgroundColor = .gray
-  }
 }
 
 extension StartView: AnalyzerDelegate {
   func analyzerDidChangeBoardReadieness(_ analyzer: Analyzer) {
-    if analyzer.status.boardReady {
-      self.startAsBlackButton.backgroundColor = .black
-      self.startAsWhiteButton.backgroundColor = .white
-      self.startAsBlackButton.isEnabled = true
-      self.startAsWhiteButton.isEnabled = true
-    } else {
-      self.startAsBlackButton.isEnabled = true
-      self.startAsWhiteButton.isEnabled = true
-      self.startAsBlackButton.backgroundColor = .gray
-      self.startAsWhiteButton.backgroundColor = .gray
-    }
+    let enable = analyzer.status.boardReady
+    self.startAsBlackButton.isEnabled = enable
+    self.startAsWhiteButton.isEnabled = enable
   }
 
   func analyzerDidUpdateStatus(_ analyzer: Analyzer) {

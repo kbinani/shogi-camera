@@ -8,8 +8,8 @@ class GameView: UIView {
   private var moveIndex: Int?
   private var resigned: Bool = false
   private var wrongMoveLastNotified: Date?
-  private var backButton: UIButton!
-  private var cameraButton: UIButton!
+  private var backButton: RoundButton!
+  private var cameraButton: RoundButton!
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
@@ -27,12 +27,12 @@ class GameView: UIView {
     self.boardLayer = boardLayer
     self.layer.addSublayer(boardLayer)
 
-    let backButton = styleButton(UIButton(type: .custom))
+    let backButton = RoundButton(type: .custom)
     backButton.setTitle("戻る", for: .normal)
     self.addSubview(backButton)
     self.backButton = backButton
 
-    let cameraButton = styleButton(UIButton(type: .custom))
+    let cameraButton = RoundButton(type: .custom)
     cameraButton.setTitle("カメラに切り替え", for: .normal)
     self.addSubview(cameraButton)
     self.cameraButton = cameraButton
@@ -111,13 +111,6 @@ class GameView: UIView {
         self.reader?.playNextMoveReady()
       }
     }
-  }
-
-  private func styleButton(_ button: UIButton) -> UIButton {
-    button.titleLabel?.textAlignment = .center
-    button.layer.cornerRadius = 15
-    button.backgroundColor = .black
-    return button
   }
 }
 
