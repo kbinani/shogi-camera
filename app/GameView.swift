@@ -149,6 +149,7 @@ class GameView: UIView {
             self.reader?.playResign()
             self.resigned = true
             self.resignButton.isEnabled = false
+            self.abortButton.setTitle("戻る", for: .normal)
           }
         }
       }
@@ -205,6 +206,7 @@ class GameView: UIView {
   private func resign() {
     self.resigned = true
     self.resignButton.isEnabled = false
+    self.abortButton.setTitle("戻る", for: .normal)
     self.analyzer.resign()
   }
 }
