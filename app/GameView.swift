@@ -1,11 +1,19 @@
+import ShogiCamera
 import UIKit
 
 class GameView: UIView {
   private let analyzer: Analyzer
   private var boardLayer: BoardLayer!
+  private let reader: Reader?
+  private var moveIndex: Int?
+  private var resigned: Bool = false
+  private var wrongMoveLastNotified: Date?
+
+  private let kWrongMoveNotificationInterval: TimeInterval = 10
 
   init(analyzer: Analyzer) {
     self.analyzer = analyzer
+    self.reader = .init()
     super.init(frame: .zero)
 
     analyzer.delegate = self
@@ -34,6 +42,54 @@ class GameView: UIView {
     super.traitCollectionDidChange(previousTraitCollection)
     self.boardLayer.contentsScale = self.traitCollection.displayScale
   }
+
+  private var status: sci.Status? {
+    didSet {
+      self.boardLayer?.status = status
+      guard let status, status.boardReady else {
+        return
+      }
+      if !status.game.moves.empty() {
+        if let moveIndex {
+          if moveIndex + 1 < status.game.moves.size() {
+            let mv = status.game.moves[moveIndex + 1]
+            self.reader?.play(move: mv, last: status.game.moves[moveIndex])
+            self.moveIndex = moveIndex + 1
+          }
+        } else {
+          let mv = status.game.moves[0]
+          self.reader?.play(move: mv, last: nil)
+          self.moveIndex = 0
+        }
+
+        if status.wrongMove {
+          if self.wrongMoveLastNotified == nil
+            || Date.now.timeIntervalSince(self.wrongMoveLastNotified!)
+              > self.kWrongMoveNotificationInterval
+          {
+            self.wrongMoveLastNotified = Date.now
+            if let mv = status.game.moves.last {
+              let last = status.game.moves.dropLast().last
+              self.reader?.playWrongMoveWarning(expected: mv, last: last)
+            }
+          }
+        } else {
+          self.wrongMoveLastNotified = nil
+        }
+      }
+      if let moveIndex {
+        if moveIndex + 1 == status.game.moves.size() {
+          if (status.blackResign || status.whiteResign) && !self.resigned {
+            self.reader?.playResign()
+            self.resigned = true
+          }
+        }
+      }
+      if let oldValue, oldValue.waitingMove && !status.waitingMove {
+        self.reader?.playNextMoveReady()
+      }
+    }
+  }
 }
 
 extension GameView: AnalyzerDelegate {
@@ -41,6 +97,6 @@ extension GameView: AnalyzerDelegate {
   }
 
   func analyzerDidUpdateStatus(_ analyzer: Analyzer) {
-    self.boardLayer?.status = analyzer.status
+    self.status = analyzer.status
   }
 }
