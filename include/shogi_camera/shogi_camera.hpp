@@ -541,7 +541,7 @@ inline bool operator==(Move const &a, Move const &b) {
   return a.promote == b.promote;
 }
 
-inline std::u8string StringFromMove(Move const &mv, std::optional<Square> last) {
+inline std::u8string StringFromMoveWithLastPtr(Move const &mv, Square const *last) {
   std::u8string ret;
   if (mv.color == Color::Black) {
     ret += u8"▲";
@@ -569,7 +569,19 @@ inline std::u8string StringFromMove(Move const &mv, std::optional<Square> last) 
 }
 
 inline std::u8string StringFromMove(Move const &mv) {
-  return StringFromMove(mv, std::nullopt);
+  return StringFromMoveWithLastPtr(mv, nullptr);
+}
+
+inline std::u8string StringFromMove(Move const &mv, Square last) {
+  return StringFromMoveWithLastPtr(mv, &last);
+}
+
+inline std::u8string StringFromMoveWithOptionalLast(Move const &mv, std::optional<Square> last) {
+  Square l;
+  if (last) {
+    l = *last;
+  }
+  return StringFromMoveWithLastPtr(mv, last ? &l : nullptr);
 }
 
 inline double Distance(cv::Point const &a, cv::Point const &b) {
@@ -859,7 +871,7 @@ public:
   }
 
   Status status() {
-    auto cp = s;
+    std::shared_ptr<Status> cp = s;
     return *cp;
   }
 

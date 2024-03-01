@@ -310,7 +310,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   static int count = 0;
   count++;
   cout << "b64png(book" << count << "):" << base64::to_base64(book.toPng()) << endl;
-  cout << (char const *)StringFromMove(*move, lastMoveTo).c_str() << endl;
+  cout << (char const *)StringFromMoveWithOptionalLast(*move, lastMoveTo).c_str() << endl;
   std::cout << "========================" << std::endl;
   std::cout << (char const *)g.position.debugString().c_str();
   std::cout << "------------------------" << std::endl;

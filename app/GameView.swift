@@ -12,6 +12,7 @@ class GameView: UIView {
   private var cameraButton: RoundButton!
   private var exportKifButton: RoundButton!
   private var resignButton: RoundButton!
+  private var historyView: UITextView!
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
@@ -43,6 +44,14 @@ class GameView: UIView {
     resignButton.setTitle("投了", for: .normal)
     self.addSubview(resignButton)
     self.resignButton = resignButton
+
+    let historyView = UITextView(frame: .zero)
+    historyView.isEditable = false
+    historyView.backgroundColor = .white
+    historyView.textColor = .black
+    historyView.font = abortButton.titleLabel?.font
+    self.addSubview(historyView)
+    self.historyView = historyView
 
     let exportKifButton = RoundButton(type: .custom)
     exportKifButton.setTitle("KIF", for: .normal)
@@ -80,6 +89,10 @@ class GameView: UIView {
     var footer = bounds.removeFromBottom(44)
     exportKifButton.frame = footer.removeFromRight(
       exportKifButton.intrinsicContentSize.width + 2 * margin)
+
+    bounds.removeFromTop(margin)
+    bounds.removeFromBottom(margin)
+    self.historyView.frame = bounds
   }
 
   override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -93,6 +106,7 @@ class GameView: UIView {
       guard let status, status.boardReady else {
         return
       }
+      updateHistory()
       if !status.game.moves.empty() {
         if let moveIndex {
           if moveIndex + 1 < status.game.moves.size() {
@@ -132,6 +146,38 @@ class GameView: UIView {
       if let oldValue, oldValue.waitingMove && !status.waitingMove {
         self.reader?.playNextMoveReady()
       }
+    }
+  }
+
+  private func updateHistory() {
+    guard let status else {
+      return
+    }
+    var lines: [String] = []
+    var last: sci.Square? = nil
+    for i in 0..<status.game.moves.size() {
+      let move = status.game.moves[i]
+      if let last {
+        let str = sci.StringFromMove(move, last)
+        if let line = sci.Utility.CFStringFromU8String(str) {
+          lines.append(line.takeRetainedValue() as String)
+        } else {
+          lines.append("エラー: 指し手を文字列に変換できませんでした")
+        }
+      } else {
+        let str = sci.StringFromMove(move)
+        if let line = sci.Utility.CFStringFromU8String(str) {
+          lines.append(line.takeRetainedValue() as String)
+        } else {
+          lines.append("エラー: 指し手を文字列に変換できませんでした")
+        }
+      }
+      last = move.to
+    }
+    let text = lines.enumerated().map({ "\($0.offset + 1): \($0.element)" }).joined(separator: "\n")
+    if text != historyView.text {
+      historyView.text = text
+      historyView.scrollRangeToVisible(.init(location: text.utf8.count, length: 0))
     }
   }
 }

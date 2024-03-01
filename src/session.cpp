@@ -642,7 +642,7 @@ void Session::run() {
               lastTo = game.moves.back().to;
             }
             game.moves.push_back(*move);
-            cout << (char const *)StringFromMove(*move, lastTo).c_str() << endl;
+            cout << (char const *)StringFromMoveWithOptionalLast(*move, lastTo).c_str() << endl;
           } else {
             s->blackResign = true;
             cout << "先手番AIが投了" << endl;
@@ -662,7 +662,7 @@ void Session::run() {
               lastTo = game.moves.back().to;
             }
             game.moves.push_back(*move);
-            cout << (char const *)StringFromMove(*move, lastTo).c_str() << endl;
+            cout << (char const *)StringFromMoveWithOptionalLast(*move, lastTo).c_str() << endl;
           } else {
             s->whiteResign = true;
             cout << "後手番AIが投了" << endl;
