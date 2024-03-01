@@ -29,7 +29,7 @@ extension MainViewController: StartViewDelegate {
 }
 
 extension MainViewController: GameViewDelegate {
-  func gameView(_ sender: GameView, presentAlertController controller: UIAlertController) {
+  func gameView(_ sender: GameView, presentViewController controller: UIViewController) {
     self.present(controller, animated: true)
   }
 

@@ -11,7 +11,8 @@ class Analyzer {
   let dimension: CGSize
   weak var delegate: AnalyzerDelegate?
 
-  private var userColor: sci.Color?
+  private(set) var userColor: sci.Color?
+  private(set) var aiLevel: Int?
 
   private var session: sci.SessionWrapper
   private let captureDelegate: CaptureDelegate
@@ -90,6 +91,7 @@ class Analyzer {
 
   func startGame(userColor: sci.Color, aiLevel: Int) {
     self.userColor = userColor
+    self.aiLevel = aiLevel
     self.session.startGame(userColor, Int32(aiLevel))
   }
 

@@ -2,7 +2,7 @@ import ShogiCamera
 import UIKit
 
 protocol GameViewDelegate: AnyObject {
-  func gameView(_ sender: GameView, presentAlertController controller: UIAlertController)
+  func gameView(_ sender: GameView, presentViewController controller: UIViewController)
   func gameViewDidAbort(_ sender: GameView)
 }
 
@@ -13,7 +13,6 @@ class GameView: UIView {
   private var boardLayer: BoardLayer!
   private let reader: Reader?
   private var moveIndex: Int?
-  private var resigned: Bool = false
   private var wrongMoveLastNotified: Date?
   private var abortButton: RoundButton!
   private var cameraButton: RoundButton!
@@ -21,12 +20,15 @@ class GameView: UIView {
   private var resignButton: RoundButton!
   private var historyView: UITextView!
   private var boardRotated = false
+  private let startDate: Date
+  private var endDate: Date?
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
   init(analyzer: Analyzer) {
     self.analyzer = analyzer
     self.reader = .init()
+    self.startDate = Date.now
     super.init(frame: .zero)
 
     analyzer.delegate = self
@@ -67,15 +69,31 @@ class GameView: UIView {
     self.historyView = historyView
 
     let exportKifButton = RoundButton(type: .custom)
-    exportKifButton.setTitle("KIF", for: .normal)
+    exportKifButton.setTitle("kifuファイル", for: .normal)
     exportKifButton.setImage(.init(systemName: "square.and.arrow.up"), for: .normal)
     exportKifButton.imageTitlePadding = 10
     exportKifButton.tintColor = .white
+    exportKifButton.addTarget(
+      self, action: #selector(exportKifButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(exportKifButton)
     self.exportKifButton = exportKifButton
 
     let tap = UITapGestureRecognizer(target: self, action: #selector(tapGestureRecognizer(_:)))
     addGestureRecognizer(tap)
+  }
+
+  private var resigned: Bool = false {
+    didSet {
+      guard resigned != oldValue else {
+        return
+      }
+      guard resigned else {
+        return
+      }
+      self.endDate = Date.now
+      self.resignButton.isEnabled = false
+      self.abortButton.setTitle("戻る", for: .normal)
+    }
   }
 
   required init?(coder: NSCoder) {
@@ -156,8 +174,6 @@ class GameView: UIView {
           if (status.blackResign || status.whiteResign) && !self.resigned {
             self.reader?.playResign()
             self.resigned = true
-            self.resignButton.isEnabled = false
-            self.abortButton.setTitle("戻る", for: .normal)
           }
         }
       }
@@ -217,13 +233,11 @@ class GameView: UIView {
         handler: { [weak self] _ in
           self?.resign()
         }))
-    delegate?.gameView(self, presentAlertController: controller)
+    delegate?.gameView(self, presentViewController: controller)
   }
 
   private func resign() {
     self.resigned = true
-    self.resignButton.isEnabled = false
-    self.abortButton.setTitle("戻る", for: .normal)
     self.analyzer.resign()
   }
 
@@ -241,7 +255,7 @@ class GameView: UIView {
           }
           delegate?.gameViewDidAbort(self)
         }))
-    delegate?.gameView(self, presentAlertController: controller)
+    delegate?.gameView(self, presentViewController: controller)
   }
 
   @objc private func tapGestureRecognizer(_ sender: UITapGestureRecognizer) {
@@ -254,6 +268,107 @@ class GameView: UIView {
     }
     boardRotated.toggle()
     boardLayer.setAffineTransform(boardRotated ? .init(rotationAngle: .pi) : .identity)
+  }
+
+  @objc private func exportKifButtonDidTouchUpInside(_ sender: UIButton) {
+    guard let status, let startDateString = dateTimeString(from: startDate), let endDate,
+      let endDateString = dateTimeString(from: endDate), let userColor = analyzer.userColor,
+      let aiLevel = analyzer.aiLevel
+    else {
+      return
+    }
+    var lines: [String] = []
+    lines.append("開始日時：" + startDateString)
+    lines.append("終了日時：" + endDateString)
+    lines.append("手合割：平手")
+    let playerAI: String
+    if aiLevel == 0 {
+      playerAI = "random"
+    } else {
+      playerAI = "sunfish3(maxDepth=\(aiLevel))"
+    }
+    if userColor == sci.Color.Black {
+      lines.append("先手：プレイヤー")
+      lines.append("後手：" + playerAI)
+    } else {
+      lines.append("先手：" + playerAI)
+      lines.append("後手：プレイヤー")
+    }
+    lines.append("手数----指手---------消費時間--")
+    for i in 0..<status.game.moves.size() {
+      var line = "\(i + 1) "
+      let mv = status.game.moves[i]
+      guard let to = sci.Utility.CFStringFromU8String(sci.StringFromSquare(mv.to)) else {
+        return
+      }
+      line += to.takeRetainedValue() as String
+      guard
+        let piece = sci.Utility.CFStringFromU8String(
+          sci.ShortStringFromPieceTypeAndStatus(mv.piece))
+      else {
+        return
+      }
+      line += piece.takeRetainedValue() as String
+      if mv.promote == 1 {
+        line += "成"
+      }
+      if let from = mv.from.value {
+        guard let fromStr = sci.Utility.CFStringFromU8String(sci.StringFromSquare(from)) else {
+          return
+        }
+        line += "(" + (fromStr.takeRetainedValue() as String) + ")"
+      }
+      lines.append(line)
+    }
+    if status.game.moves.size() % 2 == 0 {
+      if status.blackResign {
+        lines.append("\(status.game.moves.size() + 1) 投了")
+        lines.append("まで\(status.game.moves.size())手で先手の勝ち")
+      }
+    } else {
+      if status.whiteResign {
+        lines.append("\(status.game.moves.size() + 1) 投了")
+        lines.append("まで\(status.game.moves.size())手で後手の勝ち")
+      }
+    }
+    let contents = lines.joined(separator: "\r\n")
+    guard let utf8 = contents.data(using: .utf8) else {
+      return
+    }
+    guard let name = kifuFileName(from: startDate) else {
+      return
+    }
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+    guard FileManager.default.createFile(atPath: url.path, contents: utf8) else {
+      return
+    }
+    let c = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    delegate?.gameView(self, presentViewController: c)
+  }
+
+  private func dateTimeString(from date: Date) -> String? {
+    let calendar = NSCalendar.autoupdatingCurrent
+    let components = calendar.dateComponents(
+      [.year, .month, .day, .hour, .minute, .second], from: date)
+    guard let year = components.year, let month = components.month, let day = components.day,
+      let hour = components.hour, let minute = components.minute, let second = components.second
+    else {
+      return nil
+    }
+    return String(format: "%d/%02d/%02d %02d:%02d:%02d", year, month, day, hour, minute, second)
+  }
+
+  private func kifuFileName(from date: Date) -> String? {
+    let calendar = NSCalendar.autoupdatingCurrent
+    let components = calendar.dateComponents(
+      [.year, .month, .day, .hour, .minute, .second], from: date)
+    guard let year = components.year, let month = components.month, let day = components.day,
+      let hour = components.hour, let minute = components.minute, let second = components.second
+    else {
+      return nil
+    }
+    return String(
+      format: "shogicamera_%d%02d%02d_%02d%02d%02d.kifu", year, month, day, hour, minute, second)
   }
 }
 
