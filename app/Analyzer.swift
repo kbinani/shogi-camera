@@ -25,6 +25,7 @@ class Analyzer {
   fileprivate class CaptureDelegate: NSObject {
     weak var owner: Analyzer?
     private let ciContext: CIContext = .init()
+    private var resigned: Bool = false
   }
 
   init?() {
@@ -95,6 +96,9 @@ extension Analyzer.CaptureDelegate: AVCaptureVideoDataOutputSampleBufferDelegate
     _ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer,
     from connection: AVCaptureConnection
   ) {
+    guard !resigned else {
+      return
+    }
     guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
       return
     }
@@ -110,6 +114,10 @@ extension Analyzer.CaptureDelegate: AVCaptureVideoDataOutputSampleBufferDelegate
     if let status = self.owner?.session.status() {
       DispatchQueue.main.async { [weak self] in
         self?.owner?.status = status
+      }
+      if status.blackResign || status.whiteResign {
+        self.resigned = true
+        self.owner?.captureSession.stopRunning()
       }
     }
   }
