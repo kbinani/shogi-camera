@@ -8,7 +8,7 @@ class GameView: UIView {
   private var moveIndex: Int?
   private var resigned: Bool = false
   private var wrongMoveLastNotified: Date?
-  private var backButton: RoundButton!
+  private var abortButton: RoundButton!
   private var cameraButton: RoundButton!
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
@@ -27,10 +27,10 @@ class GameView: UIView {
     self.boardLayer = boardLayer
     self.layer.addSublayer(boardLayer)
 
-    let backButton = RoundButton(type: .custom)
-    backButton.setTitle("戻る", for: .normal)
-    self.addSubview(backButton)
-    self.backButton = backButton
+    let abortButton = RoundButton(type: .custom)
+    abortButton.setTitle("中断", for: .normal)
+    self.addSubview(abortButton)
+    self.abortButton = abortButton
 
     let cameraButton = RoundButton(type: .custom)
     cameraButton.setTitle("カメラに切り替え", for: .normal)
@@ -45,12 +45,13 @@ class GameView: UIView {
   override func layoutSubviews() {
     super.layoutSubviews()
     var bounds = CGRect(origin: .zero, size: self.bounds.size)
+    bounds.reduce(self.safeAreaInsets)
     let margin: CGFloat = 15
     bounds.expand(-margin, -margin)
 
     var header = bounds.removeFromTop(44)
-    self.backButton.frame = header.removeFromLeft(
-      self.backButton.intrinsicContentSize.width + 2 * margin)
+    self.abortButton.frame = header.removeFromLeft(
+      self.abortButton.intrinsicContentSize.width + 2 * margin)
     header.removeFromLeft(margin)
     self.cameraButton.frame = header.removeFromLeft(
       self.cameraButton.intrinsicContentSize.width + 2 * margin)
