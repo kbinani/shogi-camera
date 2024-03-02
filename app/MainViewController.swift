@@ -29,6 +29,7 @@ extension MainViewController: StartViewDelegate {
 
   func startViewPresentHelpViewController(_ v: StartView) {
     let vc = HelpViewController()
+    vc.modalPresentationStyle = .fullScreen
     vc.delegate = self
     self.present(vc, animated: true)
   }
