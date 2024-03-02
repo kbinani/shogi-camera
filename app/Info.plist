@@ -31,7 +31,7 @@
 	<key>CSResourcesFileMapped</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string></string>
+	<string>Copyright © kbinani</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -42,5 +42,11 @@
 	<string>将棋盤を画像認識するためにカメラを使用します</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.board-games</string>
 </dict>
 </plist>
