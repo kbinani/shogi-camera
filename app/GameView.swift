@@ -1,3 +1,4 @@
+import AVFoundation
 import ShogiCamera
 import UIKit
 
@@ -15,13 +16,15 @@ class GameView: UIView {
   private var moveIndex: Int?
   private var wrongMoveLastNotified: Date?
   private var abortButton: RoundButton!
-  private var cameraButton: RoundButton!
+  private var debugButton: RoundButton?
   private var exportKifButton: RoundButton!
   private var resignButton: RoundButton!
   private var historyView: UITextView!
   private var boardRotated = false
   private let startDate: Date
   private var endDate: Date?
+  private var previewLayer: AVCaptureVideoPreviewLayer?
+  private var videoOverlay: VideoOverlay?
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
@@ -47,13 +50,14 @@ class GameView: UIView {
     self.addSubview(abortButton)
     self.abortButton = abortButton
 
-    let cameraButton = RoundButton(type: .custom)
-    cameraButton.setTitle("カメラに切り替え", for: .normal)
-    #if SHOGI_CAMERA_RELEASE
-      cameraButton.isHidden = false
+    #if SHOGI_CAMERA_DEBUG
+      let debugButton = RoundButton(type: .custom)
+      debugButton.setTitle("デバッグ", for: .normal)
+      debugButton.addTarget(
+        self, action: #selector(debugButtonDidTouchUpInside(_:)), for: .touchUpInside)
+      self.addSubview(debugButton)
+      self.debugButton = debugButton
     #endif
-    self.addSubview(cameraButton)
-    self.cameraButton = cameraButton
 
     let resignButton = RoundButton(type: .custom)
     resignButton.setTitle("投了", for: .normal)
@@ -113,14 +117,19 @@ class GameView: UIView {
     self.abortButton.frame = header.removeFromLeft(
       self.abortButton.intrinsicContentSize.width + 2 * margin)
     header.removeFromLeft(margin)
-    self.cameraButton.frame = header.removeFromLeft(
-      self.cameraButton.intrinsicContentSize.width + 2 * margin)
+    if let debugButton {
+      debugButton.frame = header.removeFromLeft(
+        debugButton.intrinsicContentSize.width + 2 * margin)
+    }
     self.resignButton.frame = header.removeFromRight(
       self.resignButton.intrinsicContentSize.width + 2 * margin)
 
     bounds.removeFromTop(margin)
 
-    self.boardLayer.frame = bounds.removeFromTop(bounds.height / 2)
+    let boardFrame = bounds.removeFromTop(bounds.height / 2)
+    self.boardLayer.frame = boardFrame
+    self.previewLayer?.frame = boardFrame
+    self.videoOverlay?.frame = boardFrame
 
     var footer = bounds.removeFromBottom(44)
     exportKifButton.frame = footer.removeFromRight(
@@ -139,6 +148,7 @@ class GameView: UIView {
   private var status: sci.Status? {
     didSet {
       self.boardLayer?.status = status
+      self.videoOverlay?.status = status
       guard let status, status.boardReady else {
         return
       }
@@ -384,6 +394,52 @@ class GameView: UIView {
     }
     return String(
       format: "shogicamera_%d%02d%02d_%02d%02d%02d.kifu", year, month, day, hour, minute, second)
+  }
+
+  private let numDebugMode: Int = 1
+  private var enableDebug: Int = 0 {
+    didSet {
+      guard enableDebug != oldValue else {
+        return
+      }
+      switch enableDebug {
+      case 1:
+        boardLayer.isHidden = true
+        if let previewLayer {
+          previewLayer.isHidden = false
+        } else {
+          let previewLayer = AVCaptureVideoPreviewLayer(session: analyzer.captureSession)
+          previewLayer.frame = boardLayer.frame
+          previewLayer.videoGravity = .resizeAspect
+          if #available(iOS 17, *) {
+            previewLayer.connection?.videoRotationAngle = 90
+          } else {
+            previewLayer.connection?.videoOrientation = .portrait
+          }
+          self.layer.addSublayer(previewLayer)
+          self.previewLayer = previewLayer
+        }
+        if let videoOverlay {
+          videoOverlay.isHidden = false
+        } else {
+          let videoOverlay = VideoOverlay()
+          videoOverlay.frame = boardLayer.frame
+          videoOverlay.status = status
+          self.layer.insertSublayer(videoOverlay, above: previewLayer)
+          self.videoOverlay = videoOverlay
+        }
+      case 0:
+        boardLayer.isHidden = false
+        previewLayer?.isHidden = true
+        videoOverlay?.isHidden = true
+      default:
+        break
+      }
+    }
+  }
+
+  @objc private func debugButtonDidTouchUpInside(_ sender: UIButton) {
+    enableDebug = (enableDebug + 1) % (numDebugMode + 1)
   }
 }
 
