@@ -43,8 +43,13 @@ class StartView: UIView {
     }
   }
 
-  init() {
-    self.analyzer = .init()
+  init(analyzer: Analyzer?) {
+    if let analyzer {
+      analyzer.reset()
+      self.analyzer = analyzer
+    } else {
+      self.analyzer = .init()
+    }
     super.init(frame: .zero)
 
     self.backgroundColor = .darkGray
@@ -106,7 +111,7 @@ class StartView: UIView {
 
     self.state = .cameraNotAvailable
     if let session = analyzer?.captureSession {
-      analyzer?.delegate = self
+      self.analyzer?.delegate = self
       DispatchQueue.global().async { [weak session] in
         session?.startRunning()
       }

@@ -5,7 +5,7 @@ class MainViewController: UIViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    let startView = StartView()
+    let startView = StartView(analyzer: nil)
     startView.delegate = self
     self.current = startView
     self.view.addSubview(startView)
@@ -41,7 +41,7 @@ extension MainViewController: GameViewDelegate {
   }
 
   func gameViewDidAbort(_ sender: GameView) {
-    let startView = StartView()
+    let startView = StartView(analyzer: sender.analyzer)
     startView.delegate = self
     self.current?.removeFromSuperview()
     self.current = startView

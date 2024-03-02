@@ -95,6 +95,14 @@ class Analyzer {
     let s = self.session.status()
     self.status = s
   }
+
+  func reset() {
+    self.delegate = nil
+    self.session = .init()
+    self.status = .init()
+    self.userColor = nil
+    self.aiLevel = nil
+  }
 }
 
 extension Analyzer.CaptureDelegate: AVCaptureVideoDataOutputSampleBufferDelegate {

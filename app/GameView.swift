@@ -10,7 +10,7 @@ protocol GameViewDelegate: AnyObject {
 class GameView: UIView {
   weak var delegate: GameViewDelegate?
 
-  private let analyzer: Analyzer
+  let analyzer: Analyzer
   private var boardLayer: BoardLayer!
   private let reader: Reader?
   private var moveIndex: Int?
