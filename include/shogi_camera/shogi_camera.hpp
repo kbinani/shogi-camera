@@ -546,7 +546,7 @@ inline std::u8string StringFromMoveWithLastPtr(Move const &mv, Square const *las
   if (mv.color == Color::Black) {
     ret += u8"▲";
   } else {
-    ret += u8"▽";
+    ret += u8"△";
   }
   if (last && mv.to == *last) {
     ret += u8"同";

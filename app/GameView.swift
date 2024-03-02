@@ -214,7 +214,7 @@ class GameView: UIView {
       }
     } else {
       if status.whiteResign {
-        lines.append("▽投了")
+        lines.append("△投了")
       }
     }
     let text = lines.enumerated().map({ "\($0.offset + 1): \($0.element)" }).joined(separator: "\n")
