@@ -295,16 +295,22 @@ class GameView: UIView {
       lines.append("後手：プレイヤー")
     }
     lines.append("手数----指手---------消費時間--")
+    var last: sci.Square? = nil
     for i in 0..<status.game.moves.size() {
       var line = "\(i + 1) "
       let mv = status.game.moves[i]
-      guard let to = sci.Utility.CFStringFromU8String(sci.StringFromSquare(mv.to)) else {
-        return
+      if let last, last == mv.to {
+        line += "同"
+      } else {
+        guard let to = sci.Utility.CFStringFromU8String(sci.StringFromSquare(mv.to)) else {
+          return
+        }
+        line += to.takeRetainedValue() as String
       }
-      line += to.takeRetainedValue() as String
       guard
         let piece = sci.Utility.CFStringFromU8String(
-          sci.ShortStringFromPieceTypeAndStatus(mv.piece))
+          sci.ShortStringFromPieceTypeAndStatus(
+            mv.promote == 1 ? sci.Unpromote(mv.piece) : mv.piece))
       else {
         return
       }
@@ -313,12 +319,12 @@ class GameView: UIView {
         line += "成"
       }
       if let from = mv.from.value {
-        guard let fromStr = sci.Utility.CFStringFromU8String(sci.StringFromSquare(from)) else {
-          return
-        }
-        line += "(" + (fromStr.takeRetainedValue() as String) + ")"
+        line += "(\(9 - from.file.rawValue)\(from.rank.rawValue + 1))"
+      } else {
+        line += "打"
       }
       lines.append(line)
+      last = mv.to
     }
     if status.game.moves.size() % 2 == 0 {
       if status.blackResign {
