@@ -13,6 +13,7 @@ class Analyzer {
 
   private(set) var userColor: sci.Color?
   private(set) var aiLevel: Int?
+  private let queue: DispatchQueue
 
   private var session: sci.SessionWrapper
   private let captureDelegate: CaptureDelegate
@@ -48,7 +49,8 @@ class Analyzer {
     ]
     let captureDelegate = CaptureDelegate()
     self.captureDelegate = captureDelegate
-    videoDataOutput.setSampleBufferDelegate(captureDelegate, queue: DispatchQueue.global())
+    let queue = DispatchQueue(label: "ShogiCameraAnalyzer")
+    videoDataOutput.setSampleBufferDelegate(captureDelegate, queue: queue)
     videoDataOutput.alwaysDiscardsLateVideoFrames = true
     let session = AVCaptureSession()
     guard session.canAddInput(deviceInput) else {
@@ -81,6 +83,7 @@ class Analyzer {
       let dimension = device.activeFormat.formatDescription.dimensions
       self.dimension = CGSize(width: CGFloat(dimension.height), height: CGFloat(dimension.width))
       self.session = .init()
+      self.queue = queue
 
       captureDelegate.owner = self
     } catch {
