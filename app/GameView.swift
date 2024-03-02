@@ -349,6 +349,13 @@ class GameView: UIView {
       return
     }
     let c = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    c.completionWithItemsHandler = { (activityType, completed, returnedItems, activityError) in
+      do {
+        try FileManager.default.removeItem(at: url)
+      } catch {
+        print(error)
+      }
+    }
     delegate?.gameView(self, presentViewController: c)
   }
 
