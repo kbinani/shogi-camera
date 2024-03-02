@@ -71,6 +71,7 @@ add_executable(ShogiCameraApp MACOSX_BUNDLE
   app/Assets.xcassets
   include/shogi_camera/module.modulemap
   res/voice/voice.wav
+  app/Info.plist
 )
 set(shogi_camera_app_resources
   app/LaunchScreen.storyboard
@@ -81,18 +82,18 @@ set_target_properties(ShogiCameraApp PROPERTIES
   BUNDLE TRUE
   RESOURCE "${shogi_camera_app_resources}"
   MACOSX_BUNDLE_GUI_IDENTIFIER "com.github.kbinani.shogi-camera"
-  XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.github.kbinani.shogi-camera"
   MACOSX_BUNDLE_BUNDLE_NAME shogi-camera
   MACOSX_BUNDLE_BUNDLE_VERSION "${CMAKE_PROJECT_VERSION}"
   MACOSX_BUNDLE_SHORT_VERSION_STRING "${CMAKE_PROJECT_VERSION}"
   MACOSX_BUNDLE_LONG_VERSION_STRING "${CMAKE_PROJECT_VERSION}"
+  XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.github.kbinani.shogi-camera"
   XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
   XCODE_ATTRIBUTE_SWIFT_VERSION "5.0"
   XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++20"
   XCODE_ATTRIBUTE_SWIFT_OBJC_INTEROP_MODE "objcxx"
   XCODE_ATTRIBUTE_INFOPLIST_KEY_UILaunchStoryboardName "LaunchScreen"
   XCODE_ATTRIBUTE_INFOPLIST_KEY_NSCameraUsageDescription "wip"
-  XCODE_ATTRIBUTE_GENERATE_INFOPLIST_FILE "YES"
+  XCODE_ATTRIBUTE_INFOPLIST_FILE "${CMAKE_CURRENT_SOURCE_DIR}/app/Info.plist"
 )
 target_link_libraries(ShogiCameraApp
   shogi_camera
