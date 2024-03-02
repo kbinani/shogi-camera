@@ -4,6 +4,7 @@ import UIKit
 
 protocol StartViewDelegate: AnyObject {
   func startViewDidStartGame(_ vc: StartView, with analyzer: Analyzer)
+  func startViewPresentHelpViewController(_ v: StartView)
 }
 
 class StartView: UIView {
@@ -16,7 +17,7 @@ class StartView: UIView {
   private var previewLayer: AVCaptureVideoPreviewLayer?
   private var videoOverlay: VideoOverlay!
   private var messageLabel: UILabel!
-  private var aboutButton: RoundButton!
+  private var helpButton: RoundButton!
 
   enum State {
     case waitingStableBoard
@@ -99,12 +100,12 @@ class StartView: UIView {
     self.addSubview(messageLabel)
     self.messageLabel = messageLabel
 
-    let aboutButton = RoundButton(type: .custom)
-    aboutButton.setTitle("将棋カメラについて", for: .normal)
-    aboutButton.addTarget(
-      self, action: #selector(aboutButtonDidTouchUpInside(_:)), for: .touchUpInside)
-    self.addSubview(aboutButton)
-    self.aboutButton = aboutButton
+    let helpButton = RoundButton(type: .custom)
+    helpButton.setTitle("ヘルプ", for: .normal)
+    helpButton.addTarget(
+      self, action: #selector(helpButtonDidTouchUpInside(_:)), for: .touchUpInside)
+    self.addSubview(helpButton)
+    self.helpButton = helpButton
 
     self.state = .cameraNotAvailable
     if let session = analyzer?.captureSession {
@@ -153,10 +154,10 @@ class StartView: UIView {
     self.startAsWhiteButton.frame = buttons.removeFromRight(buttonWidth)
     bounds.removeFromTop(margin)
 
-    var about = bounds.removeFromBottom(44)
-    let aboutWidth = aboutButton.intrinsicContentSize.width + 2 * margin
-    about.removeFromLeft((about.width - aboutWidth) / 2)
-    aboutButton.frame = about.removeFromLeft(aboutWidth)
+    var help = bounds.removeFromBottom(44)
+    let helpWidth = helpButton.intrinsicContentSize.width + 2 * margin
+    help.removeFromLeft((help.width - helpWidth) / 2)
+    self.helpButton.frame = help.removeFromLeft(helpWidth)
 
     bounds.removeFromBottom(margin)
 
@@ -179,7 +180,8 @@ class StartView: UIView {
     delegate?.startViewDidStartGame(self, with: analyzer)
   }
 
-  @objc private func aboutButtonDidTouchUpInside(_ sender: UIButton) {
+  @objc private func helpButtonDidTouchUpInside(_ sender: UIButton) {
+    delegate?.startViewPresentHelpViewController(self)
   }
 }
 

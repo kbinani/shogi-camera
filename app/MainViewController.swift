@@ -26,6 +26,12 @@ extension MainViewController: StartViewDelegate {
     self.view.addSubview(gameView)
     self.current = gameView
   }
+
+  func startViewPresentHelpViewController(_ v: StartView) {
+    let vc = HelpViewController()
+    vc.delegate = self
+    self.present(vc, animated: true)
+  }
 }
 
 extension MainViewController: GameViewDelegate {
@@ -40,5 +46,11 @@ extension MainViewController: GameViewDelegate {
     self.current = startView
     self.view.addSubview(startView)
     self.current = startView
+  }
+}
+
+extension MainViewController: HelpViewControllerDelegate {
+  func helpViewControllerBack(_ v: HelpViewController) {
+    v.dismiss(animated: true)
   }
 }
