@@ -11,14 +11,17 @@ class HelpViewController: UIViewController {
   private var titleLabel: UILabel!
   private var usageLabel: UILabel!
   private var openSourceLicenseTitle: UILabel!
+  private var openSourceLicense: UILabel!
+  private var acknowledgementTitle: UILabel!
+  private var acknowledgement: UILabel!
   private var container: UIView!
   private var scroll: UIScrollView!
-  private var openSourceLicense: UILabel!
 
   override func viewDidLoad() {
     super.viewDidLoad()
 
     let container = UIView()
+    let titleScale: CGFloat = 1.2
 
     let backButton = RoundButton(type: .custom)
     backButton.setTitle("戻る", for: .normal)
@@ -29,7 +32,7 @@ class HelpViewController: UIViewController {
 
     let titleLabel = UILabel()
     titleLabel.text = "使い方"
-    titleLabel.font = UIFont.boldSystemFont(ofSize: titleLabel.font.pointSize)
+    titleLabel.font = UIFont.boldSystemFont(ofSize: titleLabel.font.pointSize * titleScale)
     titleLabel.textAlignment = .center
     container.addSubview(titleLabel)
     self.titleLabel = titleLabel
@@ -42,10 +45,31 @@ class HelpViewController: UIViewController {
     container.addSubview(usageLabel)
     self.usageLabel = usageLabel
 
+    let acknowledgementTitle = UILabel()
+    acknowledgementTitle.text = "謝辞"
+    acknowledgementTitle.font = UIFont.boldSystemFont(
+      ofSize: acknowledgementTitle.font.pointSize * titleScale)
+    acknowledgementTitle.textAlignment = .center
+    container.addSubview(acknowledgementTitle)
+    self.acknowledgementTitle = acknowledgementTitle
+
+    let acknowledgement = UILabel()
+    acknowledgement.numberOfLines = 0
+    acknowledgement.lineBreakMode = .byWordWrapping
+    acknowledgement.textAlignment = .center
+    // swift-format-ignore
+    acknowledgement.text = """
+棋譜読み上げボイスとして
+「VOICEVOX:ずんだもん」
+を利用させていただきました。感謝申し上げます。
+"""
+    container.addSubview(acknowledgement)
+    self.acknowledgement = acknowledgement
+
     let openSourceLicenseTitle = UILabel()
     openSourceLicenseTitle.text = "オープンソースライセンス"
     openSourceLicenseTitle.font = UIFont.boldSystemFont(
-      ofSize: openSourceLicenseTitle.font.pointSize)
+      ofSize: openSourceLicenseTitle.font.pointSize * titleScale)
     openSourceLicenseTitle.textAlignment = .center
     container.addSubview(openSourceLicenseTitle)
     self.openSourceLicenseTitle = openSourceLicenseTitle
@@ -339,6 +363,7 @@ SOFTWARE.
     super.viewDidLayoutSubviews()
     self.view.backgroundColor = .darkGray
     let margin: CGFloat = 15
+    let paragraphMargin = margin * 4
     var bounds = CGRect(origin: .zero, size: self.view.bounds.size)
     bounds.reduce(self.view.safeAreaInsets)
     bounds.expand(-margin, -margin)
@@ -355,7 +380,15 @@ SOFTWARE.
 
     self.usageLabel.frame = container.removeFromTop(
       measure(self.usageLabel, width: container.width).height)
-    container.removeFromTop(margin * 2)
+    container.removeFromTop(paragraphMargin)
+
+    self.acknowledgementTitle.frame = container.removeFromTop(
+      self.acknowledgementTitle.intrinsicContentSize.height)
+    container.removeFromTop(margin)
+
+    self.acknowledgement.frame = container.removeFromTop(
+      measure(self.acknowledgement, width: container.width).height)
+    container.removeFromTop(paragraphMargin)
 
     self.openSourceLicenseTitle.frame = container.removeFromTop(
       measure(self.openSourceLicenseTitle, width: container.width).height)
