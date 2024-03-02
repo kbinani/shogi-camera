@@ -17,17 +17,17 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleLongVersionString</key>
-	<string>1.0.0</string>
+	<string>$(SHOGI_CAMERA_PROJECT_VERSION)</string>
 	<key>CFBundleName</key>
 	<string>shogi-camera</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+	<string>$(SHOGI_CAMERA_PROJECT_VERSION)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>1.0.0</string>
+	<string>$(SHOGI_CAMERA_PROJECT_VERSION)</string>
 	<key>CSResourcesFileMapped</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
