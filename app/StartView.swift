@@ -45,7 +45,7 @@ class StartView: UIView {
     videoOverlay.contentsScale = self.traitCollection.displayScale
 
     let startAsBlackButton = RoundButton(type: .custom)
-    startAsBlackButton.setTitle("先手でスタート", for: .normal)
+    startAsBlackButton.setTitle("先手番で対局開始", for: .normal)
     startAsBlackButton.isEnabled = false
     startAsBlackButton.addTarget(
       self, action: #selector(startAsBlackButtonDidTouchUpInside(_:)), for: .touchUpInside)
@@ -58,7 +58,7 @@ class StartView: UIView {
       disabled: RoundButton.ColorSet.default.disabled,
       highlighted: .init(title: .white, background: .black)
     )
-    startAsWhiteButton.setTitle("後手でスタート", for: .normal)
+    startAsWhiteButton.setTitle("後手番で対局開始", for: .normal)
     startAsWhiteButton.isEnabled = false
     startAsWhiteButton.addTarget(
       self, action: #selector(startAsWhiteButtonDidTouchUpInside(_:)), for: .touchUpInside)
