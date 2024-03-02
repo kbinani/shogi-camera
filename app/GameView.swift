@@ -49,7 +49,9 @@ class GameView: UIView {
 
     let cameraButton = RoundButton(type: .custom)
     cameraButton.setTitle("カメラに切り替え", for: .normal)
-    cameraButton.isHidden = true
+    #if SHOGI_CAMERA_RELEASE
+      cameraButton.isHidden = false
+    #endif
     self.addSubview(cameraButton)
     self.cameraButton = cameraButton
 
