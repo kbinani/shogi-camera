@@ -533,7 +533,9 @@ inline bool operator==(Move const &a, Move const &b) {
     return false;
   }
   if (a.from && b.from) {
-    return *a.from == *b.from;
+    if (*a.from != *b.from) {
+      return false;
+    }
   }
   if (a.to != b.to) {
     return false;
