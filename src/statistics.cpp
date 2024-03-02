@@ -247,6 +247,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   if (!move) {
     return;
   }
+  moveCandidateHistory.push_back(*move);
   for (Move const &m : moveCandidateHistory) {
     if (m != *move) {
       moveCandidateHistory.clear();
@@ -254,7 +255,6 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
       return;
     }
   }
-  moveCandidateHistory.push_back(*move);
   if (moveCandidateHistory.size() < stableThresholdMoves) {
     // stable と判定するにはまだ足りない.
     return;
