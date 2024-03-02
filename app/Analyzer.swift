@@ -2,7 +2,6 @@ import AVFoundation
 import ShogiCamera
 
 protocol AnalyzerDelegate: AnyObject {
-  func analyzerDidChangeBoardReadieness(_ analyzer: Analyzer)
   func analyzerDidUpdateStatus(_ analyzer: Analyzer)
 }
 
@@ -19,9 +18,6 @@ class Analyzer {
   private let captureDelegate: CaptureDelegate
   private(set) var status: sci.Status = .init() {
     didSet {
-      if oldValue.boardReady != status.boardReady {
-        delegate?.analyzerDidChangeBoardReadieness(self)
-      }
       delegate?.analyzerDidUpdateStatus(self)
     }
   }

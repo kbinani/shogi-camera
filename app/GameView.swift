@@ -386,9 +386,6 @@ class GameView: UIView {
 }
 
 extension GameView: AnalyzerDelegate {
-  func analyzerDidChangeBoardReadieness(_ analyzer: Analyzer) {
-  }
-
   func analyzerDidUpdateStatus(_ analyzer: Analyzer) {
     self.status = analyzer.status
   }

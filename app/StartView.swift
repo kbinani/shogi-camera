@@ -15,6 +15,32 @@ class StartView: UIView {
   private var videoView: UIView!
   private var previewLayer: AVCaptureVideoPreviewLayer?
   private var videoOverlay: VideoOverlay!
+  private var messageLabel: UILabel!
+  private var aboutButton: RoundButton!
+
+  enum State {
+    case waitingStableBoard
+    case ready
+    case cameraNotAvailable
+  }
+  private var state: State = .cameraNotAvailable {
+    didSet {
+      switch state {
+      case .cameraNotAvailable:
+        self.messageLabel.text = "カメラを初期化できませんでした"
+        self.startAsBlackButton.isEnabled = false
+        self.startAsWhiteButton.isEnabled = false
+      case .waitingStableBoard:
+        self.messageLabel.text = "将棋盤全体が映る位置で固定してください"
+        self.startAsBlackButton.isEnabled = false
+        self.startAsWhiteButton.isEnabled = false
+      case .ready:
+        self.messageLabel.text = "準備ができました"
+        self.startAsBlackButton.isEnabled = true
+        self.startAsWhiteButton.isEnabled = true
+      }
+    }
+  }
 
   init() {
     self.analyzer = .init()
@@ -38,8 +64,7 @@ class StartView: UIView {
       self.previewLayer = preview
     }
 
-    let videoOverlay = VideoOverlay(
-      state: analyzer == nil ? .cameraNotAvailable : .waitingStableBoard)
+    let videoOverlay = VideoOverlay()
     self.videoOverlay = videoOverlay
     videoView.layer.insertSublayer(videoOverlay, above: self.previewLayer)
     videoOverlay.contentsScale = self.traitCollection.displayScale
@@ -65,6 +90,23 @@ class StartView: UIView {
     self.addSubview(startAsWhiteButton)
     self.startAsWhiteButton = startAsWhiteButton
 
+    let messageLabel = UILabel()
+    messageLabel.lineBreakMode = .byWordWrapping
+    messageLabel.font = messageLabel.font.withSize(messageLabel.font.pointSize * 1.5)
+    messageLabel.numberOfLines = 0
+    messageLabel.textAlignment = .center
+    messageLabel.minimumScaleFactor = 0.5
+    self.addSubview(messageLabel)
+    self.messageLabel = messageLabel
+
+    let aboutButton = RoundButton(type: .custom)
+    aboutButton.setTitle("将棋カメラについて", for: .normal)
+    aboutButton.addTarget(
+      self, action: #selector(aboutButtonDidTouchUpInside(_:)), for: .touchUpInside)
+    self.addSubview(aboutButton)
+    self.aboutButton = aboutButton
+
+    self.state = .cameraNotAvailable
     if let session = analyzer?.captureSession {
       analyzer?.delegate = self
       DispatchQueue.global().async { [weak session] in
@@ -109,6 +151,16 @@ class StartView: UIView {
     let buttonWidth = (buttons.width - margin) / 2
     self.startAsBlackButton.frame = buttons.removeFromLeft(buttonWidth)
     self.startAsWhiteButton.frame = buttons.removeFromRight(buttonWidth)
+    bounds.removeFromTop(margin)
+
+    var about = bounds.removeFromBottom(44)
+    let aboutWidth = aboutButton.intrinsicContentSize.width + 2 * margin
+    about.removeFromLeft((about.width - aboutWidth) / 2)
+    aboutButton.frame = about.removeFromLeft(aboutWidth)
+
+    bounds.removeFromBottom(margin)
+
+    self.messageLabel.frame = bounds
   }
 
   @objc private func startAsBlackButtonDidTouchUpInside(_ sender: UIButton) {
@@ -126,16 +178,27 @@ class StartView: UIView {
     analyzer.startGame(userColor: .White, aiLevel: 0)
     delegate?.startViewDidStartGame(self, with: analyzer)
   }
+
+  @objc private func aboutButtonDidTouchUpInside(_ sender: UIButton) {
+  }
 }
 
 extension StartView: AnalyzerDelegate {
-  func analyzerDidChangeBoardReadieness(_ analyzer: Analyzer) {
-    let enable = analyzer.status.boardReady
-    self.startAsBlackButton.isEnabled = enable
-    self.startAsWhiteButton.isEnabled = enable
-  }
-
   func analyzerDidUpdateStatus(_ analyzer: Analyzer) {
-    self.videoOverlay.status = analyzer.status
+    let status = analyzer.status
+
+    self.videoOverlay.status = status
+    switch state {
+    case .waitingStableBoard:
+      if status.boardReady == true {
+        state = .ready
+      }
+    case .ready:
+      if status.boardReady != true {
+        state = .waitingStableBoard
+      }
+    case .cameraNotAvailable:
+      state = .waitingStableBoard
+    }
   }
 }

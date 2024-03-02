@@ -2,38 +2,21 @@ import ShogiCamera
 import UIKit
 
 class VideoOverlay: CALayer {
-  enum State {
-    case waitingStableBoard
-    case ready
-    case cameraNotAvailable
-  }
-
   var enableDebug: Bool = true {
     didSet {
 
     }
   }
 
-  private var textLayer: CATextLayer!
-
-  init(state: State) {
-    self.state = state
+  override init() {
     super.init()
-    let textLayer = CATextLayer()
-    textLayer.isWrapped = true
-    textLayer.alignmentMode = .center
-    textLayer.allowsFontSubpixelQuantization = true
-    self.textLayer = textLayer
-    self.addSublayer(textLayer)
-    self.update()
   }
 
   override init(layer: Any) {
     guard let layer = layer as? Self else {
       fatalError()
     }
-    self.state = layer.state
-    self.textLayer = layer.textLayer
+    self.enableDebug = layer.enableDebug
     super.init(layer: layer)
   }
 
@@ -41,54 +24,9 @@ class VideoOverlay: CALayer {
     fatalError("init(coder:) has not been implemented")
   }
 
-  override func layoutSublayers() {
-    super.layoutSublayers()
-    var bounds = CGRect(origin: .zero, size: self.bounds.size)
-    bounds.expand(-15, -15)
-    self.textLayer.frame = bounds
-  }
-
-  var state: State {
-    didSet {
-      guard self.state != oldValue else {
-        return
-      }
-      self.update()
-    }
-  }
-
-  override var contentsScale: CGFloat {
-    didSet {
-      self.textLayer.contentsScale = self.contentsScale
-    }
-  }
-
-  private func update() {
-    switch state {
-    case .cameraNotAvailable:
-      self.textLayer.string = "カメラを初期化できませんでした"
-    case .waitingStableBoard:
-      self.textLayer.string = "将棋盤全体が映る位置でカメラを固定してください"
-    case .ready:
-      self.textLayer.string = "準備ができました"
-    }
-  }
-
   var status: sci.Status? {
     didSet {
       setNeedsDisplay()
-      switch state {
-      case .waitingStableBoard:
-        if status?.boardReady == true {
-          state = .ready
-        }
-      case .ready:
-        if status?.boardReady != true {
-          state = .waitingStableBoard
-        }
-      case .cameraNotAvailable:
-        break
-      }
     }
   }
 
