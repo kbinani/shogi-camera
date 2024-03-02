@@ -12,8 +12,6 @@ extension CGRect {
   }
 
   mutating func reduce(_ edgeInsets: UIEdgeInsets) {
-    let width = max(0, self.width - edgeInsets.left - edgeInsets.right)
-    let height = max(0, self.height - edgeInsets.top - edgeInsets.bottom)
     let cx = self.midX
     let cy = self.midY
     let left = min(cx, self.minX + edgeInsets.left)

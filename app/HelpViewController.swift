@@ -25,8 +25,7 @@ class HelpViewController: UIViewController {
 
     let backButton = RoundButton(type: .custom)
     backButton.setTitle("戻る", for: .normal)
-    backButton.addTarget(
-      self, action: #selector(backButtonDidTouchUpInside(_:)), for: .touchUpInside)
+    backButton.addTarget(self, action: #selector(backButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.view.addSubview(backButton)
     self.backButton = backButton
 
@@ -38,8 +37,7 @@ class HelpViewController: UIViewController {
     self.titleLabel = titleLabel
 
     let usageLabel = UILabel()
-    usageLabel.text =
-      "　将棋盤をなるべく真上から撮影できる位置にデバイスを固定します。将棋盤の位置が認識できると、対局開始ボタンが押せるようになるので、手番を選んで対局開始ボタンを押します。"
+    usageLabel.text = "　将棋盤をなるべく真上から撮影できる位置にデバイスを固定します。将棋盤の位置が認識できると、対局開始ボタンが押せるようになるので、手番を選んで対局開始ボタンを押します。"
     usageLabel.numberOfLines = 0
     usageLabel.lineBreakMode = .byWordWrapping
     container.addSubview(usageLabel)
@@ -47,8 +45,7 @@ class HelpViewController: UIViewController {
 
     let acknowledgementTitle = UILabel()
     acknowledgementTitle.text = "謝辞"
-    acknowledgementTitle.font = UIFont.boldSystemFont(
-      ofSize: acknowledgementTitle.font.pointSize * titleScale)
+    acknowledgementTitle.font = UIFont.boldSystemFont(ofSize: acknowledgementTitle.font.pointSize * titleScale)
     acknowledgementTitle.textAlignment = .center
     container.addSubview(acknowledgementTitle)
     self.acknowledgementTitle = acknowledgementTitle
@@ -68,8 +65,7 @@ class HelpViewController: UIViewController {
 
     let openSourceLicenseTitle = UILabel()
     openSourceLicenseTitle.text = "オープンソースライセンス"
-    openSourceLicenseTitle.font = UIFont.boldSystemFont(
-      ofSize: openSourceLicenseTitle.font.pointSize * titleScale)
+    openSourceLicenseTitle.font = UIFont.boldSystemFont(ofSize: openSourceLicenseTitle.font.pointSize * titleScale)
     openSourceLicenseTitle.textAlignment = .center
     container.addSubview(openSourceLicenseTitle)
     self.openSourceLicenseTitle = openSourceLicenseTitle
@@ -369,8 +365,7 @@ SOFTWARE.
     bounds.expand(-margin, -margin)
 
     var backButton = bounds.removeFromTop(44)
-    self.backButton.frame = backButton.removeFromLeft(
-      self.backButton.intrinsicContentSize.width + 2 * margin)
+    self.backButton.frame = backButton.removeFromLeft(self.backButton.intrinsicContentSize.width + 2 * margin)
     bounds.removeFromTop(margin)
     self.scroll.frame = bounds
 
@@ -378,24 +373,19 @@ SOFTWARE.
     self.titleLabel.frame = container.removeFromTop(self.titleLabel.intrinsicContentSize.height)
     container.removeFromTop(margin)
 
-    self.usageLabel.frame = container.removeFromTop(
-      measure(self.usageLabel, width: container.width).height)
+    self.usageLabel.frame = container.removeFromTop(measure(self.usageLabel, width: container.width).height)
     container.removeFromTop(paragraphMargin)
 
-    self.acknowledgementTitle.frame = container.removeFromTop(
-      self.acknowledgementTitle.intrinsicContentSize.height)
+    self.acknowledgementTitle.frame = container.removeFromTop(self.acknowledgementTitle.intrinsicContentSize.height)
     container.removeFromTop(margin)
 
-    self.acknowledgement.frame = container.removeFromTop(
-      measure(self.acknowledgement, width: container.width).height)
+    self.acknowledgement.frame = container.removeFromTop(measure(self.acknowledgement, width: container.width).height)
     container.removeFromTop(paragraphMargin)
 
-    self.openSourceLicenseTitle.frame = container.removeFromTop(
-      measure(self.openSourceLicenseTitle, width: container.width).height)
+    self.openSourceLicenseTitle.frame = container.removeFromTop(measure(self.openSourceLicenseTitle, width: container.width).height)
     container.removeFromTop(margin)
 
-    self.openSourceLicense.frame = container.removeFromTop(
-      measure(self.openSourceLicense, width: container.width).height)
+    self.openSourceLicense.frame = container.removeFromTop(measure(self.openSourceLicense, width: container.width).height)
     container.removeFromTop(margin)
 
     let containerHeight = container.minY

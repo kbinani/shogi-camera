@@ -45,24 +45,21 @@ class GameView: UIView {
 
     let abortButton = RoundButton(type: .custom)
     abortButton.setTitle("中断", for: .normal)
-    abortButton.addTarget(
-      self, action: #selector(abortButtonDidTouchUpInside(_:)), for: .touchUpInside)
+    abortButton.addTarget(self, action: #selector(abortButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(abortButton)
     self.abortButton = abortButton
 
     #if SHOGI_CAMERA_DEBUG
       let debugButton = RoundButton(type: .custom)
       debugButton.setTitle("デバッグ", for: .normal)
-      debugButton.addTarget(
-        self, action: #selector(debugButtonDidTouchUpInside(_:)), for: .touchUpInside)
+      debugButton.addTarget(self, action: #selector(debugButtonDidTouchUpInside(_:)), for: .touchUpInside)
       self.addSubview(debugButton)
       self.debugButton = debugButton
     #endif
 
     let resignButton = RoundButton(type: .custom)
     resignButton.setTitle("投了", for: .normal)
-    resignButton.addTarget(
-      self, action: #selector(resignButtonDidTouchUpInside(_:)), for: .touchUpInside)
+    resignButton.addTarget(self, action: #selector(resignButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(resignButton)
     self.resignButton = resignButton
 
@@ -79,8 +76,7 @@ class GameView: UIView {
     exportKifButton.setImage(.init(systemName: "square.and.arrow.up"), for: .normal)
     exportKifButton.imageTitlePadding = 10
     exportKifButton.tintColor = .white
-    exportKifButton.addTarget(
-      self, action: #selector(exportKifButtonDidTouchUpInside(_:)), for: .touchUpInside)
+    exportKifButton.addTarget(self, action: #selector(exportKifButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(exportKifButton)
     self.exportKifButton = exportKifButton
 
@@ -114,15 +110,12 @@ class GameView: UIView {
     bounds.expand(-margin, -margin)
 
     var header = bounds.removeFromTop(44)
-    self.abortButton.frame = header.removeFromLeft(
-      self.abortButton.intrinsicContentSize.width + 2 * margin)
+    self.abortButton.frame = header.removeFromLeft(self.abortButton.intrinsicContentSize.width + 2 * margin)
     header.removeFromLeft(margin)
     if let debugButton {
-      debugButton.frame = header.removeFromLeft(
-        debugButton.intrinsicContentSize.width + 2 * margin)
+      debugButton.frame = header.removeFromLeft(debugButton.intrinsicContentSize.width + 2 * margin)
     }
-    self.resignButton.frame = header.removeFromRight(
-      self.resignButton.intrinsicContentSize.width + 2 * margin)
+    self.resignButton.frame = header.removeFromRight(self.resignButton.intrinsicContentSize.width + 2 * margin)
 
     bounds.removeFromTop(margin)
 
@@ -132,8 +125,7 @@ class GameView: UIView {
     self.videoOverlay?.frame = boardFrame
 
     var footer = bounds.removeFromBottom(44)
-    exportKifButton.frame = footer.removeFromRight(
-      exportKifButton.intrinsicContentSize.width + 2 * margin)
+    exportKifButton.frame = footer.removeFromRight(exportKifButton.intrinsicContentSize.width + 2 * margin)
 
     bounds.removeFromTop(margin)
     bounds.removeFromBottom(margin)
@@ -167,10 +159,7 @@ class GameView: UIView {
         }
 
         if status.wrongMove {
-          if self.wrongMoveLastNotified == nil
-            || Date.now.timeIntervalSince(self.wrongMoveLastNotified!)
-              > self.kWrongMoveNotificationInterval
-          {
+          if self.wrongMoveLastNotified == nil || Date.now.timeIntervalSince(self.wrongMoveLastNotified!) > self.kWrongMoveNotificationInterval {
             self.wrongMoveLastNotified = Date.now
             if let mv = status.game.moves.last {
               let last = status.game.moves.dropLast().last
@@ -319,11 +308,7 @@ class GameView: UIView {
         }
         line += to.takeRetainedValue() as String
       }
-      guard
-        let piece = sci.Utility.CFStringFromU8String(
-          sci.ShortStringFromPieceTypeAndStatus(
-            mv.promote == 1 ? sci.Unpromote(mv.piece) : mv.piece))
-      else {
+      guard let piece = sci.Utility.CFStringFromU8String(sci.ShortStringFromPieceTypeAndStatus(mv.promote == 1 ? sci.Unpromote(mv.piece) : mv.piece)) else {
         return
       }
       line += piece.takeRetainedValue() as String
@@ -373,10 +358,8 @@ class GameView: UIView {
 
   private func dateTimeString(from date: Date) -> String? {
     let calendar = NSCalendar.autoupdatingCurrent
-    let components = calendar.dateComponents(
-      [.year, .month, .day, .hour, .minute, .second], from: date)
-    guard let year = components.year, let month = components.month, let day = components.day,
-      let hour = components.hour, let minute = components.minute, let second = components.second
+    let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
+    guard let year = components.year, let month = components.month, let day = components.day, let hour = components.hour, let minute = components.minute, let second = components.second
     else {
       return nil
     }
@@ -385,10 +368,8 @@ class GameView: UIView {
 
   private func kifuFileName(from date: Date) -> String? {
     let calendar = NSCalendar.autoupdatingCurrent
-    let components = calendar.dateComponents(
-      [.year, .month, .day, .hour, .minute, .second], from: date)
-    guard let year = components.year, let month = components.month, let day = components.day,
-      let hour = components.hour, let minute = components.minute, let second = components.second
+    let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
+    guard let year = components.year, let month = components.month, let day = components.day, let hour = components.hour, let minute = components.minute, let second = components.second
     else {
       return nil
     }

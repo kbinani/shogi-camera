@@ -16,15 +16,15 @@ class BoardLayer: CALayer {
         return
       }
       self.board = .init(
-        position: status.game.position, blackHand: .init(status.game.handBlack),
-        whiteHand: .init(status.game.handWhite), move: status.game.moves.last,
+        position: status.game.position,
+        blackHand: .init(status.game.handBlack),
+        whiteHand: .init(status.game.handWhite),
+        move: status.game.moves.last,
         showArrow: status.waitingMove)
     }
   }
 
-  private var board: Board = .init(
-    position: sci.MakePosition(.None), blackHand: [], whiteHand: [], move: nil, showArrow: false)
-  {
+  private var board: Board = .init(position: sci.MakePosition(.None), blackHand: [], whiteHand: [], move: nil, showArrow: false) {
     didSet {
       setNeedsDisplay()
     }
@@ -34,9 +34,7 @@ class BoardLayer: CALayer {
     let size = self.bounds.size
     let aspect: CGFloat = 1.1
     let margin: UIEdgeInsets = .init(top: 0, left: 0, bottom: 0, right: 0)
-    let w = min(
-      (size.height - margin.top - margin.bottom) / 9,
-      (size.width - margin.left - margin.right) / 12 / aspect)
+    let w = min((size.height - margin.top - margin.bottom) / 9, (size.width - margin.left - margin.right) / 12 / aspect)
     let h = w * aspect
     let cx = size.width * 0.5
     let cy = size.height * 0.5
@@ -146,10 +144,7 @@ class BoardLayer: CALayer {
         x: cx + (-4 + CGFloat(from.file.rawValue)) * w,
         y: cy + (-4 + CGFloat(from.rank.rawValue)) * h)
     }
-    for piece in [
-      PieceType.Pawn, PieceType.Lance, PieceType.Knight, PieceType.Silver, PieceType.Gold,
-      PieceType.Bishop, PieceType.Rook,
-    ] {
+    for piece in [PieceType.Pawn, PieceType.Lance, PieceType.Knight, PieceType.Silver, PieceType.Gold, PieceType.Bishop, PieceType.Rook] {
       let u8str = sci.ShortStringFromPieceTypeAndStatus(piece.rawValue)
       guard let cf = sci.Utility.CFStringFromU8String(u8str)?.takeRetainedValue() else {
         continue
@@ -160,9 +155,7 @@ class BoardLayer: CALayer {
         let box = CGRect(x: cx + 4.5 * w, y: by, width: w, height: h)
         Self.Draw(str: ss, font: font, ctx: ctx, box: box, rotate: false)
         by -= h
-        if let move = board.move, board.showArrow, move.color == .Black,
-          !move.from.__convertToBool(), piece == sci.PieceTypeFromPiece(move.piece)
-        {
+        if let move = board.move, board.showArrow, move.color == .Black, !move.from.__convertToBool(), piece == sci.PieceTypeFromPiece(move.piece) {
           arrowFrom = CGPoint(x: box.midX, y: box.midY)
         }
       }
@@ -171,9 +164,7 @@ class BoardLayer: CALayer {
         let box = CGRect(x: cx - 5.5 * w, y: wy, width: w, height: h)
         Self.Draw(str: ss, font: font, ctx: ctx, box: box, rotate: true)
         wy += h
-        if let move = board.move, board.showArrow, move.color == .White,
-          !move.from.__convertToBool(), piece == sci.PieceTypeFromPiece(move.piece)
-        {
+        if let move = board.move, board.showArrow, move.color == .White, !move.from.__convertToBool(), piece == sci.PieceTypeFromPiece(move.piece) {
           arrowFrom = CGPoint(x: box.midX, y: box.midY)
         }
       }
@@ -193,7 +184,8 @@ class BoardLayer: CALayer {
       }
       let arrowTo = CGPoint(
         x: cx + (-4 + CGFloat(move.to.file.rawValue)) * w,
-        y: cy + (-4 + CGFloat(move.to.rank.rawValue)) * h)
+        y: cy + (-4 + CGFloat(move.to.rank.rawValue)) * h
+      )
       let color = UIColor.red.cgColor
       ctx.setStrokeColor(color)
       ctx.move(to: arrowFrom)
@@ -223,10 +215,7 @@ class BoardLayer: CALayer {
 
       let radius = dotRadius * 2
       ctx.setFillColor(color)
-      ctx.addEllipse(
-        in: .init(
-          x: arrowFrom.x - radius, y: arrowFrom.y - radius, width: radius * 2,
-          height: radius * 2))
+      ctx.addEllipse(in: .init(x: arrowFrom.x - radius, y: arrowFrom.y - radius, width: radius * 2, height: radius * 2))
       ctx.fillPath()
     }
   }
@@ -235,8 +224,7 @@ class BoardLayer: CALayer {
     let ascent = CTFontGetAscent(font)
     let descent = CTFontGetDescent(font)
     let fontSize = CTFontGetSize(font)
-    let str = NSAttributedString(
-      string: str, attributes: [.font: font, .foregroundColor: UIColor.black.cgColor])
+    let str = NSAttributedString(string: str, attributes: [.font: font, .foregroundColor: UIColor.black.cgColor])
     let line = CTLineCreateWithAttributedString(str as CFAttributedString)
     ctx.saveGState()
     defer {
@@ -247,23 +235,15 @@ class BoardLayer: CALayer {
     let mtx: CGAffineTransform =
       if rotate {
         CGAffineTransform.identity
-          .concatenating(
-            .init(translationX: -fontSize * (0.5 - ratio), y: descent - (ascent + descent) * 0.5)
-          )
+          .concatenating(.init(translationX: -fontSize * (0.5 - ratio), y: descent - (ascent + descent) * 0.5))
           .concatenating(.init(scaleX: 1, y: -1))
           .concatenating(.init(rotationAngle: .pi))
-          .concatenating(
-            .init(
-              translationX: box.minX + box.width * 0.5,
-              y: box.minY + box.height * 0.5))
+          .concatenating(.init(translationX: box.minX + box.width * 0.5, y: box.minY + box.height * 0.5))
       } else {
         CGAffineTransform.identity
           .concatenating(.init(translationX: 0, y: descent - (ascent + descent) * 0.5))
           .concatenating(.init(scaleX: 1, y: -1))
-          .concatenating(
-            .init(
-              translationX: box.minX + box.width * 0.5 - fontSize * (0.5 - ratio),
-              y: box.minY + box.height * 0.5))
+          .concatenating(.init(translationX: box.minX + box.width * 0.5 - fontSize * (0.5 - ratio), y: box.minY + box.height * 0.5))
       }
     ctx.concatenate(mtx)
     ctx.textMatrix = CGAffineTransform.identity

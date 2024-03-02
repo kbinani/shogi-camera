@@ -73,8 +73,7 @@ class StartView: UIView {
     let startAsBlackButton = RoundButton(type: .custom)
     startAsBlackButton.setTitle("先手番で対局開始", for: .normal)
     startAsBlackButton.isEnabled = false
-    startAsBlackButton.addTarget(
-      self, action: #selector(startAsBlackButtonDidTouchUpInside(_:)), for: .touchUpInside)
+    startAsBlackButton.addTarget(self, action: #selector(startAsBlackButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(startAsBlackButton)
     self.startAsBlackButton = startAsBlackButton
 
@@ -86,8 +85,7 @@ class StartView: UIView {
     )
     startAsWhiteButton.setTitle("後手番で対局開始", for: .normal)
     startAsWhiteButton.isEnabled = false
-    startAsWhiteButton.addTarget(
-      self, action: #selector(startAsWhiteButtonDidTouchUpInside(_:)), for: .touchUpInside)
+    startAsWhiteButton.addTarget(self, action: #selector(startAsWhiteButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(startAsWhiteButton)
     self.startAsWhiteButton = startAsWhiteButton
 
@@ -102,8 +100,7 @@ class StartView: UIView {
 
     let helpButton = RoundButton(type: .custom)
     helpButton.setTitle("ヘルプ", for: .normal)
-    helpButton.addTarget(
-      self, action: #selector(helpButtonDidTouchUpInside(_:)), for: .touchUpInside)
+    helpButton.addTarget(self, action: #selector(helpButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(helpButton)
     self.helpButton = helpButton
 
@@ -142,8 +139,7 @@ class StartView: UIView {
       let scale = min(video.width / videoDimension.width, video.height / videoDimension.height)
       let x = video.width / 2 - videoDimension.width * scale / 2
       let y = video.height / 2 - videoDimension.height * scale / 2
-      videoOverlay.frame = .init(
-        x: x, y: y, width: videoDimension.width * scale, height: videoDimension.height * scale)
+      videoOverlay.frame = .init(x: x, y: y, width: videoDimension.width * scale, height: videoDimension.height * scale)
     } else {
       videoOverlay.frame = .init(origin: .zero, size: video.size)
     }

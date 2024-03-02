@@ -29,20 +29,14 @@ class Analyzer {
   }
 
   init?() {
-    guard
-      let device = AVCaptureDevice.devices().first(where: {
-        $0.position == AVCaptureDevice.Position.back
-      })
-    else {
+    guard let device = AVCaptureDevice.devices().first(where: { $0.position == AVCaptureDevice.Position.back }) else {
       return nil
     }
     guard let deviceInput = try? AVCaptureDeviceInput(device: device) else {
       return nil
     }
     let videoDataOutput = AVCaptureVideoDataOutput()
-    videoDataOutput.videoSettings = [
-      kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
-    ]
+    videoDataOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
     let captureDelegate = CaptureDelegate()
     self.captureDelegate = captureDelegate
     let queue = DispatchQueue(label: "ShogiCameraAnalyzer")
@@ -72,8 +66,7 @@ class Analyzer {
         device.unlockForConfiguration()
       }
       let rate = min(max(5, range.minFrameRate), range.maxFrameRate)
-      device.activeVideoMinFrameDuration = CMTime(
-        seconds: 1 / rate, preferredTimescale: 1_000_000)
+      device.activeVideoMinFrameDuration = CMTime(seconds: 1 / rate, preferredTimescale: 1_000_000)
       self.captureSession = session
       // videoRotationAngle = 90 で回転しているので幅と高さを交換
       let dimension = device.activeFormat.formatDescription.dimensions
@@ -105,10 +98,7 @@ class Analyzer {
 }
 
 extension Analyzer.CaptureDelegate: AVCaptureVideoDataOutputSampleBufferDelegate {
-  func captureOutput(
-    _ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer,
-    from connection: AVCaptureConnection
-  ) {
+  func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
     guard !resigned else {
       return
     }
