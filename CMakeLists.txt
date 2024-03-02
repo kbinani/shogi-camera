@@ -79,7 +79,7 @@ set(shogi_camera_app_resources
   res/voice/voice.wav
 )
 set_target_properties(ShogiCameraApp PROPERTIES
-  BUNDLE True
+  BUNDLE YES
   RESOURCE "${shogi_camera_app_resources}"
   MACOSX_BUNDLE_GUI_IDENTIFIER "com.github.kbinani.shogi-camera"
   MACOSX_BUNDLE_BUNDLE_NAME shogi-camera
@@ -94,6 +94,9 @@ set_target_properties(ShogiCameraApp PROPERTIES
   XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++20"
   XCODE_ATTRIBUTE_SWIFT_OBJC_INTEROP_MODE "objcxx"
   XCODE_ATTRIBUTE_INFOPLIST_FILE "${CMAKE_CURRENT_SOURCE_DIR}/app/Info.plist"
+  XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
+  XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
+  XCODE_ATTRIBUTE_SHOGI_CAMERA_PROJECT_VERSION "${CMAKE_PROJECT_VERSION}"
 )
 target_link_libraries(ShogiCameraApp
   shogi_camera
