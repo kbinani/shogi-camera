@@ -51,6 +51,7 @@ class HelpViewController: UIViewController {
     self.openSourceLicenseTitle = openSourceLicenseTitle
 
     let openSourceLicense = UILabel()
+    // swift-format-ignore
     openSourceLicense.text = """
 ---
 OpenCV
