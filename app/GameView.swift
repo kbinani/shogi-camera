@@ -140,7 +140,7 @@ class GameView: UIView {
     self.stableBoardLayer?.frame = boardBounds
 
     var footer = bounds.removeFromBottom(44)
-    exportKifButton.frame = footer.removeFromRight(exportKifButton.intrinsicContentSize.width + 2 * margin)
+    exportKifButton.frame = footer.removeFromLeft(exportKifButton.intrinsicContentSize.width + 2 * margin)
 
     bounds.removeFromTop(margin)
     bounds.removeFromBottom(margin)
