@@ -8,35 +8,79 @@ namespace sci {
 
 void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, bool cut)> cb) const {
   cv::Mat img;
+  int total = 0;
+  int cut = 0;
+  if (blackInit) {
+    total++;
+    if (blackInit->cut) {
+      cut++;
+    }
+  }
+  if (whiteInit) {
+    total++;
+    if (whiteInit->cut) {
+      cut++;
+    }
+  }
+  total += blackLast.size();
+  for (auto const &it : blackLast) {
+    if (it.cut) {
+      cut++;
+    }
+  }
+  total += whiteLast.size();
+  for (auto const &it : whiteLast) {
+    if (it.cut) {
+      cut++;
+    }
+  }
+  bool onlyCut = cut >= (total - cut) && total > 2;
+
   if (color == Color::Black) {
     if (blackInit) {
-      cb(blackInit->mat.clone(), blackInit->cut);
+      if (!onlyCut || blackInit->cut) {
+        cb(blackInit->mat.clone(), blackInit->cut);
+      }
     }
     if (whiteInit) {
-      cv::rotate(whiteInit->mat, img, cv::ROTATE_180);
-      cb(img, whiteInit->cut);
+      if (!onlyCut || whiteInit->cut) {
+        cv::rotate(whiteInit->mat, img, cv::ROTATE_180);
+        cb(img, whiteInit->cut);
+      }
     }
     for (auto const &entry : blackLast) {
-      cb(entry.mat.clone(), entry.cut);
+      if (!onlyCut || entry.cut) {
+        cb(entry.mat.clone(), entry.cut);
+      }
     }
     for (auto const &entry : whiteLast) {
-      cv::rotate(entry.mat, img, cv::ROTATE_180);
-      cb(img, entry.cut);
+      if (!onlyCut || entry.cut) {
+        cv::rotate(entry.mat, img, cv::ROTATE_180);
+        cb(img, entry.cut);
+      }
     }
   } else {
     if (whiteInit) {
-      cb(whiteInit->mat.clone(), whiteInit->cut);
+      if (!onlyCut || whiteInit->cut) {
+        cb(whiteInit->mat.clone(), whiteInit->cut);
+      }
     }
     if (blackInit) {
-      cv::rotate(blackInit->mat, img, cv::ROTATE_180);
-      cb(img, blackInit->cut);
+      if (!onlyCut || blackInit->cut) {
+        cv::rotate(blackInit->mat, img, cv::ROTATE_180);
+        cb(img, blackInit->cut);
+      }
     }
     for (auto const &entry : whiteLast) {
-      cb(entry.mat.clone(), entry.cut);
+      if (!onlyCut || entry.cut) {
+        cb(entry.mat.clone(), entry.cut);
+      }
     }
     for (auto const &entry : blackLast) {
-      cv::rotate(entry.mat, img, cv::ROTATE_180);
-      cb(img, entry.cut);
+      if (!onlyCut || entry.cut) {
+        cv::rotate(entry.mat, img, cv::ROTATE_180);
+        cb(img, entry.cut);
+      }
     }
   }
 }
