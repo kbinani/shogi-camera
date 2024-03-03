@@ -95,8 +95,8 @@ double Img::Similarity(cv::Mat const &left_, bool binaryLeft, cv::Mat const &rig
 
   int w = left.size().width;
   int h = left.size().height;
-  int cx = w / 2;
-  int cy = h / 2;
+  float cx = w / 2.0f;
+  float cy = h / 2.0f;
   int dx = (int)round(w * translationRatio);
   int dy = (int)round(h * translationRatio);
   float maxSim = std::numeric_limits<float>::lowest();
@@ -106,7 +106,7 @@ double Img::Similarity(cv::Mat const &left_, bool binaryLeft, cv::Mat const &rig
   for (int t = -degrees; t <= degrees; t++) {
     cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
     cv::Mat rotated;
-    cv::warpAffine(left, rotated, m, left.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+    cv::warpAffine(right, rotated, m, right.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
 
     for (int iy = -dy; iy <= dy; iy++) {
       for (int ix = -dx; ix <= dx; ix++) {
@@ -115,7 +115,7 @@ double Img::Similarity(cv::Mat const &left_, bool binaryLeft, cv::Mat const &rig
         for (int j = 0; j < h; j++) {
           for (int i = 0; i < w; i++) {
             if (0 <= i + ix && i + ix < w && 0 <= j + iy && j + iy < h) {
-              float diff = right.at<uint8_t>(i, j) - rotated.at<uint8_t>(i + ix, j + iy);
+              float diff = left.at<uint8_t>(i, j) - rotated.at<uint8_t>(i + ix, j + iy);
               sum += diff * diff;
               count++;
             }
