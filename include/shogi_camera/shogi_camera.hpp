@@ -592,6 +592,14 @@ inline double Distance(cv::Point const &a, cv::Point const &b) {
   return sqrt(dx * dx + dy * dy);
 }
 
+inline cv::Point2f PerspectiveTransform(cv::Point2f const &src, cv::Mat const &mtx) {
+  cv::Mat dst;
+  std::vector<cv::Point2f> vp;
+  vp.push_back(src);
+  cv::perspectiveTransform(vp, dst, mtx);
+  return cv::Point2f(dst.at<float>(0, 0), dst.at<float>(0, 1));
+}
+
 struct Contour {
   std::vector<cv::Point2f> points;
   double area;
@@ -744,6 +752,8 @@ struct Status {
   std::optional<Contour> preciseOutline;
   // 台形補正済みの盤面画像
   cv::Mat boardWarped;
+  // 台形補正する際に使用した透視変換
+  cv::Mat perspectiveTransform;
 
   // 試合の最新状況. Session.game のコピー.
   Game game;

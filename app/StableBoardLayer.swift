@@ -1,5 +1,6 @@
 import ShogiCamera
 import UIKit
+import opencv2
 
 class StableBoardLayer: CALayer {
   var status: sci.Status? {
@@ -70,6 +71,27 @@ class StableBoardLayer: CALayer {
         ctx.setStrokeColor(UIColor.blue.cgColor)
         ctx.stroke(r2)
       }
+    }
+
+    status.pieces.forEach { piece in
+      guard let first = piece.pointee.points.first else {
+        return
+      }
+      let wfirst = sci.PerspectiveTransform(first, status.perspectiveTransform)
+      let path = CGMutablePath()
+      path.move(to: wfirst.cgPoint)
+      piece.pointee.points.dropFirst().forEach { p in
+        let wp = sci.PerspectiveTransform(p, status.perspectiveTransform)
+        path.addLine(to: wp.cgPoint)
+      }
+      path.closeSubpath()
+      ctx.addPath(path)
+      ctx.setFillColor(UIColor.blue.withAlphaComponent(0.2).cgColor)
+      ctx.fillPath()
+      ctx.addPath(path)
+      ctx.setLineWidth(2)
+      ctx.setStrokeColor(UIColor.blue.cgColor)
+      ctx.strokePath()
     }
   }
 }
