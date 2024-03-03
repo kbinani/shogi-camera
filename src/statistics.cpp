@@ -307,9 +307,6 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   g.apply(*move);
   book->update(g.position, board, s);
   cout << g.moves.size() << ":" << (char const *)StringFromMoveWithOptionalLast(*move, lastMoveTo).c_str() << endl;
-  std::cout << "========================" << std::endl;
-  std::cout << (char const *)g.position.debugString().c_str();
-  std::cout << "------------------------" << std::endl;
 }
 
 std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand, PieceBook &book) {
