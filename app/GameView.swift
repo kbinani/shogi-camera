@@ -275,6 +275,9 @@ class GameView: UIView {
           guard let self else {
             return
           }
+          if let connection = previewLayer_.connection {
+            analyzer.captureSession.removeConnection(connection)
+          }
           delegate?.gameViewDidAbort(self)
         }))
     delegate?.gameView(self, presentViewController: controller)

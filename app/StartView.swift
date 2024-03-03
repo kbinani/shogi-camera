@@ -169,6 +169,9 @@ class StartView: UIView {
     guard let analyzer else {
       return
     }
+    if let connection = previewLayer?.connection {
+      analyzer.captureSession.removeConnection(connection)
+    }
     analyzer.startGame(userColor: .Black, aiLevel: 0)
     delegate?.startViewDidStartGame(self, with: analyzer)
   }
