@@ -23,8 +23,8 @@ class GameView: UIView {
   private var boardRotated = false
   private let startDate: Date
   private var endDate: Date?
-  private var previewLayer: AVCaptureVideoPreviewLayer?
-  private var videoOverlay: VideoOverlay?
+  private var previewLayer_: AVCaptureVideoPreviewLayer!
+  private var videoOverlay_: VideoOverlay?
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
@@ -70,6 +70,21 @@ class GameView: UIView {
     historyView.font = abortButton.titleLabel?.font
     self.addSubview(historyView)
     self.historyView = historyView
+
+    let previewLayer = AVCaptureVideoPreviewLayer(session: self.analyzer.captureSession)
+    previewLayer.videoGravity = .resizeAspect
+    if #available(iOS 17, *) {
+      previewLayer.connection?.videoRotationAngle = 90
+    } else {
+      previewLayer.connection?.videoOrientation = .portrait
+    }
+    self.layer.addSublayer(previewLayer)
+    self.previewLayer_ = previewLayer
+
+    let videoOverlay = VideoOverlay()
+    videoOverlay.frame = boardLayer.frame
+    self.layer.insertSublayer(videoOverlay, above: self.previewLayer_)
+    self.videoOverlay_ = videoOverlay
 
     let exportKifButton = RoundButton(type: .custom)
     exportKifButton.setTitle("kifuファイル", for: .normal)
@@ -119,17 +134,23 @@ class GameView: UIView {
 
     bounds.removeFromTop(margin)
 
-    let boardFrame = bounds.removeFromTop(bounds.height / 2)
-    self.boardLayer.frame = boardFrame
-    self.previewLayer?.frame = boardFrame
-    self.videoOverlay?.frame = boardFrame
+    self.boardLayer.frame = bounds.removeFromTop(bounds.height / 2)
 
     var footer = bounds.removeFromBottom(44)
     exportKifButton.frame = footer.removeFromRight(exportKifButton.intrinsicContentSize.width + 2 * margin)
 
     bounds.removeFromTop(margin)
     bounds.removeFromBottom(margin)
+
+    let videoDimension = analyzer.dimension
+    let scale = min(bounds.width / videoDimension.width, bounds.height / videoDimension.height)
+    // 画面幅の 4/7 を上限として aspect fit する最大の幅で previewLayer を配置する.
+    let previewWidth = min((bounds.width - margin) / 7 * 4, videoDimension.width * scale)
+    let previewBounds = bounds.removeFromRight(previewWidth)
+    bounds.removeFromRight(margin)
     self.historyView.frame = bounds
+    self.previewLayer_?.frame = previewBounds
+    self.videoOverlay_?.frame = previewBounds
   }
 
   override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -140,7 +161,7 @@ class GameView: UIView {
   private var status: sci.Status? {
     didSet {
       self.boardLayer?.status = status
-      self.videoOverlay?.status = status
+      self.videoOverlay_?.status = status
       guard let status, status.boardReady else {
         return
       }
@@ -382,39 +403,6 @@ class GameView: UIView {
     didSet {
       guard enableDebug != oldValue else {
         return
-      }
-      switch enableDebug {
-      case 1:
-        boardLayer.isHidden = true
-        if let previewLayer {
-          previewLayer.isHidden = false
-        } else {
-          let previewLayer = AVCaptureVideoPreviewLayer(session: analyzer.captureSession)
-          previewLayer.frame = boardLayer.frame
-          previewLayer.videoGravity = .resizeAspect
-          if #available(iOS 17, *) {
-            previewLayer.connection?.videoRotationAngle = 90
-          } else {
-            previewLayer.connection?.videoOrientation = .portrait
-          }
-          self.layer.addSublayer(previewLayer)
-          self.previewLayer = previewLayer
-        }
-        if let videoOverlay {
-          videoOverlay.isHidden = false
-        } else {
-          let videoOverlay = VideoOverlay()
-          videoOverlay.frame = boardLayer.frame
-          videoOverlay.status = status
-          self.layer.insertSublayer(videoOverlay, above: previewLayer)
-          self.videoOverlay = videoOverlay
-        }
-      case 0:
-        boardLayer.isHidden = false
-        previewLayer?.isHidden = true
-        videoOverlay?.isHidden = true
-      default:
-        break
       }
     }
   }
