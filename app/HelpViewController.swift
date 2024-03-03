@@ -8,17 +8,25 @@ class HelpViewController: UIViewController {
   weak var delegate: HelpViewControllerDelegate?
 
   private var backButton: RoundButton!
-  private var titleLabel: UILabel!
-  private var usageLabel: UILabel!
-  private var openSourceLicenseTitle: UILabel!
-  private var openSourceLicense: UILabel!
+  private var cameraInstructionTitle: UILabel!
+  private var cameraInstructionMessage1: UILabel!
+  private var cameraInstructionImage: UIImageView!
+  private var cameraInstructionMessage2: UILabel!
+  private var gameInstructionTitle: UILabel!
+  private var gameInstructionMessage1: UILabel!
+  private var gameInstructionImage: UIImageView!
+  private var gameInstructionMessage2: UILabel!
   private var acknowledgementTitle: UILabel!
   private var acknowledgement: UILabel!
+  private var openSourceLicenseTitle: UILabel!
+  private var openSourceLicense: UILabel!
   private var container: UIView!
   private var scroll: UIScrollView!
 
   override func viewDidLoad() {
     super.viewDidLoad()
+
+    self.view.backgroundColor = .gray
 
     let container = UIView()
     let titleScale: CGFloat = 1.2
@@ -29,19 +37,74 @@ class HelpViewController: UIViewController {
     self.view.addSubview(backButton)
     self.backButton = backButton
 
-    let titleLabel = UILabel()
-    titleLabel.text = "使い方"
-    titleLabel.font = UIFont.boldSystemFont(ofSize: titleLabel.font.pointSize * titleScale)
-    titleLabel.textAlignment = .center
-    container.addSubview(titleLabel)
-    self.titleLabel = titleLabel
+    let cameraInstructionTitle = UILabel()
+    cameraInstructionTitle.text = "カメラの設定方法"
+    cameraInstructionTitle.font = UIFont.boldSystemFont(ofSize: cameraInstructionTitle.font.pointSize * titleScale)
+    cameraInstructionTitle.textAlignment = .center
+    container.addSubview(cameraInstructionTitle)
+    self.cameraInstructionTitle = cameraInstructionTitle
 
-    let usageLabel = UILabel()
-    usageLabel.text = "　将棋盤をなるべく真上から撮影できる位置にデバイスを固定します。将棋盤の位置が認識できると、対局開始ボタンが押せるようになるので、手番を選んで対局開始ボタンを押します。"
-    usageLabel.numberOfLines = 0
-    usageLabel.lineBreakMode = .byWordWrapping
-    container.addSubview(usageLabel)
-    self.usageLabel = usageLabel
+    let cameraInstructionMessage1 = UILabel()
+    cameraInstructionMessage1.text = "　将棋盤をなるべく真上から撮影できる位置にデバイスを固定します。将棋盤の位置が認識できると、対局開始ボタンが押せるようになるので、手番を選んで対局開始ボタンを押します。"
+    cameraInstructionMessage1.numberOfLines = 0
+    cameraInstructionMessage1.lineBreakMode = .byWordWrapping
+    container.addSubview(cameraInstructionMessage1)
+    self.cameraInstructionMessage1 = cameraInstructionMessage1
+
+    let cameraInstructionImage = UIImageView()
+    cameraInstructionImage.image = .init(named: "cameraInstructionImage")
+    cameraInstructionImage.contentMode = .scaleAspectFit
+    cameraInstructionImage.layer.borderWidth = 1
+    cameraInstructionImage.layer.borderColor = UIColor.black.cgColor
+    container.addSubview(cameraInstructionImage)
+    self.cameraInstructionImage = cameraInstructionImage
+
+    let cameraInstructionMessage2 = UILabel()
+    cameraInstructionMessage2.text = "　上の図は実際の設定例です。緑色の枠は、本アプリが認識した将棋盤の枠を表しています。この枠が安定して正確な位置に来るようにカメラの位置や照明を変えてみて下さい。"
+    cameraInstructionMessage2.numberOfLines = 0
+    cameraInstructionMessage2.lineBreakMode = .byWordWrapping
+    container.addSubview(cameraInstructionMessage2)
+    self.cameraInstructionMessage2 = cameraInstructionMessage2
+
+    let gameInstructionTitle = UILabel()
+    gameInstructionTitle.text = "対局方法"
+    gameInstructionTitle.font = UIFont.boldSystemFont(ofSize: gameInstructionTitle.font.pointSize * titleScale)
+    gameInstructionTitle.textAlignment = .center
+    container.addSubview(gameInstructionTitle)
+    self.gameInstructionTitle = gameInstructionTitle
+
+    let gameInstructionMessage1 = UILabel()
+    // swift-format-ignore
+    gameInstructionMessage1.text =
+"""
+　カメラの設定が完了すると対局開始ボタンが押せる状態になります。先手番で指すか、後手番で指すかを選んで対局開始ボタンを押して下さい。
+　プレイヤーの指し手が認識されるとその符号をアプリが読み上げます。続いて将棋 AI が指し手を決めて符号を読み上げるので、その通りに AI 側の駒を動かして下さい。AI 側の駒の移動が完了したと認識されると「ピポ」と音が鳴るので、その後に自分側の次の手に着手して下さい。
+"""
+
+    gameInstructionMessage1.numberOfLines = 0
+    gameInstructionMessage1.lineBreakMode = .byWordWrapping
+    container.addSubview(gameInstructionMessage1)
+    self.gameInstructionMessage1 = gameInstructionMessage1
+
+    let gameInstructionImage = UIImageView()
+    gameInstructionImage.image = .init(named: "gameInstructionImage")
+    gameInstructionImage.contentMode = .scaleAspectFit
+    gameInstructionImage.layer.borderWidth = 1
+    gameInstructionImage.layer.borderColor = UIColor.black.cgColor
+    container.addSubview(gameInstructionImage)
+    self.gameInstructionImage = gameInstructionImage
+
+    let gameInstructionMessage2 = UILabel()
+    // swift-format-ignore
+    gameInstructionMessage2.text =
+"""
+　上の図は対局画面の例です。対局画面には画面上部に盤面の図、画面下部左に棋譜、下部右にカメラがキャプチャしている盤面の様子が表示されます。対局後は左下の「kifuエクスポート」ボタンから棋譜を kifu 形式でエクスポートできます。
+　対局を中断する場合や投了する場合は画面上部のボタンから行って下さい。
+"""
+    gameInstructionMessage2.numberOfLines = 0
+    gameInstructionMessage2.lineBreakMode = .byWordWrapping
+    container.addSubview(gameInstructionMessage2)
+    self.gameInstructionMessage2 = gameInstructionMessage2
 
     let acknowledgementTitle = UILabel()
     acknowledgementTitle.text = "謝辞"
@@ -357,40 +420,59 @@ SOFTWARE.
 
   override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
-    self.view.backgroundColor = .darkGray
     let margin: CGFloat = 15
-    let paragraphMargin = margin * 4
-    var bounds = CGRect(origin: .zero, size: self.view.bounds.size)
-    bounds.reduce(self.view.safeAreaInsets)
+    let paragraphMargin = margin * 5
+    var bounds = CGRect(origin: .zero, size: view.bounds.size)
+    bounds.reduce(view.safeAreaInsets)
     bounds.expand(-margin, -margin)
 
     var backButton = bounds.removeFromTop(44)
     self.backButton.frame = backButton.removeFromLeft(self.backButton.intrinsicContentSize.width + 2 * margin)
     bounds.removeFromTop(margin)
-    self.scroll.frame = bounds
+    scroll.frame = bounds
 
     var container = CGRect(x: 0, y: 0, width: bounds.width, height: CGFloat.greatestFiniteMagnitude)
-    self.titleLabel.frame = container.removeFromTop(self.titleLabel.intrinsicContentSize.height)
+    cameraInstructionTitle.frame = container.removeFromTop(cameraInstructionTitle.intrinsicContentSize.height)
     container.removeFromTop(margin)
 
-    self.usageLabel.frame = container.removeFromTop(measure(self.usageLabel, width: container.width).height)
+    cameraInstructionMessage1.frame = container.removeFromTop(measure(cameraInstructionMessage1, width: container.width).height)
+
+    if let image = cameraInstructionImage.image {
+      container.removeFromTop(margin)
+      cameraInstructionImage.frame = image.size.aspectFit(within: container.removeFromTop(container.width))
+      container.removeFromTop(margin)
+      cameraInstructionMessage2.frame = container.removeFromTop(measure(cameraInstructionMessage2, width: container.width).height)
+    }
     container.removeFromTop(paragraphMargin)
 
-    self.acknowledgementTitle.frame = container.removeFromTop(self.acknowledgementTitle.intrinsicContentSize.height)
+    gameInstructionTitle.frame = container.removeFromTop(gameInstructionTitle.intrinsicContentSize.height)
     container.removeFromTop(margin)
 
-    self.acknowledgement.frame = container.removeFromTop(measure(self.acknowledgement, width: container.width).height)
+    gameInstructionMessage1.frame = container.removeFromTop(measure(gameInstructionMessage1, width: container.width).height)
+
+    if let image = gameInstructionImage.image {
+      container.removeFromTop(margin)
+      gameInstructionImage.frame = image.size.aspectFit(within: container.removeFromTop(container.width))
+      container.removeFromTop(margin)
+      gameInstructionMessage2.frame = container.removeFromTop(measure(gameInstructionMessage2, width: container.width).height)
+    }
     container.removeFromTop(paragraphMargin)
 
-    self.openSourceLicenseTitle.frame = container.removeFromTop(measure(self.openSourceLicenseTitle, width: container.width).height)
+    acknowledgementTitle.frame = container.removeFromTop(acknowledgementTitle.intrinsicContentSize.height)
     container.removeFromTop(margin)
 
-    self.openSourceLicense.frame = container.removeFromTop(measure(self.openSourceLicense, width: container.width).height)
+    acknowledgement.frame = container.removeFromTop(measure(acknowledgement, width: container.width).height)
+    container.removeFromTop(paragraphMargin)
+
+    openSourceLicenseTitle.frame = container.removeFromTop(measure(openSourceLicenseTitle, width: container.width).height)
+    container.removeFromTop(margin)
+
+    openSourceLicense.frame = container.removeFromTop(measure(openSourceLicense, width: container.width).height)
     container.removeFromTop(margin)
 
     let containerHeight = container.minY
     self.container.frame = .init(x: 0, y: 0, width: bounds.width, height: containerHeight)
-    self.scroll.contentSize = .init(width: bounds.width, height: containerHeight)
+    scroll.contentSize = .init(width: bounds.width, height: containerHeight)
   }
 
   @objc private func backButtonDidTouchUpInside(_ sender: UIButton) {
