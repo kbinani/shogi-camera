@@ -33,7 +33,8 @@ class Analyzer {
   }
 
   init?() {
-    guard let device = AVCaptureDevice.devices().first(where: { $0.position == AVCaptureDevice.Position.back }) else {
+    let discovery = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: .video, position: .back)
+    guard let device = discovery.devices.first else {
       return nil
     }
     guard let deviceInput = try? AVCaptureDeviceInput(device: device) else {
