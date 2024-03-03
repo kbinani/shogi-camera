@@ -813,24 +813,29 @@ struct ClosedRange {
 
 // 駒の画像を集めたもの.
 struct PieceBook {
+  struct Image {
+    cv::Mat mat;
+    // mat が駒の形に切り抜かれている場合に true
+    bool cut = false;
+  };
   struct Entry {
-    std::optional<cv::Mat> blackInit;
+    std::optional<Image> blackInit;
     // 先手向きで格納する.
-    std::optional<cv::Mat> whiteInit;
-    std::deque<cv::Mat> blackLast;
+    std::optional<Image> whiteInit;
+    std::deque<Image> blackLast;
     // 先手向きで格納する.
-    std::deque<cv::Mat> whiteLast;
+    std::deque<Image> whiteLast;
 
     static constexpr size_t kMaxLastImageCount = 4;
 
     void each(Color color, std::function<void(cv::Mat const &)> cb) const;
-    void push(cv::Mat const &img, Color color);
+    void push(Image const &img, Color color);
   };
 
   std::map<PieceUnderlyingType, Entry> store;
 
   void each(Color color, std::function<void(Piece, cv::Mat const &ete)> cb) const;
-  void update(Position const &position, cv::Mat const &board);
+  void update(Position const &position, cv::Mat const &board, Status const &s);
   std::string toPng() const;
 };
 
@@ -925,7 +930,7 @@ public:
   static std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b);
   // 2 枚の画像を比較する. right を ±degrees 度, x と y 方向にそれぞれ ±width*translationRatio, ±height*translationRatio 移動して画像の一致度を計算し, 最大の一致度を返す.
   static double Similarity(cv::Mat const &left, cv::Mat const &right, int degrees = 5, float translationRatio = 0.5f);
-  static std::string EncodeToBase64(cv::Mat const &image);
+  static std::string EncodeToPng(cv::Mat const &image);
   static void Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y);
   static void FindContours(cv::Mat const &img, std::vector<std::shared_ptr<Contour>> &contours, std::vector<std::shared_ptr<Contour>> &squares, std::vector<std::shared_ptr<PieceContour>> &pieces);
 };

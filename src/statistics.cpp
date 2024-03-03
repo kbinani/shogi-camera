@@ -67,8 +67,8 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   float tAfterMean = (10 * meanAfter - meanBefore) / stddevBefore + 50;
   static int count = 0;
   count++;
-  cout << "b64png(bp" << count << "):" << (char const *)Img::EncodeToBase64(bp).c_str() << endl;
-  cout << "b64png(ap" << count << "):" << (char const *)Img::EncodeToBase64(ap).c_str() << endl;
+  cout << "b64png(bp" << count << "):" << base64::to_base64(Img::EncodeToPng(bp)) << endl;
+  cout << "b64png(ap" << count << "):" << base64::to_base64(Img::EncodeToPng(ap)) << endl;
   cout << "tBefore=" << tBeforeMean << ", tAfter=" << tAfterMean << ", fabs(tBefore - tAfter)=" << fabs(tBeforeMean - tAfterMean) << endl;
   // before と after で, book の駒画像との類似度の分布を調べる. before 対 book の分布が, after 対 book の分布とだいたい同じなら不成, 大きくずれていれば成りと判定する.
   // fabs(tBeforeMean - tAfterMean) の実際の値の様子:
@@ -289,7 +289,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
     rotate = true;
   }
   if (detected.empty()) {
-    book.update(g.position, last.back().image);
+    book.update(g.position, last.back().image, s);
   }
   move->decideSuffix(g.position);
   if (detected.size() + 1 == g.moves.size()) {
@@ -306,11 +306,11 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   stableBoardHistory.push_back(history);
   detected.push_back(*move);
   g.apply(*move);
-  book.update(g.position, board);
+  book.update(g.position, board, s);
   static int count = 0;
   count++;
   cout << "b64png(book" << count << "):" << base64::to_base64(book.toPng()) << endl;
-  cout << (char const *)StringFromMoveWithOptionalLast(*move, lastMoveTo).c_str() << endl;
+  cout << g.moves.size() << ":" << (char const *)StringFromMoveWithOptionalLast(*move, lastMoveTo).c_str() << endl;
   std::cout << "========================" << std::endl;
   std::cout << (char const *)g.position.debugString().c_str();
   std::cout << "------------------------" << std::endl;
