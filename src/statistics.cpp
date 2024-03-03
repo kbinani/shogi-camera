@@ -47,7 +47,7 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   auto &entry = book.store[RemoveColorFromPiece(mv.piece)];
   vector<float> simAfter;
   vector<float> simBefore;
-  entry.each(mv.color, [&](cv::Mat const &img) {
+  entry.each(mv.color, [&](cv::Mat const &img, bool cut) {
     double sa = Img::Similarity(ap, true, img, false);
     double sb = Img::Similarity(bp, true, img, false);
     simAfter.push_back(sa);

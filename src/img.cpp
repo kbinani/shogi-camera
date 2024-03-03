@@ -20,18 +20,22 @@ double Angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) {
 
 } // namespace
 
-cv::Mat Img::PieceROI(cv::Mat const &board, int x, int y, float shrink) {
-  int w = board.size().width;
-  int h = board.size().height;
+cv::Rect Img::PieceROIRect(cv::Size const &size, int x, int y) {
+  int w = size.width;
+  int h = size.height;
   double sw = w / 9.0;
   double sh = h / 9.0;
   double cx = sw * (x + 0.5);
   double cy = sh * (y + 0.5);
-  int x0 = (int)round(cx - sw * 0.5 * shrink);
-  int y0 = (int)round(cy - sh * 0.5 * shrink);
-  int x1 = std::min(w, (int)round(cx + sw * 0.5 * shrink));
-  int y1 = std::min(h, (int)round(cy + sh * 0.5 * shrink));
-  return cv::Mat(board, cv::Rect(x0, y0, x1 - x0, y1 - y0));
+  int x0 = (int)round(cx - sw * 0.5);
+  int y0 = (int)round(cy - sh * 0.5);
+  int x1 = std::min(w, (int)round(cx + sw * 0.5));
+  int y1 = std::min(h, (int)round(cy + sh * 0.5));
+  return cv::Rect(x0, y0, x1 - x0, y1 - y0);
+}
+
+cv::Mat Img::PieceROI(cv::Mat const &board, int x, int y) {
+  return cv::Mat(board, PieceROIRect(board.size(), x, y));
 }
 
 void Img::Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9]) {

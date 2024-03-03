@@ -666,6 +666,17 @@ struct PieceContour {
   static std::shared_ptr<PieceContour> Make(std::vector<cv::Point2f> const &points);
 };
 
+inline std::shared_ptr<PieceContour> PerspectiveTransform(std::shared_ptr<PieceContour> const &src, cv::Mat const &mtx, bool rotate180, int width, int height) {
+  if (!src) {
+    return nullptr;
+  }
+  std::vector<cv::Point2f> points;
+  for (auto const &p : src->points) {
+    points.push_back(PerspectiveTransform(p, mtx, rotate180, width, height));
+  }
+  return PieceContour::Make(points);
+}
+
 struct Game {
   Position position;
   std::vector<Move> moves;
@@ -828,7 +839,7 @@ struct PieceBook {
 
     static constexpr size_t kMaxLastImageCount = 4;
 
-    void each(Color color, std::function<void(cv::Mat const &)> cb) const;
+    void each(Color color, std::function<void(cv::Mat const &, bool cut)> cb) const;
     void push(Image const &img, Color color);
   };
 
@@ -924,7 +935,8 @@ class Img {
   Img() = delete;
 
 public:
-  static cv::Mat PieceROI(cv::Mat const &board, int x, int y, float shrink = 1);
+  static cv::Rect PieceROIRect(cv::Size const &size, int x, int y);
+  static cv::Mat PieceROI(cv::Mat const &board, int x, int y);
   static void Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9] = nullptr);
   // 2 つの画像を同じサイズになるよう変形する
   static std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b);
