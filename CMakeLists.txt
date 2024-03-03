@@ -53,12 +53,10 @@ target_link_libraries(shogi_camera
 
 add_executable(ShogiCameraApp MACOSX_BUNDLE
   app/AppDelegate.swift
-  app/DebugPreview.swift
   app/OpenCV+Utility.swift
   app/Reader.swift
   app/ShogiCameraInput+Utility.swift
   app/MainViewController.swift
-  app/GameViewController.swift
   app/CGRect+Utility.swift
   app/Analyzer.swift
   app/VideoOverlay.swift
