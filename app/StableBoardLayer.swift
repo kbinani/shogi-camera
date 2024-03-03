@@ -77,11 +77,11 @@ class StableBoardLayer: CALayer {
       guard let first = piece.pointee.points.first else {
         return
       }
-      let wfirst = sci.PerspectiveTransform(first, status.perspectiveTransform)
+      let wfirst = sci.PerspectiveTransform(first, status.perspectiveTransform, status.rotate, status.warpedWidth, status.warpedHeight)
       let path = CGMutablePath()
       path.move(to: wfirst.cgPoint)
       piece.pointee.points.dropFirst().forEach { p in
-        let wp = sci.PerspectiveTransform(p, status.perspectiveTransform)
+        let wp = sci.PerspectiveTransform(p, status.perspectiveTransform, status.rotate, status.warpedWidth, status.warpedHeight)
         path.addLine(to: wp.cgPoint)
       }
       path.closeSubpath()

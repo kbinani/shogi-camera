@@ -592,12 +592,18 @@ inline double Distance(cv::Point const &a, cv::Point const &b) {
   return sqrt(dx * dx + dy * dy);
 }
 
-inline cv::Point2f PerspectiveTransform(cv::Point2f const &src, cv::Mat const &mtx) {
+inline cv::Point2f PerspectiveTransform(cv::Point2f const &src, cv::Mat const &mtx, bool rotate180, int width, int height) {
   cv::Mat dst;
   std::vector<cv::Point2f> vp;
   vp.push_back(src);
   cv::perspectiveTransform(vp, dst, mtx);
-  return cv::Point2f(dst.at<float>(0, 0), dst.at<float>(0, 1));
+  float x = dst.at<float>(0, 0);
+  float y = dst.at<float>(0, 1);
+  if (rotate180) {
+    return cv::Point2f(-x + width, -y + height);
+  } else {
+    return cv::Point2f(x, y);
+  }
 }
 
 struct Contour {
@@ -754,6 +760,9 @@ struct Status {
   cv::Mat boardWarped;
   // 台形補正する際に使用した透視変換
   cv::Mat perspectiveTransform;
+  bool rotate = false;
+  int warpedWidth;
+  int warpedHeight;
 
   // 試合の最新状況. Session.game のコピー.
   Game game;

@@ -567,6 +567,9 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
   });
   cv::Mat mtx = cv::getPerspectiveTransform(stat.preciseOutline->points, dst);
   s.perspectiveTransform = mtx;
+  s.rotate = stat.rotate;
+  s.warpedWidth = width;
+  s.warpedHeight = height;
   if (stat.rotate) {
     cv::Mat tmp1;
     cv::warpPerspective(frame, tmp1, mtx, cv::Size(width, height));
