@@ -48,7 +48,20 @@ void PieceBook::Entry::push(PieceBook::Image const &img, Color color) {
       return;
     }
     if (blackLast.size() >= kMaxLastImageCount) {
-      blackLast.pop_front();
+      if (!img.cut) {
+        return;
+      }
+      bool ok = false;
+      for (auto it = blackLast.begin(); it != blackLast.end(); it++) {
+        if (!it->cut) {
+          blackLast.erase(it);
+          ok = true;
+          break;
+        }
+      }
+      if (!ok) {
+        blackLast.pop_front();
+      }
     }
     blackLast.push_back(img);
   } else {
@@ -60,7 +73,20 @@ void PieceBook::Entry::push(PieceBook::Image const &img, Color color) {
       return;
     }
     if (whiteLast.size() >= kMaxLastImageCount) {
-      whiteLast.pop_front();
+      if (!img.cut) {
+        return;
+      }
+      bool ok = false;
+      for (auto it = whiteLast.begin(); it != whiteLast.end(); it++) {
+        if (!it->cut) {
+          whiteLast.erase(it);
+          ok = true;
+          break;
+        }
+      }
+      if (!ok) {
+        whiteLast.pop_front();
+      }
     }
     whiteLast.push_back(tmp);
   }
