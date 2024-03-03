@@ -55,7 +55,7 @@ add_executable(ShogiCameraApp MACOSX_BUNDLE
   app/AppDelegate.swift
   app/OpenCV+Utility.swift
   app/Reader.swift
-  app/ShogiCameraInput+Utility.swift
+  app/ShogiCamera+Utility.swift
   app/MainViewController.swift
   app/CGRect+Utility.swift
   app/Analyzer.swift
