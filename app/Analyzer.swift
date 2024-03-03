@@ -26,6 +26,10 @@ class Analyzer {
     weak var owner: Analyzer?
     private let ciContext: CIContext = .init()
     private var resigned: Bool = false
+
+    func reset() {
+      resigned = false
+    }
   }
 
   init?() {
@@ -102,6 +106,7 @@ class Analyzer {
     self.status = .init()
     self.userColor = nil
     self.aiLevel = nil
+    self.captureDelegate.reset()
   }
 }
 

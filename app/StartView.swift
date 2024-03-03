@@ -43,10 +43,10 @@ class StartView: UIView {
     }
   }
 
-  init(analyzer: Analyzer?) {
-    if let analyzer {
-      analyzer.reset()
-      self.analyzer = analyzer
+  init(analyzer reusable: Analyzer?) {
+    if let reusable {
+      reusable.reset()
+      self.analyzer = reusable
     } else {
       self.analyzer = .init()
     }
@@ -111,7 +111,7 @@ class StartView: UIView {
 
     self.state = .cameraNotAvailable
     if let session = analyzer?.captureSession {
-      self.analyzer?.delegate = self
+      analyzer?.delegate = self
       DispatchQueue.global().async { [weak session] in
         session?.startRunning()
       }
