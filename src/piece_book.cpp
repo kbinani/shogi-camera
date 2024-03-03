@@ -4,37 +4,37 @@
 
 namespace sci {
 
-void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, bool)> cb) const {
+void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &)> cb) const {
   cv::Mat img;
   if (color == Color::Black) {
     if (blackInit) {
-      cb(blackInit->mat_.clone(), true);
+      cb(blackInit->mat.clone());
     }
     if (whiteInit) {
-      cv::rotate(whiteInit->mat_, img, cv::ROTATE_180);
-      cb(img, true);
+      cv::rotate(whiteInit->mat, img, cv::ROTATE_180);
+      cb(img);
     }
     for (auto const &entry : blackLast) {
-      cb(entry.mat_.clone(), true);
+      cb(entry.mat.clone());
     }
     for (auto const &entry : whiteLast) {
-      cv::rotate(entry.mat_, img, cv::ROTATE_180);
-      cb(img, true);
+      cv::rotate(entry.mat, img, cv::ROTATE_180);
+      cb(img);
     }
   } else {
     if (whiteInit) {
-      cb(whiteInit->mat_.clone(), true);
+      cb(whiteInit->mat.clone());
     }
     if (blackInit) {
-      cv::rotate(blackInit->mat_, img, cv::ROTATE_180);
-      cb(img, true);
+      cv::rotate(blackInit->mat, img, cv::ROTATE_180);
+      cb(img);
     }
     for (auto const &entry : whiteLast) {
-      cb(entry.mat_.clone(), true);
+      cb(entry.mat.clone());
     }
     for (auto const &entry : blackLast) {
-      cv::rotate(entry.mat_, img, cv::ROTATE_180);
-      cb(img, true);
+      cv::rotate(entry.mat, img, cv::ROTATE_180);
+      cb(img);
     }
   }
 }
@@ -52,7 +52,7 @@ void PieceBook::Entry::push(PieceBook::Image const &img, Color color) {
   } else {
     PieceBook::Image tmp;
     tmp.cut = img.cut;
-    cv::rotate(img.mat_, tmp.mat_, cv::ROTATE_180);
+    cv::rotate(img.mat, tmp.mat, cv::ROTATE_180);
     if (!whiteInit) {
       whiteInit = tmp;
       return;
@@ -64,11 +64,11 @@ void PieceBook::Entry::push(PieceBook::Image const &img, Color color) {
   }
 }
 
-void PieceBook::each(Color color, std::function<void(Piece, cv::Mat const &, bool)> cb) const {
+void PieceBook::each(Color color, std::function<void(Piece, cv::Mat const &)> cb) const {
   for (auto const &it : store) {
     PieceUnderlyingType piece = it.first;
-    it.second.each(color, [&cb, piece, color](cv::Mat const &img, bool) {
-      cb(static_cast<PieceUnderlyingType>(piece) | static_cast<PieceUnderlyingType>(color), img, true);
+    it.second.each(color, [&cb, piece, color](cv::Mat const &img) {
+      cb(static_cast<PieceUnderlyingType>(piece) | static_cast<PieceUnderlyingType>(color), img);
     });
   }
 }
@@ -86,11 +86,11 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
       PieceBook::Image tmp;
       tmp.cut = false;
       if (color == Color::White) {
-        cv::rotate(roi, tmp.mat_, cv::ROTATE_180);
+        cv::rotate(roi, tmp.mat, cv::ROTATE_180);
       } else {
-        tmp.mat_ = roi.clone();
+        tmp.mat = roi.clone();
       }
-      cv::adaptiveThreshold(tmp.mat_, tmp.mat_, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+      cv::adaptiveThreshold(tmp.mat, tmp.mat, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
       store[p].push(tmp, color);
     }
   }
@@ -101,7 +101,7 @@ std::string PieceBook::toPng() const {
   int w = 0;
   int h = 0;
   std::map<Piece, int> count;
-  each(Color::Black, [&](Piece piece, cv::Mat const &img, bool) {
+  each(Color::Black, [&](Piece piece, cv::Mat const &img) {
     w = std::max(w, img.size().width);
     h = std::max(h, img.size().height);
     count[piece] += 1;
@@ -122,7 +122,7 @@ std::string PieceBook::toPng() const {
   int row = 0;
   for (auto const &it : store) {
     int column = 0;
-    it.second.each(Color::Black, [&](cv::Mat const &img, bool) {
+    it.second.each(Color::Black, [&](cv::Mat const &img) {
       int x = column * w;
       int y = row * h;
       Img::Bitblt(img, all, x, y);

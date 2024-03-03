@@ -814,7 +814,7 @@ struct ClosedRange {
 // 駒の画像を集めたもの.
 struct PieceBook {
   struct Image {
-    cv::Mat mat_;
+    cv::Mat mat;
     // mat が駒の形に切り抜かれている場合に true
     bool cut = false;
   };
@@ -828,13 +828,13 @@ struct PieceBook {
 
     static constexpr size_t kMaxLastImageCount = 4;
 
-    void each(Color color, std::function<void(cv::Mat const &, bool)> cb) const;
+    void each(Color color, std::function<void(cv::Mat const &)> cb) const;
     void push(Image const &img, Color color);
   };
 
   std::map<PieceUnderlyingType, Entry> store;
 
-  void each(Color color, std::function<void(Piece, cv::Mat const &, bool)> cb) const;
+  void each(Color color, std::function<void(Piece, cv::Mat const &)> cb) const;
   void update(Position const &position, cv::Mat const &board, Status const &s);
   std::string toPng() const;
 };
