@@ -47,9 +47,9 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   auto &entry = book.store[RemoveColorFromPiece(mv.piece)];
   vector<float> simAfter;
   vector<float> simBefore;
-  entry.each(mv.color, [&](cv::Mat const &img) {
-    double sa = Img::Similarity(ap, img);
-    double sb = Img::Similarity(bp, img);
+  entry.each(mv.color, [&](cv::Mat const &img, bool) {
+    double sa = Img::Similarity(ap, true, img, false);
+    double sb = Img::Similarity(bp, true, img, false);
     simAfter.push_back(sa);
     simBefore.push_back(sb);
   });
@@ -337,7 +337,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         double maxSim = 0;
         std::optional<Piece> maxSimPiece;
         cv::Mat roi = Img::PieceROI(boardAfter, ch.x, ch.y);
-        book.each(color, [&](Piece piece, cv::Mat const &pi) {
+        book.each(color, [&](Piece piece, cv::Mat const &pi, bool) {
           if (IsPromotedPiece(piece)) {
             // 成り駒は打てない.
             return;
@@ -347,7 +347,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
             // 持ち駒に無い.
             return;
           }
-          double sim = Img::Similarity(roi, pi);
+          double sim = Img::Similarity(roi, true, pi, false);
           if (sim > maxSim) {
             maxSim = sim;
             maxSimPiece = piece;
@@ -378,7 +378,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           }
           auto bp = Img::PieceROI(before, x, y);
           auto ap = Img::PieceROI(after, x, y);
-          double sim = Img::Similarity(bp, ap);
+          double sim = Img::Similarity(bp, true, ap, true);
           std::cout << (char const *)StringFromSquare(MakeSquare(x, y)).c_str() << "; sim=" << sim << endl;
           if (minSim > sim) {
             minSim = sim;

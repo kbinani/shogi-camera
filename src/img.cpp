@@ -80,13 +80,17 @@ std::pair<cv::Mat, cv::Mat> Img::Equalize(cv::Mat const &a, cv::Mat const &b) {
   return make_pair(ra.clone(), rb.clone());
 }
 
-double Img::Similarity(cv::Mat const &left, cv::Mat const &right, int degrees, float translationRatio) {
-  auto [a, b] = Equalize(left, right);
-  cv::adaptiveThreshold(b, b, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
-  cv::adaptiveThreshold(a, a, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+double Img::Similarity(cv::Mat const &left_, bool binaryLeft, cv::Mat const &right_, bool binaryRight, int degrees, float translationRatio) {
+  auto [left, right] = Equalize(left_, right_);
+  if (binaryLeft) {
+    cv::adaptiveThreshold(left, left, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+  }
+  if (binaryRight) {
+    cv::adaptiveThreshold(right, right, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+  }
 
-  int w = a.size().width;
-  int h = a.size().height;
+  int w = left.size().width;
+  int h = left.size().height;
   int cx = w / 2;
   int cy = h / 2;
   int dx = (int)round(w * translationRatio);
@@ -98,7 +102,7 @@ double Img::Similarity(cv::Mat const &left, cv::Mat const &right, int degrees, f
   for (int t = -degrees; t <= degrees; t++) {
     cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
     cv::Mat rotated;
-    cv::warpAffine(a, rotated, m, a.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+    cv::warpAffine(left, rotated, m, left.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
 
     for (int iy = -dy; iy <= dy; iy++) {
       for (int ix = -dx; ix <= dx; ix++) {
@@ -107,7 +111,7 @@ double Img::Similarity(cv::Mat const &left, cv::Mat const &right, int degrees, f
         for (int j = 0; j < h; j++) {
           for (int i = 0; i < w; i++) {
             if (0 <= i + ix && i + ix < w && 0 <= j + iy && j + iy < h) {
-              float diff = b.at<uint8_t>(i, j) - rotated.at<uint8_t>(i + ix, j + iy);
+              float diff = right.at<uint8_t>(i, j) - rotated.at<uint8_t>(i + ix, j + iy);
               sum += diff * diff;
               count++;
             }
