@@ -42,26 +42,21 @@ class StableBoardLayer: CALayer {
       ctx.scaleBy(x: 1, y: -1)
       ctx.draw(cgImage, in: rect)
     }
+    ctx.translateBy(x: rect.minX, y: rect.minY)
+    ctx.scaleBy(x: scale, y: scale)
+
     let minSim: CGFloat = 0
     let maxSim: CGFloat = status.stableBoardMaxSimilarity
     for y in 0..<9 {
       for x in 0..<9 {
-        let pw = rect.width / 9
-        let ph = rect.height / 9
-        let px = rect.minX + pw * CGFloat(x)
-        let py = rect.minY + ph * CGFloat(y)
-        let similarity =
-          Mirror(reflecting: Mirror(reflecting: status.similarity).children[AnyIndex(x)].value)
-          .children[AnyIndex(y)].value as! Double
-        let similarityAgainstStableBoard =
-          Mirror(
-            reflecting: Mirror(reflecting: status.similarityAgainstStableBoard).children[
-              AnyIndex(x)
-            ].value
-          ).children[AnyIndex(y)].value as! Double
+        let pw = image.size.width / 9
+        let ph = image.size.height / 9
+        let px = pw * CGFloat(x)
+        let py = ph * CGFloat(y)
+        let similarity = Mirror(reflecting: Mirror(reflecting: status.similarity).children[AnyIndex(x)].value).children[AnyIndex(y)].value as! Double
+        let similarityAgainstStableBoard = Mirror(reflecting: Mirror(reflecting: status.similarityAgainstStableBoard).children[AnyIndex(x)].value).children[AnyIndex(y)].value as! Double
         let bar = min((similarity - minSim) / (maxSim - minSim), 1) * ph
-        let sbar =
-          min((similarityAgainstStableBoard - minSim) / (maxSim - minSim), 1) * ph
+        let sbar = min((similarityAgainstStableBoard - minSim) / (maxSim - minSim), 1) * ph
 
         let r = CGRect(x: px, y: py + ph - bar, width: pw * 0.5, height: bar)
         ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
