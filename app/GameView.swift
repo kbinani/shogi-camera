@@ -23,8 +23,8 @@ class GameView: UIView {
   private var boardRotated = false
   private let startDate: Date
   private var endDate: Date?
-  private var previewLayer_: AVCaptureVideoPreviewLayer!
-  private var videoOverlay_: VideoOverlay?
+  private var previewLayer: AVCaptureVideoPreviewLayer!
+  private var videoOverlay: VideoOverlay?
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
@@ -79,12 +79,12 @@ class GameView: UIView {
       previewLayer.connection?.videoOrientation = .portrait
     }
     self.layer.addSublayer(previewLayer)
-    self.previewLayer_ = previewLayer
+    self.previewLayer = previewLayer
 
     let videoOverlay = VideoOverlay()
     videoOverlay.frame = boardLayer.frame
-    self.layer.insertSublayer(videoOverlay, above: self.previewLayer_)
-    self.videoOverlay_ = videoOverlay
+    self.layer.insertSublayer(videoOverlay, above: self.previewLayer)
+    self.videoOverlay = videoOverlay
 
     let exportKifButton = RoundButton(type: .custom)
     exportKifButton.setTitle("kifuファイル", for: .normal)
@@ -149,8 +149,8 @@ class GameView: UIView {
     let previewBounds = bounds.removeFromRight(previewWidth)
     bounds.removeFromRight(margin)
     self.historyView.frame = bounds
-    self.previewLayer_?.frame = previewBounds
-    self.videoOverlay_?.frame = previewBounds
+    self.previewLayer?.frame = previewBounds
+    self.videoOverlay?.frame = previewBounds
   }
 
   override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -161,7 +161,7 @@ class GameView: UIView {
   private var status: sci.Status? {
     didSet {
       self.boardLayer?.status = status
-      self.videoOverlay_?.status = status
+      self.videoOverlay?.status = status
       guard let status, status.boardReady else {
         return
       }
@@ -275,7 +275,7 @@ class GameView: UIView {
           guard let self else {
             return
           }
-          if let connection = previewLayer_.connection {
+          if let connection = previewLayer.connection {
             analyzer.captureSession.removeConnection(connection)
           }
           delegate?.gameViewDidAbort(self)
