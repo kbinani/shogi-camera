@@ -103,13 +103,16 @@ void PieceBook::each(Color color, std::function<void(Piece, cv::Mat const &)> cb
 
 void PieceBook::update(Position const &position, cv::Mat const &board, Status const &s) {
   using namespace std;
+  cv::Mat bin;
+  cv::adaptiveThreshold(board, bin, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
       Piece piece = position.pieces[x][y];
       if (piece == 0) {
         continue;
       }
-      // pieces の中から中心が rect の中にありかつ最も近い物を選ぶ.
+      // pieces の中心が rect の中にありかつ最も近い物を選ぶ.
       cv::Rect2f rect = Img::PieceROIRect(board.size(), x, y);
       cv::Point2f center(rect.x + rect.width * 0.5f, rect.y + rect.height * 0.5f);
       shared_ptr<PieceContour> nearest;
@@ -130,11 +133,21 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
         }
       }
       if (nearest) {
-        double direction = atan2(nearest->direction.y, nearest->direction.x) * 180 / numbers::pi;
+        cv::Mat mask(bin.size(), bin.type(), cv::Scalar(0, 0, 0));
+        vector<cv::Point> points;
+        for (auto const &p : nearest->points) {
+          points.push_back(cv::Point((int)round(p.x), (int)round(p.y)));
+        }
+        cv::fillConvexPoly(mask, points, cv::Scalar(255, 255, 255));
+        cv::polylines(mask, points, true, cv::Scalar(0, 0, 0), 3);
+        cv::Mat masked = cv::Mat::zeros(bin.size(), bin.type());
+        cv::bitwise_and(bin, mask, masked);
+
         cv::Point2f center = nearest->mean();
+        double direction = atan2(nearest->direction.y, nearest->direction.x) * 180 / numbers::pi;
         cv::Mat rot = cv::getRotationMatrix2D(center, direction - 90 + 180, 1);
         cv::Mat rotated;
-        cv::warpAffine(board, rotated, rot, board.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+        cv::warpAffine(masked, rotated, rot, board.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
         cv::Mat part(cv::Size(rect.width, rect.height), board.type());
         cv::Rect bounds(center.x - rect.width / 2, center.y - rect.height / 2, rect.width, rect.height);
         Img::Bitblt(rotated, part, -bounds.x, -bounds.y);
@@ -143,7 +156,6 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
         PieceBook::Image tmp;
         tmp.mat = part.clone();
         tmp.cut = true;
-        cv::adaptiveThreshold(tmp.mat, tmp.mat, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
         store[p].push(tmp, color);
       } else {
         auto roi = Img::PieceROI(board, x, y);

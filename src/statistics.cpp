@@ -44,7 +44,7 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   auto bp = Img::PieceROI(boardBefore, mv.from->file, mv.from->rank);
   auto ap = Img::PieceROI(boardAfter, mv.to.file, mv.to.rank);
 
-  auto &entry = book.store[RemoveColorFromPiece(mv.piece)];
+  auto const &entry = book.store[RemoveColorFromPiece(mv.piece)];
   vector<float> simAfter;
   vector<float> simBefore;
   entry.each(mv.color, [&](cv::Mat const &img, bool cut) {
