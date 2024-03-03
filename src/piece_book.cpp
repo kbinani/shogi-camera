@@ -132,7 +132,7 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
       if (nearest) {
         double direction = atan2(nearest->direction.y, nearest->direction.x) * 180 / numbers::pi;
         cv::Point2f center = nearest->mean();
-        cv::Mat rot = cv::getRotationMatrix2D(center, 270 - direction, 1);
+        cv::Mat rot = cv::getRotationMatrix2D(center, direction - 90 + 180, 1);
         cv::Mat rotated;
         cv::warpAffine(board, rotated, rot, board.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
         cv::Mat part(cv::Size(rect.width, rect.height), board.type());
