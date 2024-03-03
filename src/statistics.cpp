@@ -84,6 +84,9 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
 
 } // namespace
 
+Statistics::Statistics() : book(std::make_shared<PieceBook>()) {
+}
+
 void Statistics::update(Status const &s) {
   int constexpr maxHistory = 32;
   if (s.squareArea > 0) {
@@ -243,7 +246,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   size_t const index = detected.size();
   Color const color = ColorFromIndex(index);
   CvPointSet const &ch = changeset.front();
-  optional<Move> move = Statistics::Detect(last.back().image, board, ch, g.position, detected, color, g.hand(color), book);
+  optional<Move> move = Statistics::Detect(last.back().image, board, ch, g.position, detected, color, g.hand(color), *book);
   if (!move) {
     return;
   }
@@ -289,7 +292,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
     rotate = true;
   }
   if (detected.empty()) {
-    book.update(g.position, last.back().image, s);
+    book->update(g.position, last.back().image, s);
   }
   move->decideSuffix(g.position);
   if (detected.size() + 1 == g.moves.size()) {
@@ -306,10 +309,10 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   stableBoardHistory.push_back(history);
   detected.push_back(*move);
   g.apply(*move);
-  book.update(g.position, board, s);
+  book->update(g.position, board, s);
   static int count = 0;
   count++;
-  cout << "b64png(book" << count << "):" << base64::to_base64(book.toPng()) << endl;
+  cout << "b64png(book" << count << "):" << base64::to_base64(book->toPng()) << endl;
   cout << g.moves.size() << ":" << (char const *)StringFromMoveWithOptionalLast(*move, lastMoveTo).c_str() << endl;
   std::cout << "========================" << std::endl;
   std::cout << (char const *)g.position.debugString().c_str();

@@ -622,6 +622,7 @@ void Session::run() {
     FindBoard(frame, *s);
     FindPieces(frame, *s);
     stat.update(*s);
+    s->book = stat.book;
     CreateWarpedBoard(frame, *s, stat);
     if (auto prePlayers = this->prePlayers; !players && prePlayers) {
       if (prePlayers->black) {

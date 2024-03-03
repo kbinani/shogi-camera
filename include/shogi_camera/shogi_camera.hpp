@@ -737,6 +737,36 @@ private:
   std::unique_ptr<Impl> impl;
 };
 
+struct Status;
+
+// 駒の画像を集めたもの.
+struct PieceBook {
+  struct Image {
+    cv::Mat mat;
+    // mat が駒の形に切り抜かれている場合に true
+    bool cut = false;
+  };
+  struct Entry {
+    std::optional<Image> blackInit;
+    // 先手向きで格納する.
+    std::optional<Image> whiteInit;
+    std::deque<Image> blackLast;
+    // 先手向きで格納する.
+    std::deque<Image> whiteLast;
+
+    static constexpr size_t kMaxLastImageCount = 4;
+
+    void each(Color color, std::function<void(cv::Mat const &, bool cut)> cb) const;
+    void push(Image const &img, Color color);
+  };
+
+  std::map<PieceUnderlyingType, Entry> store;
+
+  void each(Color color, std::function<void(Piece, cv::Mat const &)> cb) const;
+  void update(Position const &position, cv::Mat const &board, Status const &s);
+  std::string toPng() const;
+};
+
 struct Status {
   Status();
 
@@ -793,6 +823,7 @@ struct Status {
   bool boardReady = false;
   // AI の示した手と違う手が指されている時に true
   bool wrongMove = false;
+  std::shared_ptr<PieceBook> book;
 };
 
 // 盤面画像.
@@ -822,35 +853,9 @@ struct ClosedRange {
   T maximum;
 };
 
-// 駒の画像を集めたもの.
-struct PieceBook {
-  struct Image {
-    cv::Mat mat;
-    // mat が駒の形に切り抜かれている場合に true
-    bool cut = false;
-  };
-  struct Entry {
-    std::optional<Image> blackInit;
-    // 先手向きで格納する.
-    std::optional<Image> whiteInit;
-    std::deque<Image> blackLast;
-    // 先手向きで格納する.
-    std::deque<Image> whiteLast;
-
-    static constexpr size_t kMaxLastImageCount = 4;
-
-    void each(Color color, std::function<void(cv::Mat const &, bool cut)> cb) const;
-    void push(Image const &img, Color color);
-  };
-
-  std::map<PieceUnderlyingType, Entry> store;
-
-  void each(Color color, std::function<void(Piece, cv::Mat const &)> cb) const;
-  void update(Position const &position, cv::Mat const &board, Status const &s);
-  std::string toPng() const;
-};
-
 struct Statistics {
+  Statistics();
+
   std::deque<float> squareAreaHistory;
   std::optional<float> squareArea;
 
@@ -878,7 +883,7 @@ struct Statistics {
                                     Color const &color,
                                     std::deque<PieceType> const &hand,
                                     PieceBook &book);
-  PieceBook book;
+  std::shared_ptr<PieceBook> book;
   // stableBoardHistory をリセットする処理で, 最初の stableBoardHistory との差分がデカいフレームがいくつ連続したかを数えるカウンター.
   // これが閾値を超えたら stableBoardHistory をリセットする.
   int stableBoardInitialResetCounter = 0;

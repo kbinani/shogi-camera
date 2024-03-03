@@ -26,6 +26,7 @@ class GameView: UIView {
   private var previewLayer: AVCaptureVideoPreviewLayer!
   private var videoOverlay: VideoOverlay?
   private var stableBoardLayer: StableBoardLayer?
+  private var pieceBookView: UIImageView?
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
@@ -138,6 +139,7 @@ class GameView: UIView {
     let boardBounds = bounds.removeFromTop(bounds.height / 2)
     self.boardLayer.frame = boardBounds
     self.stableBoardLayer?.frame = boardBounds
+    self.pieceBookView?.frame = boardBounds
 
     var footer = bounds.removeFromBottom(44)
     exportKifButton.frame = footer.removeFromLeft(exportKifButton.intrinsicContentSize.width + 2 * margin)
@@ -170,42 +172,8 @@ class GameView: UIView {
         return
       }
       updateHistory()
-      if !status.game.moves.empty() {
-        if let moveIndex {
-          if moveIndex + 1 < status.game.moves.size() {
-            let mv = status.game.moves[moveIndex + 1]
-            self.reader?.play(move: mv, last: status.game.moves[moveIndex])
-            self.moveIndex = moveIndex + 1
-          }
-        } else {
-          let mv = status.game.moves[0]
-          self.reader?.play(move: mv, last: nil)
-          self.moveIndex = 0
-        }
-
-        if status.wrongMove {
-          if self.wrongMoveLastNotified == nil || Date.now.timeIntervalSince(self.wrongMoveLastNotified!) > self.kWrongMoveNotificationInterval {
-            self.wrongMoveLastNotified = Date.now
-            if let mv = status.game.moves.last {
-              let last = status.game.moves.dropLast().last
-              self.reader?.playWrongMoveWarning(expected: mv, last: last)
-            }
-          }
-        } else {
-          self.wrongMoveLastNotified = nil
-        }
-      }
-      if let moveIndex {
-        if moveIndex + 1 == status.game.moves.size() {
-          if (status.blackResign || status.whiteResign) && !self.resigned {
-            self.reader?.playResign()
-            self.resigned = true
-          }
-        }
-      }
-      if let oldValue, oldValue.waitingMove && !status.waitingMove {
-        self.reader?.playNextMoveReady()
-      }
+      updateReader(oldValue)
+      updatePieceBook()
     }
   }
 
@@ -248,6 +216,65 @@ class GameView: UIView {
       historyView.text = text
       historyView.scrollRangeToVisible(.init(location: text.utf8.count, length: 0))
     }
+  }
+
+  private func updateReader(_ oldValue: sci.Status?) {
+    guard let status else {
+      return
+    }
+    if !status.game.moves.empty() {
+      if let moveIndex {
+        if moveIndex + 1 < status.game.moves.size() {
+          let mv = status.game.moves[moveIndex + 1]
+          self.reader?.play(move: mv, last: status.game.moves[moveIndex])
+          self.moveIndex = moveIndex + 1
+        }
+      } else {
+        let mv = status.game.moves[0]
+        self.reader?.play(move: mv, last: nil)
+        self.moveIndex = 0
+      }
+
+      if status.wrongMove {
+        if self.wrongMoveLastNotified == nil || Date.now.timeIntervalSince(self.wrongMoveLastNotified!) > self.kWrongMoveNotificationInterval {
+          self.wrongMoveLastNotified = Date.now
+          if let mv = status.game.moves.last {
+            let last = status.game.moves.dropLast().last
+            self.reader?.playWrongMoveWarning(expected: mv, last: last)
+          }
+        }
+      } else {
+        self.wrongMoveLastNotified = nil
+      }
+    }
+    if let moveIndex {
+      if moveIndex + 1 == status.game.moves.size() {
+        if (status.blackResign || status.whiteResign) && !self.resigned {
+          self.reader?.playResign()
+          self.resigned = true
+        }
+      }
+    }
+    if let oldValue, oldValue.waitingMove && !status.waitingMove {
+      self.reader?.playNextMoveReady()
+    }
+  }
+
+  private func updatePieceBook() {
+    guard let status, let pieceBookView else {
+      return
+    }
+    let book = status.book
+    guard book.__convertToBool() else {
+      return
+    }
+    let png = book.pointee.toPng()
+    var buffer: [UInt8] = []
+    png.forEach { (ch: CChar) in
+      buffer.append(UInt8.init(bitPattern: ch))
+    }
+    let data = Data(buffer)
+    pieceBookView.image = UIImage(data: data)
   }
 
   @objc private func resignButtonDidTouchUpInside(_ sender: UIButton) {
@@ -405,17 +432,19 @@ class GameView: UIView {
       format: "shogicamera_%d%02d%02d_%02d%02d%02d.kifu", year, month, day, hour, minute, second)
   }
 
-  private let numDebugMode: Int = 1
-  private var enableDebug: Int = 0 {
+  private let numDebugMode: Int = 2
+  private var debugMode: Int = 0 {
     didSet {
-      guard enableDebug != oldValue else {
+      guard debugMode != oldValue else {
         return
       }
-      switch enableDebug {
+      switch debugMode {
       case 0:
-        stableBoardLayer?.isHidden = true
         boardLayer?.isHidden = false
+        stableBoardLayer?.isHidden = true
+        pieceBookView?.isHidden = true
       case 1:
+        boardLayer?.isHidden = true
         if let stableBoardLayer {
           stableBoardLayer.isHidden = false
         } else {
@@ -427,7 +456,21 @@ class GameView: UIView {
           self.layer.addSublayer(sbl)
           self.stableBoardLayer = sbl
         }
+        pieceBookView?.isHidden = true
+      case 2:
         boardLayer?.isHidden = true
+        stableBoardLayer?.isHidden = true
+        if let pieceBookView {
+          pieceBookView.isHidden = false
+        } else {
+          let pbv = UIImageView()
+          pbv.contentMode = .scaleAspectFit
+          if let frame = boardLayer?.frame {
+            pbv.frame = frame
+          }
+          addSubview(pbv)
+          self.pieceBookView = pbv
+        }
       default:
         break
       }
@@ -435,7 +478,7 @@ class GameView: UIView {
   }
 
   @objc private func debugButtonDidTouchUpInside(_ sender: UIButton) {
-    enableDebug = (enableDebug + 1) % (numDebugMode + 1)
+    debugMode = (debugMode + 1) % (numDebugMode + 1)
   }
 }
 
