@@ -25,6 +25,7 @@ class GameView: UIView {
   private var endDate: Date?
   private var previewLayer: AVCaptureVideoPreviewLayer!
   private var videoOverlay: VideoOverlay?
+  private var stableBoardLayer: StableBoardLayer?
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
@@ -134,7 +135,9 @@ class GameView: UIView {
 
     bounds.removeFromTop(margin)
 
-    self.boardLayer.frame = bounds.removeFromTop(bounds.height / 2)
+    let boardBounds = bounds.removeFromTop(bounds.height / 2)
+    self.boardLayer.frame = boardBounds
+    self.stableBoardLayer?.frame = boardBounds
 
     var footer = bounds.removeFromBottom(44)
     exportKifButton.frame = footer.removeFromRight(exportKifButton.intrinsicContentSize.width + 2 * margin)
@@ -162,6 +165,7 @@ class GameView: UIView {
     didSet {
       self.boardLayer?.status = status
       self.videoOverlay?.status = status
+      self.stableBoardLayer?.status = status
       guard let status, status.boardReady else {
         return
       }
@@ -406,6 +410,26 @@ class GameView: UIView {
     didSet {
       guard enableDebug != oldValue else {
         return
+      }
+      switch enableDebug {
+      case 0:
+        stableBoardLayer?.isHidden = true
+        boardLayer?.isHidden = false
+      case 1:
+        if let stableBoardLayer {
+          stableBoardLayer.isHidden = false
+        } else {
+          let sbl = StableBoardLayer()
+          sbl.status = status
+          if let frame = boardLayer?.frame {
+            sbl.frame = frame
+          }
+          self.layer.addSublayer(sbl)
+          self.stableBoardLayer = sbl
+        }
+        boardLayer?.isHidden = true
+      default:
+        break
       }
     }
   }
