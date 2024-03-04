@@ -85,21 +85,34 @@ std::pair<cv::Mat, cv::Mat> Img::Equalize(cv::Mat const &a, cv::Mat const &b) {
 }
 
 double Img::Similarity(cv::Mat const &left_, bool binaryLeft, cv::Mat const &right_, bool binaryRight, int degrees, float translationRatio) {
-  auto [left, right] = Equalize(left_, right_);
-  if (binaryLeft) {
-    Bin(left, left);
+  using namespace std;
+  cv::Mat left;
+  cv::Mat right;
+  if (left_.size() != right_.size()) {
+    cv::resize(left_, left, right_.size());
+    if (binaryLeft) {
+      Bin(left, left);
+    }
+  } else {
+    if (binaryLeft) {
+      Bin(left_, left);
+    } else {
+      left = left_;
+    }
   }
   if (binaryRight) {
-    Bin(right, right);
+    Bin(right_, right);
+  } else {
+    right = right_;
   }
 
-  int w = left.size().width;
-  int h = left.size().height;
+  int w = right_.size().width;
+  int h = right_.size().height;
   float cx = w / 2.0f;
   float cy = h / 2.0f;
   int dx = (int)round(w * translationRatio);
   int dy = (int)round(h * translationRatio);
-  float maxSim = std::numeric_limits<float>::lowest();
+  float maxSim = numeric_limits<float>::lowest();
   int maxDegrees = 99;
   int maxDx = 99;
   int maxDy = 99;

@@ -333,10 +333,6 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
   using namespace std;
   optional<Move> move;
   auto [before, after] = Img::Equalize(boardBefore, boardAfter);
-  cv::Mat binAfter;
-  Img::Bin(after, binAfter);
-  cv::Mat binBefore;
-  Img::Bin(before, binBefore);
 
   if (changes.size() == 1) {
     cv::Point ch = *changes.begin();
@@ -354,7 +350,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
       } else {
         double maxSim = 0;
         std::optional<Piece> maxSimPiece;
-        cv::Mat roi = Img::PieceROI(binAfter, ch.x, ch.y);
+        cv::Mat roi = Img::PieceROI(boardAfter, ch.x, ch.y);
         book.each(color, [&](Piece piece, cv::Mat const &pi) {
           if (IsPromotedPiece(piece)) {
             // 成り駒は打てない.
@@ -365,7 +361,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             // 持ち駒に無い.
             return;
           }
-          double sim = Img::Similarity(roi, false, pi, false);
+          double sim = Img::Similarity(roi, true, pi, false);
           if (sim > maxSim) {
             maxSim = sim;
             maxSimPiece = piece;
@@ -394,10 +390,9 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
           if (!Move::CanMove(position, MakeSquare(ch.x, ch.y), MakeSquare(x, y))) {
             continue;
           }
-          auto bp = Img::PieceROI(binBefore, x, y);
-          auto ap = Img::PieceROI(binAfter, x, y);
-          double sim = Img::Similarity(bp, false, ap, false);
-          std::cout << (char const *)StringFromSquare(MakeSquare(x, y)).c_str() << "; sim=" << sim << endl;
+          auto bp = Img::PieceROI(before, x, y);
+          auto ap = Img::PieceROI(after, x, y);
+          double sim = Img::Similarity(bp, true, ap, true);
           if (minSim > sim) {
             minSim = sim;
             minSquare = MakeSquare(x, y);

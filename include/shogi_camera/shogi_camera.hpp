@@ -606,6 +606,12 @@ inline cv::Point2f PerspectiveTransform(cv::Point2f const &src, cv::Mat const &m
   }
 }
 
+inline cv::Point2f WarpAffine(cv::Point2f const &p, cv::Mat const &mtx) {
+  double x = mtx.at<double>(0, 0) * p.x + mtx.at<double>(0, 1) * p.y + mtx.at<double>(0, 2);
+  double y = mtx.at<double>(1, 0) * p.x + mtx.at<double>(1, 1) * p.y + mtx.at<double>(1, 2);
+  return cv::Point2f(x, y);
+}
+
 struct Contour {
   std::vector<cv::Point2f> points;
   double area;

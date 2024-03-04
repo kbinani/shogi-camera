@@ -105,9 +105,6 @@ void PieceBook::each(Color color, std::function<void(Piece, cv::Mat const &)> cb
 
 void PieceBook::update(Position const &position, cv::Mat const &board, Status const &s) {
   using namespace std;
-  cv::Mat bin;
-  Img::Bin(board, bin);
-
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
       Piece piece = position.pieces[x][y];
@@ -135,24 +132,28 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
         }
       }
       if (nearest) {
-        cv::Mat mask(bin.size(), bin.type(), cv::Scalar(0, 0, 0));
-        vector<cv::Point> points;
-        for (auto const &p : nearest->points) {
-          points.push_back(cv::Point((int)round(p.x), (int)round(p.y)));
-        }
-        cv::fillConvexPoly(mask, points, cv::Scalar(255, 255, 255));
-        cv::polylines(mask, points, true, cv::Scalar(0, 0, 0), 3);
-        cv::Mat masked = cv::Mat::zeros(bin.size(), bin.type());
-        cv::bitwise_and(bin, mask, masked);
-
         cv::Point2f center = nearest->mean();
         double direction = atan2(nearest->direction.y, nearest->direction.x) * 180 / numbers::pi;
         cv::Mat rot = cv::getRotationMatrix2D(center, direction - 90 + 180, 1);
         cv::Mat rotated;
-        cv::warpAffine(masked, rotated, rot, board.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+        cv::warpAffine(board, rotated, rot, board.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+        Img::Bin(rotated, rotated);
+
+        cv::Mat mask(board.size(), board.type(), cv::Scalar(0, 0, 0));
+        vector<cv::Point> points;
+        for (auto const &p : nearest->points) {
+          cv::Point2f pp = WarpAffine(p, rot);
+          points.push_back(cv::Point((int)round(pp.x), (int)round(pp.y)));
+        }
+        cv::fillConvexPoly(mask, points, cv::Scalar(255, 255, 255));
+        cv::polylines(mask, points, true, cv::Scalar(0, 0, 0), 2);
+
+        cv::Mat masked = cv::Mat::zeros(board.size(), board.type());
+        cv::bitwise_and(rotated, mask, masked);
+
         cv::Mat part(cv::Size(rect.width, rect.height), board.type());
         cv::Rect bounds(center.x - rect.width / 2, center.y - rect.height / 2, rect.width, rect.height);
-        Img::Bitblt(rotated, part, -bounds.x, -bounds.y);
+        Img::Bitblt(masked, part, -bounds.x, -bounds.y);
         PieceUnderlyingType p = RemoveColorFromPiece(piece);
         Color color = ColorFromPiece(piece);
         PieceBook::Image tmp;
