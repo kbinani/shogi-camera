@@ -115,7 +115,7 @@ double Img::Similarity(cv::Mat const &left_, bool binaryLeft, cv::Mat const &rig
         for (int j = 0; j < h; j++) {
           for (int i = 0; i < w; i++) {
             if (0 <= i + ix && i + ix < w && 0 <= j + iy && j + iy < h) {
-              float diff = left.at<uint8_t>(i, j) - rotated.at<uint8_t>(i + ix, j + iy);
+              float diff = (float)left.at<uint8_t>(i, j) - (float)rotated.at<uint8_t>(i + ix, j + iy);
               sum += diff * diff;
               count++;
             }
