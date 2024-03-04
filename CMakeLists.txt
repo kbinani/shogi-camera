@@ -27,6 +27,7 @@ add_library(shogi_camera STATIC
   src/shogi_camera.cpp
   src/statistics.cpp
   src/sunfish3_ai.cpp
+  src/piece_contour.cpp
   src/objc/shogi_camera.mm
   test/doctest_main.cpp
   test/move.test.hpp

@@ -644,6 +644,15 @@ struct Contour {
   std::optional<cv::Point2f> direction(float length = 1) const;
 };
 
+// 駒の形を決めるパラメータ
+struct PieceShape {
+  // 底辺の幅
+  double width;
+  double height;
+  // 駒の頂点の角度
+  double capAngle;
+};
+
 // 駒のような形をした Contour. points[0] が駒の頂点, points[2] => points[3] が底辺
 struct PieceContour {
   std::vector<cv::Point2f> points;
@@ -670,6 +679,8 @@ struct PieceContour {
   }
 
   static std::shared_ptr<PieceContour> Make(std::vector<cv::Point2f> const &points);
+
+  PieceShape toShape() const;
 };
 
 inline std::shared_ptr<PieceContour> PerspectiveTransform(std::shared_ptr<PieceContour> const &src, cv::Mat const &mtx, bool rotate180, int width, int height) {
@@ -749,23 +760,26 @@ struct Status;
 struct PieceBook {
   struct Image {
     cv::Mat mat;
-    // mat が駒の形に切り抜かれている場合に true
-    bool cut = false;
+    std::optional<PieceShape> shape;
   };
   struct Entry {
     std::deque<Image> blackLast;
     // 先手向きで格納する.
     std::deque<Image> whiteLast;
+    double sumWidth = 0;
+    double sumHeight = 0;
+    double sumCapAngle = 0;
+    uint64_t sumCount = 0;
 
     static constexpr size_t kMaxLastImageCount = 4;
 
-    void each(Color color, std::function<void(cv::Mat const &, bool cut)> cb) const;
+    void each(Color color, std::function<void(cv::Mat const &, std::optional<PieceShape>)> cb) const;
     void push(Image const &img, Color color);
   };
 
   std::map<PieceUnderlyingType, Entry> store;
 
-  void each(Color color, std::function<void(Piece, cv::Mat const &)> cb) const;
+  void each(Color color, std::function<void(Piece, cv::Mat const &, std::optional<PieceShape> shape)> cb) const;
   void update(Position const &position, cv::Mat const &board, Status const &s);
   std::string toPng() const;
 };

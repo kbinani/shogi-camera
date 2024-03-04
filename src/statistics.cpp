@@ -47,7 +47,7 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   auto const &entry = book.store[RemoveColorFromPiece(mv.piece)];
   vector<float> simAfter;
   vector<float> simBefore;
-  entry.each(mv.color, [&](cv::Mat const &img, bool cut) {
+  entry.each(mv.color, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
     double sa = Img::Similarity(ap, true, img, false);
     double sb = Img::Similarity(bp, true, img, false);
     simAfter.push_back(sa);
@@ -351,7 +351,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
         double maxSim = 0;
         std::optional<Piece> maxSimPiece;
         cv::Mat roi = Img::PieceROI(boardAfter, ch.x, ch.y);
-        book.each(color, [&](Piece piece, cv::Mat const &pi) {
+        book.each(color, [&](Piece piece, cv::Mat const &pi, optional<PieceShape> shape) {
           if (IsPromotedPiece(piece)) {
             // 成り駒は打てない.
             return;
