@@ -879,7 +879,8 @@ struct Statistics {
                                     std::vector<Move> const &moves,
                                     Color const &color,
                                     std::deque<PieceType> const &hand,
-                                    PieceBook &book);
+                                    PieceBook &book,
+                                    std::optional<Move> hint);
   std::shared_ptr<PieceBook> book;
   // stableBoardHistory をリセットする処理で, 最初の stableBoardHistory との差分がデカいフレームがいくつ連続したかを数えるカウンター.
   // これが閾値を超えたら stableBoardHistory をリセットする.

@@ -25,7 +25,7 @@ bool IsIdentical(std::set<T, L> const &a, std::set<T, L> const &b) {
   return true;
 }
 
-void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter, PieceBook &book) {
+void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter, PieceBook &book, std::optional<Move> hint) {
   using namespace std;
   if (!mv.from || IsPromotedPiece(mv.piece)) {
     return;
@@ -71,10 +71,18 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   // 成りの時: 727, 1418, 1293
   // 不成の時: 22.5, 1.73, 78.2, 65.9, 59.9, 65.9
   if (fabs(tAfterMean - tBeforeMean) > 100) {
-    mv.piece = Promote(mv.piece);
-    mv.promote = 1;
+    if (!hint || hint->promote == 1) {
+      mv.piece = Promote(mv.piece);
+      mv.promote = 1;
+    } else if (hint) {
+      cout << "hint と promote フラグが矛盾する: expected=" << hint->promote << "; actual=1" << endl;
+    }
   } else {
-    mv.promote = -1;
+    if (!hint || hint->promote == -1) {
+      mv.promote = -1;
+    } else if (hint) {
+      cout << "hint と promote フラグが矛盾する: expected=" << hint->promote << "; actual=-1" << endl;
+    }
   }
 }
 
@@ -242,7 +250,11 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   size_t const index = detected.size();
   Color const color = ColorFromIndex(index);
   CvPointSet const &ch = changeset.front();
-  optional<Move> move = Statistics::Detect(last.back().image, board, ch, g.position, detected, color, g.hand(color), *book);
+  optional<Move> hint;
+  if (detected.size() + 1 == g.moves.size()) {
+    hint = g.moves.back();
+  }
+  optional<Move> move = Statistics::Detect(last.back().image, board, ch, g.position, detected, color, g.hand(color), *book, hint);
   if (!move) {
     return;
   }
@@ -309,7 +321,15 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   cout << g.moves.size() << ":" << (char const *)StringFromMoveWithOptionalLast(*move, lastMoveTo).c_str() << endl;
 }
 
-std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardAfter, CvPointSet const &changes, Position const &position, std::vector<Move> const &moves, Color const &color, std::deque<PieceType> const &hand, PieceBook &book) {
+std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
+                                       cv::Mat const &boardAfter,
+                                       CvPointSet const &changes,
+                                       Position const &position,
+                                       std::vector<Move> const &moves,
+                                       Color const &color,
+                                       std::deque<PieceType> const &hand,
+                                       PieceBook &book,
+                                       std::optional<Move> hint) {
   using namespace std;
   optional<Move> move;
   auto [before, after] = Img::Equalize(boardBefore, boardAfter);
@@ -392,7 +412,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
         mv.captured = RemoveColorFromPiece(position.pieces[minSquare->file][minSquare->rank]);
         mv.piece = p;
         if (!moves.empty()) {
-          AppendPromotion(mv, before, after, book);
+          AppendPromotion(mv, before, after, book, hint);
         }
         move = mv;
       } else {
@@ -425,7 +445,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
             mv.piece = p0;
             mv.captured = RemoveColorFromPiece(p1);
             if (!moves.empty()) {
-              AppendPromotion(mv, before, after, book);
+              AppendPromotion(mv, before, after, book, hint);
             }
             move = mv;
           } else {
@@ -441,7 +461,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
             mv.piece = p1;
             mv.captured = RemoveColorFromPiece(p0);
             if (!moves.empty()) {
-              AppendPromotion(mv, before, after, book);
+              AppendPromotion(mv, before, after, book, hint);
             }
             move = mv;
           } else {
@@ -461,7 +481,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           mv.to = to;
           mv.piece = p0;
           if (!moves.empty()) {
-            AppendPromotion(mv, before, after, book);
+            AppendPromotion(mv, before, after, book, hint);
           }
           move = mv;
         } else {
@@ -482,7 +502,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
           mv.to = to;
           mv.piece = p1;
           if (!moves.empty()) {
-            AppendPromotion(mv, before, after, book);
+            AppendPromotion(mv, before, after, book, hint);
           }
           move = mv;
         } else {
