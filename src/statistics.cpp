@@ -63,8 +63,8 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   float meanAfter = meanAfterScalar[0];
   float stddevAfter = stddevAfterScalar[0];
   // before の平均値の, after から見たときの偏差値
-  float tBeforeMean = (10 * meanBefore - meanAfter) / stddevAfter + 50;
-  float tAfterMean = (10 * meanAfter - meanBefore) / stddevBefore + 50;
+  float tBeforeMean = 10 * (meanBefore - meanAfter) / stddevAfter + 50;
+  float tAfterMean = 10 * (meanAfter - meanBefore) / stddevBefore + 50;
   cout << "tBefore=" << tBeforeMean << ", tAfter=" << tAfterMean << ", fabs(tBefore - tAfter)=" << fabs(tBeforeMean - tAfterMean) << endl;
   // before と after で, book の駒画像との類似度の分布を調べる. before 対 book の分布が, after 対 book の分布とだいたい同じなら不成, 大きくずれていれば成りと判定する.
   // fabs(tBeforeMean - tAfterMean) の実際の値の様子:
