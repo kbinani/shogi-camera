@@ -50,8 +50,8 @@ void Img::Compare(BoardImage const &before, BoardImage const &after, CvPointSet 
     for (int x = 0; x < 9; x++) {
       cv::Mat pb = Img::PieceROI(b, x, y).clone();
       cv::Mat pa = Img::PieceROI(a, x, y).clone();
-      cv::adaptiveThreshold(pb, pb, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
-      cv::adaptiveThreshold(pa, pa, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+      Bin(pb, pb);
+      Bin(pa, pa);
       double s = cv::matchShapes(pb, pa, cv::CONTOURS_MATCH_I1, 0);
       sim[x][y] = s;
       if (similarity) {
@@ -87,10 +87,10 @@ std::pair<cv::Mat, cv::Mat> Img::Equalize(cv::Mat const &a, cv::Mat const &b) {
 double Img::Similarity(cv::Mat const &left_, bool binaryLeft, cv::Mat const &right_, bool binaryRight, int degrees, float translationRatio) {
   auto [left, right] = Equalize(left_, right_);
   if (binaryLeft) {
-    cv::adaptiveThreshold(left, left, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+    Bin(left, left);
   }
   if (binaryRight) {
-    cv::adaptiveThreshold(right, right, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+    Bin(right, right);
   }
 
   int w = left.size().width;
@@ -227,6 +227,10 @@ void Img::FindContours(cv::Mat const &image, std::vector<std::shared_ptr<Contour
       }
     }
   }
+}
+
+void Img::Bin(cv::Mat const &input, cv::Mat &output) {
+  cv::adaptiveThreshold(input, output, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
 }
 
 } // namespace sci

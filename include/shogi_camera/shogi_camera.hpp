@@ -950,6 +950,7 @@ public:
   static std::string EncodeToPng(cv::Mat const &image);
   static void Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y);
   static void FindContours(cv::Mat const &img, std::vector<std::shared_ptr<Contour>> &contours, std::vector<std::shared_ptr<Contour>> &squares, std::vector<std::shared_ptr<PieceContour>> &pieces);
+  static void Bin(cv::Mat const &input, cv::Mat &output);
 };
 
 class Utility {

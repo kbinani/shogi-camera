@@ -148,7 +148,7 @@ void PieceBook::each(Color color, std::function<void(Piece, cv::Mat const &)> cb
 void PieceBook::update(Position const &position, cv::Mat const &board, Status const &s) {
   using namespace std;
   cv::Mat bin;
-  cv::adaptiveThreshold(board, bin, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+  Img::Bin(board, bin);
 
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
@@ -212,7 +212,7 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
         } else {
           tmp.mat = roi.clone();
         }
-        cv::adaptiveThreshold(tmp.mat, tmp.mat, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
+        Img::Bin(tmp.mat, tmp.mat);
         store[p].push(tmp, color);
       }
     }
