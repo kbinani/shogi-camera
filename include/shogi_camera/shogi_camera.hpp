@@ -747,9 +747,6 @@ struct PieceBook {
     bool cut = false;
   };
   struct Entry {
-    std::optional<Image> blackInit;
-    // 先手向きで格納する.
-    std::optional<Image> whiteInit;
     std::deque<Image> blackLast;
     // 先手向きで格納する.
     std::deque<Image> whiteLast;

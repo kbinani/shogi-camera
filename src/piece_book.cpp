@@ -10,18 +10,6 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, boo
   cv::Mat img;
   int total = 0;
   int cut = 0;
-  if (blackInit) {
-    total++;
-    if (blackInit->cut) {
-      cut++;
-    }
-  }
-  if (whiteInit) {
-    total++;
-    if (whiteInit->cut) {
-      cut++;
-    }
-  }
   total += blackLast.size();
   for (auto const &it : blackLast) {
     if (it.cut) {
@@ -37,17 +25,6 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, boo
   bool onlyCut = cut >= (total - cut) && total > 2;
 
   if (color == Color::Black) {
-    if (blackInit) {
-      if (!onlyCut || blackInit->cut) {
-        cb(blackInit->mat.clone(), blackInit->cut);
-      }
-    }
-    if (whiteInit) {
-      if (!onlyCut || whiteInit->cut) {
-        cv::rotate(whiteInit->mat, img, cv::ROTATE_180);
-        cb(img, whiteInit->cut);
-      }
-    }
     for (auto const &entry : blackLast) {
       if (!onlyCut || entry.cut) {
         cb(entry.mat.clone(), entry.cut);
@@ -60,17 +37,6 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, boo
       }
     }
   } else {
-    if (whiteInit) {
-      if (!onlyCut || whiteInit->cut) {
-        cb(whiteInit->mat.clone(), whiteInit->cut);
-      }
-    }
-    if (blackInit) {
-      if (!onlyCut || blackInit->cut) {
-        cv::rotate(blackInit->mat, img, cv::ROTATE_180);
-        cb(img, blackInit->cut);
-      }
-    }
     for (auto const &entry : whiteLast) {
       if (!onlyCut || entry.cut) {
         cb(entry.mat.clone(), entry.cut);
@@ -87,10 +53,6 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, boo
 
 void PieceBook::Entry::push(PieceBook::Image const &img, Color color) {
   if (color == Color::Black) {
-    if (!blackInit) {
-      blackInit = img;
-      return;
-    }
     if (blackLast.size() >= kMaxLastImageCount) {
       if (!img.cut) {
         return;
@@ -112,10 +74,6 @@ void PieceBook::Entry::push(PieceBook::Image const &img, Color color) {
     PieceBook::Image tmp;
     tmp.cut = img.cut;
     cv::rotate(img.mat, tmp.mat, cv::ROTATE_180);
-    if (!whiteInit) {
-      whiteInit = tmp;
-      return;
-    }
     if (whiteLast.size() >= kMaxLastImageCount) {
       if (!img.cut) {
         return;
