@@ -1,9 +1,7 @@
 #include <shogi_camera/shogi_camera.hpp>
 
-#include "base64.hpp"
 #include <opencv2/imgproc.hpp>
 
-#include <iostream>
 #include <numbers>
 
 namespace sci {
@@ -103,15 +101,6 @@ PieceShape PieceContour::toShape() const {
   ps.apex = -mean;
   ps.point1 = p14 - mean;
   ps.point2 = p23 - mean;
-
-  cv::Mat img(200, 200, CV_8UC3, cv::Scalar(0, 0, 0));
-  vector<cv::Point> points;
-  ps.poly(cv::Point2f(100, 100), points, Color::White);
-  auto c = cv::mean(points);
-  cv::fillConvexPoly(img, points, cv::Scalar(255, 255, 255));
-  static int count = 0;
-  count++;
-  cout << "b64png(sample_" << count << "):" << base64::to_base64(Img::EncodeToPng(img)) << endl;
 
   return ps;
 }
