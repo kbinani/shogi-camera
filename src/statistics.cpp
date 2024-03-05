@@ -65,11 +65,10 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   // before の平均値の, after から見たときの偏差値
   float tBeforeMean = 10 * (meanBefore - meanAfter) / stddevAfter + 50;
   float tAfterMean = 10 * (meanAfter - meanBefore) / stddevBefore + 50;
-  cout << "tBefore=" << tBeforeMean << ", tAfter=" << tAfterMean << ", fabs(tBefore - tAfter)=" << fabs(tBeforeMean - tAfterMean) << endl;
+  cout << "tBefore=" << tBeforeMean << ", tAfter=" << tAfterMean << ", (tBefore - tAfter)=" << (tBeforeMean - tAfterMean) << endl;
 
   // before と after で, book の駒画像との類似度の分布を調べる. before 対 book の分布が, after 対 book の分布とだいたい同じなら不成, 大きくずれていれば成りと判定する.
-  // fabs(tBeforeMean - tAfterMean) の実際の値の様子:
-  if (tBeforeMean > tAfterMean && tBeforeMean - tAfterMean > 40) {
+  if (tBeforeMean - tAfterMean > 10) {
     if (!hint || hint->promote == 1) {
       mv.piece = Promote(mv.piece);
       mv.promote = 1;
@@ -83,6 +82,13 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
       cout << "hint と promote フラグが矛盾する: expected=" << hint->promote << "; actual=-1" << endl;
     }
   }
+#if 1
+  static int count = 0;
+  count++;
+  cout << "b64png(promote_" << count << "_before_promote=" << mv.promote << "):" << base64::to_base64(Img::EncodeToPng(bp)) << endl;
+  cout << "b64png(promote_" << count << "_after_promote=" << mv.promote << "):" << base64::to_base64(Img::EncodeToPng(ap)) << endl;
+  cout << "b64png(promote_" << count << "_book_promote=" << mv.promote << "):" << base64::to_base64(book.toPng()) << endl;
+#endif
 }
 
 } // namespace
