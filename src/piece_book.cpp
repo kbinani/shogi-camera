@@ -11,9 +11,9 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, std
   std::optional<PieceShape> shape;
   if (sumCount > 0) {
     PieceShape ps;
-    ps.width = sumWidth / sumCount;
-    ps.height = sumHeight / sumCount;
-    ps.capAngle = sumCapAngle / sumCount;
+    ps.apex = sumApex / (float)sumCount;
+    ps.point1 = sumPoint1 / (float)sumCount;
+    ps.point2 = sumPoint2 / (float)sumCount;
     shape = ps;
   }
   int total = 0;
@@ -62,9 +62,9 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, std
 void PieceBook::Entry::push(PieceBook::Image const &img, Color color) {
   if (img.shape) {
     sumCount++;
-    sumWidth += img.shape->width;
-    sumHeight += img.shape->height;
-    sumCapAngle += img.shape->capAngle;
+    sumApex += cv::Point2d(img.shape->apex);
+    sumPoint1 += cv::Point2d(img.shape->point1);
+    sumPoint2 += cv::Point2d(img.shape->point2);
   }
   if (color == Color::Black) {
     if (blackLast.size() >= kMaxLastImageCount) {

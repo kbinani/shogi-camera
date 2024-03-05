@@ -644,13 +644,19 @@ struct Contour {
   std::optional<cv::Point2f> direction(float length = 1) const;
 };
 
+struct PieceContour;
+
 // 駒の形を決めるパラメータ
 struct PieceShape {
-  // 底辺の幅
-  double width;
-  double height;
-  // 駒の頂点の角度
-  double capAngle;
+  // 駒の頂点. PieceContour#mean() を原点とした時の PieceContour#points[0] と一致する
+  cv::Point2f apex;
+  // PieceContour#mean() を原点とした時の PieceContour#points[1] と一致する
+  cv::Point2f point1;
+  // PieceContour#mean() を原点とした時の PieceContour#points[2] と一致する
+  cv::Point2f point2;
+
+  // PieceContour#mean と center が一致するような頂点の列を計算する.
+  void poly(cv::Point2f const &center, std::vector<cv::Point> &buffer) const;
 };
 
 // 駒のような形をした Contour. points[0] が駒の頂点, points[2] => points[3] が底辺
@@ -766,9 +772,9 @@ struct PieceBook {
     std::deque<Image> blackLast;
     // 先手向きで格納する.
     std::deque<Image> whiteLast;
-    double sumWidth = 0;
-    double sumHeight = 0;
-    double sumCapAngle = 0;
+    cv::Point2d sumApex;
+    cv::Point2d sumPoint1;
+    cv::Point2d sumPoint2;
     uint64_t sumCount = 0;
 
     static constexpr size_t kMaxLastImageCount = 4;

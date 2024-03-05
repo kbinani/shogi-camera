@@ -50,20 +50,40 @@ std::shared_ptr<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const 
   return ret;
 }
 
+void PieceShape::poly(cv::Point2f const &center, std::vector<cv::Point> &buffer) const {
+  buffer.clear();
+  buffer.push_back(apex + center);
+  buffer.push_back(point1 + center);
+  buffer.push_back(point2 + center);
+  buffer.push_back(cv::Point2f(-point2.x, point2.y) + center);
+  buffer.push_back(cv::Point2f(-point1.x, point1.y) + center);
+}
+
 PieceShape PieceContour::toShape() const {
-  PieceShape ps;
-  cv::Point2f bottom = points[2] - points[3];
-  ps.width = cv::norm(bottom);
-  cv::Point2f midBottom = points[3] + bottom * 0.5;
+  using namespace std;
   cv::Point2f apex = points[0];
-  ps.height = cv::norm(apex - midBottom);
-  cv::Point2f s1 = points[1] - apex;
-  cv::Point2f s2 = points[4] - apex;
-  double angle = atan2(s1.y, s1.x) - atan2(s2.y, s2.x);
-  while (angle < 0) {
-    angle += std::numbers::pi * 2;
-  }
-  ps.capAngle = angle;
+  cv::Point2f bottom = points[3] - points[2];
+  cv::Point2f mid = points[2] + bottom * 0.5f;
+  cv::Point2f direction = apex - mid;
+  double angle = atan2(direction.y, direction.x);
+  double rotate = numbers::pi - angle;
+  cv::Mat mtx = cv::getRotationMatrix2D(mid, rotate, 1);
+  cv::Point2f rApex = WarpAffine(apex, mtx) - mid;
+  cv::Point2f rPoint1 = WarpAffine(points[1], mtx) - mid;
+  cv::Point2f rPoint2 = WarpAffine(points[2], mtx) - mid;
+  cv::Point2f rPoint3 = WarpAffine(points[3], mtx) - mid;
+  cv::Point2f rPoint4 = WarpAffine(points[4], mtx) - mid;
+
+  cv::Point2f p1 = (rPoint1 + cv::Point2f(-rPoint4.x, rPoint4.y)) * 0.5f;
+  cv::Point2f p2 = (rPoint2 + cv::Point2f(-rPoint3.x, rPoint3.y)) * 0.5f;
+
+  cv::Point2f mean = (rApex + p1 + p2 + cv::Point2f(-p1.x, p1.y) + cv::Point2f(-p2.x, p2.y)) / 5.0f;
+
+  PieceShape ps;
+  ps.apex = rApex - mean;
+  ps.point1 = p1 - mean;
+  ps.point2 = p2 - mean;
+
   return ps;
 }
 
