@@ -48,8 +48,8 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   vector<float> simAfter;
   vector<float> simBefore;
   entry.each(mv.color, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
-    double sa = Img::Similarity(ap, true, img, false);
-    double sb = Img::Similarity(bp, true, img, false);
+    double sa = Img::ComparePiece(ap, img, mv.color, shape);
+    double sb = Img::ComparePiece(bp, img, mv.color, shape);
     simAfter.push_back(sa);
     simBefore.push_back(sb);
   });
@@ -66,11 +66,10 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   float tBeforeMean = 10 * (meanBefore - meanAfter) / stddevAfter + 50;
   float tAfterMean = 10 * (meanAfter - meanBefore) / stddevBefore + 50;
   cout << "tBefore=" << tBeforeMean << ", tAfter=" << tAfterMean << ", fabs(tBefore - tAfter)=" << fabs(tBeforeMean - tAfterMean) << endl;
+
   // before と after で, book の駒画像との類似度の分布を調べる. before 対 book の分布が, after 対 book の分布とだいたい同じなら不成, 大きくずれていれば成りと判定する.
   // fabs(tBeforeMean - tAfterMean) の実際の値の様子:
-  // 成りの時: 727, 1418, 1293
-  // 不成の時: 22.5, 1.73, 78.2, 65.9, 59.9, 65.9
-  if (fabs(tAfterMean - tBeforeMean) > 100) {
+  if (tBeforeMean > tAfterMean && tBeforeMean - tAfterMean > 40) {
     if (!hint || hint->promote == 1) {
       mv.piece = Promote(mv.piece);
       mv.promote = 1;
@@ -361,7 +360,8 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             // 持ち駒に無い.
             return;
           }
-          double sim = Img::Similarity(roi, true, pi, false);
+          double sim = Img::ComparePiece(roi, pi, color, shape);
+          cout << (char const *)ShortStringFromPieceTypeAndStatus(static_cast<PieceUnderlyingType>(pt)).c_str() << ":" << sim << endl;
           if (sim > maxSim) {
             maxSim = sim;
             maxSimPiece = piece;
@@ -392,7 +392,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
           }
           auto bp = Img::PieceROI(before, x, y);
           auto ap = Img::PieceROI(after, x, y);
-          double sim = Img::Similarity(bp, true, ap, true);
+          double sim = Img::Similarity(bp, ap);
           if (minSim > sim) {
             minSim = sim;
             minSquare = MakeSquare(x, y);

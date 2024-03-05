@@ -50,7 +50,7 @@ std::shared_ptr<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const 
   return ret;
 }
 
-void PieceShape::poly(cv::Point2f const &center, std::vector<cv::Point> &buffer, Color color) const {
+void PieceShape::poly(cv::Point2f const &center, std::vector<cv::Point2f> &buffer, Color color) const {
   buffer.clear();
   if (color == Color::Black) {
     buffer.push_back(apex + center);

@@ -84,30 +84,17 @@ std::pair<cv::Mat, cv::Mat> Img::Equalize(cv::Mat const &a, cv::Mat const &b) {
   return make_pair(ra.clone(), rb.clone());
 }
 
-double Img::Similarity(cv::Mat const &left_, bool binaryLeft, cv::Mat const &right_, bool binaryRight, int degrees, float translationRatio) {
+double Img::Similarity(cv::Mat const &left_, cv::Mat const &right, int degrees, float translationRatio) {
   using namespace std;
+  int w = right.size().width;
+  int h = right.size().height;
   cv::Mat left;
-  cv::Mat right;
-  if (left_.size() != right_.size()) {
-    cv::resize(left_, left, right_.size());
-    if (binaryLeft) {
-      Bin(left, left);
-    }
+  if (left_.size() != right.size()) {
+    cv::resize(left_, left, right.size());
   } else {
-    if (binaryLeft) {
-      Bin(left_, left);
-    } else {
-      left = left_;
-    }
-  }
-  if (binaryRight) {
-    Bin(right_, right);
-  } else {
-    right = right_;
+    left = left_;
   }
 
-  int w = right_.size().width;
-  int h = right_.size().height;
   float cx = w / 2.0f;
   float cy = h / 2.0f;
   int dx = (int)round(w * translationRatio);
@@ -118,8 +105,8 @@ double Img::Similarity(cv::Mat const &left_, bool binaryLeft, cv::Mat const &rig
   int maxDy = 99;
   for (int t = -degrees; t <= degrees; t++) {
     cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
-    cv::Mat rotated;
-    cv::warpAffine(right, rotated, m, right.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+    cv::Mat rotated(h, w, left.type(), cv::Scalar(0, 0, 0));
+    cv::warpAffine(left, rotated, m, left.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
 
     for (int iy = -dy; iy <= dy; iy++) {
       for (int ix = -dx; ix <= dx; ix++) {
@@ -140,6 +127,81 @@ double Img::Similarity(cv::Mat const &left_, bool binaryLeft, cv::Mat const &rig
           maxDx = ix;
           maxDy = iy;
           maxDegrees = t;
+        }
+      }
+    }
+  }
+  return maxSim;
+}
+
+double Img::ComparePiece(cv::Mat const &left_, cv::Mat const &right_, Color targetColor, std::optional<PieceShape> shape, int degrees, float translationRatio) {
+  using namespace std;
+  cv::Mat left;
+  cv::Mat right = right_;
+  if (left_.size() != right_.size()) {
+    cv::resize(left_, left, right_.size());
+  } else {
+    left = left_;
+  }
+
+  int w = right_.size().width;
+  int h = right_.size().height;
+  float cx = w / 2.0f;
+  float cy = h / 2.0f;
+  int dx = (int)round(w * translationRatio);
+  int dy = (int)round(h * translationRatio);
+  float maxSim = numeric_limits<float>::lowest();
+  float minSim = numeric_limits<float>::max();
+  int maxDegrees = 99;
+  int maxDx = 99;
+  int maxDy = 99;
+  vector<cv::Point2f> outline;
+  if (shape) {
+    shape->poly(cv::Point2f(cx, cy), outline, targetColor);
+  }
+  cv::Mat maxImg;
+  cv::Mat minImg;
+  for (int t = -degrees; t <= degrees; t++) {
+    for (int iy = -dy; iy <= dy; iy++) {
+      for (int ix = -dx; ix <= dx; ix++) {
+        cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx + ix, cy + iy), t, 1);
+        m.at<double>(0, 2) -= ix;
+        m.at<double>(1, 2) -= iy;
+        cv::Mat rotated(h, w, left.type(), cv::Scalar(0, 0, 0));
+        cv::warpAffine(left, rotated, m, left.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+        Bin(rotated, rotated);
+
+        cv::Mat dbg;
+        cv::cvtColor(rotated, dbg, cv::COLOR_GRAY2BGR);
+
+        float sum = 0;
+        int count = 0;
+        for (int j = 0; j < h; j++) {
+          for (int i = 0; i < w; i++) {
+            if (!outline.empty() && cv::pointPolygonTest(outline, cv::Point2f(i, j), false) <= 0) {
+              auto &c = dbg.at<cv::Vec3b>(j, i);
+              c[0] = 0;
+              c[1] = 0;
+              c[2] = 255;
+              continue;
+            }
+            float diff = (float)rotated.at<uint8_t>(i, j) - (float)right.at<uint8_t>(i, j);
+            sum += diff * diff;
+            count++;
+          }
+        }
+        float sim = 1 - sum / (count * 255.f * 255.f);
+        //        cout << "b64png(similarity_t=" << t << "_ix=" << ix << "_iy=" << iy << "_sim=" << sim << "):" << base64::to_base64(EncodeToPng(dbg)) << endl;
+        if (maxSim < sim) {
+          maxSim = sim;
+          maxDx = ix;
+          maxDy = iy;
+          maxDegrees = t;
+          maxImg = dbg.clone();
+        }
+        if (minSim > sim) {
+          minSim = sim;
+          minImg = dbg.clone();
         }
       }
     }
