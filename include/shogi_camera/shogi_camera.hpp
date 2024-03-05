@@ -656,7 +656,7 @@ struct PieceShape {
   cv::Point2f point2;
 
   // PieceContour#mean と center が一致するような頂点の列を計算する.
-  void poly(cv::Point2f const &center, std::vector<cv::Point> &buffer) const;
+  void poly(cv::Point2f const &center, std::vector<cv::Point> &buffer, Color color) const;
 };
 
 // 駒のような形をした Contour. points[0] が駒の頂点, points[2] => points[3] が底辺

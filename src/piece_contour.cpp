@@ -1,7 +1,9 @@
 #include <shogi_camera/shogi_camera.hpp>
 
+#include "base64.hpp"
 #include <opencv2/imgproc.hpp>
 
+#include <iostream>
 #include <numbers>
 
 namespace sci {
@@ -50,13 +52,21 @@ std::shared_ptr<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const 
   return ret;
 }
 
-void PieceShape::poly(cv::Point2f const &center, std::vector<cv::Point> &buffer) const {
+void PieceShape::poly(cv::Point2f const &center, std::vector<cv::Point> &buffer, Color color) const {
   buffer.clear();
-  buffer.push_back(apex + center);
-  buffer.push_back(point1 + center);
-  buffer.push_back(point2 + center);
-  buffer.push_back(cv::Point2f(-point2.x, point2.y) + center);
-  buffer.push_back(cv::Point2f(-point1.x, point1.y) + center);
+  if (color == Color::Black) {
+    buffer.push_back(apex + center);
+    buffer.push_back(point1 + center);
+    buffer.push_back(point2 + center);
+    buffer.push_back(cv::Point2f(-point2.x, point2.y) + center);
+    buffer.push_back(cv::Point2f(-point1.x, point1.y) + center);
+  } else {
+    buffer.push_back(-apex + center);
+    buffer.push_back(-point1 + center);
+    buffer.push_back(-point2 + center);
+    buffer.push_back(cv::Point2f(point2.x, -point2.y) + center);
+    buffer.push_back(cv::Point2f(point1.x, -point1.y) + center);
+  }
 }
 
 PieceShape PieceContour::toShape() const {
@@ -65,24 +75,43 @@ PieceShape PieceContour::toShape() const {
   cv::Point2f bottom = points[3] - points[2];
   cv::Point2f mid = points[2] + bottom * 0.5f;
   cv::Point2f direction = apex - mid;
-  double angle = atan2(direction.y, direction.x);
-  double rotate = numbers::pi - angle;
-  cv::Mat mtx = cv::getRotationMatrix2D(mid, rotate, 1);
+  double angle = atan2(direction.y, direction.x) * 180 / numbers::pi;
+  cv::Mat mtx = cv::getRotationMatrix2D(mid, -angle + 270, 1);
   cv::Point2f rApex = WarpAffine(apex, mtx) - mid;
   cv::Point2f rPoint1 = WarpAffine(points[1], mtx) - mid;
   cv::Point2f rPoint2 = WarpAffine(points[2], mtx) - mid;
   cv::Point2f rPoint3 = WarpAffine(points[3], mtx) - mid;
   cv::Point2f rPoint4 = WarpAffine(points[4], mtx) - mid;
 
-  cv::Point2f p1 = (rPoint1 + cv::Point2f(-rPoint4.x, rPoint4.y)) * 0.5f;
-  cv::Point2f p2 = (rPoint2 + cv::Point2f(-rPoint3.x, rPoint3.y)) * 0.5f;
+  // 一旦 rApex が中心となるように平行移動する
+  cv::Point2f p1 = rPoint1 - rApex;
+  cv::Point2f p2 = rPoint2 - rApex;
+  cv::Point2f p3 = rPoint3 - rApex;
+  cv::Point2f p4 = rPoint4 - rApex;
 
-  cv::Point2f mean = (rApex + p1 + p2 + cv::Point2f(-p1.x, p1.y) + cv::Point2f(-p2.x, p2.y)) / 5.0f;
+  cv::Point2f p14 = (p1 + cv::Point2f(-p4.x, p4.y)) * 0.5f;
+  if (p14.x < 0) {
+    p14.x = -p14.x;
+  }
+  cv::Point2f p23 = (p2 + cv::Point2f(-p3.x, p3.y)) * 0.5f;
+  if (p23.x < 0) {
+    p23.x = -p23.x;
+  }
+  cv::Point2f mean = (p14 + cv::Point2f(-p14.x, p14.y) + p23 + cv::Point2f(-p23.x, p23.y)) / 5.0f;
 
   PieceShape ps;
-  ps.apex = rApex - mean;
-  ps.point1 = p1 - mean;
-  ps.point2 = p2 - mean;
+  ps.apex = -mean;
+  ps.point1 = p14 - mean;
+  ps.point2 = p23 - mean;
+
+  cv::Mat img(200, 200, CV_8UC3, cv::Scalar(0, 0, 0));
+  vector<cv::Point> points;
+  ps.poly(cv::Point2f(100, 100), points, Color::White);
+  auto c = cv::mean(points);
+  cv::fillConvexPoly(img, points, cv::Scalar(255, 255, 255));
+  static int count = 0;
+  count++;
+  cout << "b64png(sample_" << count << "):" << base64::to_base64(Img::EncodeToPng(img)) << endl;
 
   return ps;
 }
