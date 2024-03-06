@@ -159,8 +159,8 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
           cv::Point2f pp = WarpAffine(p, rot);
           points.push_back(cv::Point((int)round(pp.x), (int)round(pp.y)));
         }
-        cv::fillConvexPoly(mask, points, cv::Scalar(255, 255, 255));
-        cv::polylines(mask, points, true, cv::Scalar(0, 0, 0), 2);
+        cv::fillConvexPoly(mask, points, cv::Scalar::all(255));
+        cv::polylines(mask, points, true, cv::Scalar::all(0), kEdgeLineWidth);
 
         cv::Mat masked = cv::Mat::zeros(board.size(), board.type());
         cv::bitwise_and(rotated, mask, masked);

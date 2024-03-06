@@ -171,7 +171,8 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
       points.push_back(p);
     }
     mask = cv::Mat::zeros(h, w, CV_8U);
-    cv::fillPoly(mask, points, cv::Scalar::all(255));
+    cv::fillConvexPoly(mask, points, cv::Scalar::all(255));
+    cv::polylines(mask, points, true, cv::Scalar::all(0), PieceBook::kEdgeLineWidth);
     count = cv::countNonZero(mask);
   } else {
     mask = cv::Mat(h, w, CV_8U, cv::Scalar::all(255));
