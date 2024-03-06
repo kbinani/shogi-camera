@@ -912,7 +912,8 @@ struct Statistics {
                                     Color const &color,
                                     std::deque<PieceType> const &hand,
                                     PieceBook &book,
-                                    std::optional<Move> hint);
+                                    std::optional<Move> hint,
+                                    Status const &s);
   std::shared_ptr<PieceBook> book;
   // stableBoardHistory をリセットする処理で, 最初の stableBoardHistory との差分がデカいフレームがいくつ連続したかを数えるカウンター.
   // これが閾値を超えたら stableBoardHistory をリセットする.
@@ -976,7 +977,11 @@ public:
   // 2 つの画像を同じサイズになるよう変形する
   static std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b);
   // 2 枚の画像を比較する. right を ±degrees 度, x と y 方向にそれぞれ ±width*translationRatio, ±height*translationRatio 移動して画像の一致度を計算し, 最大の一致度を返す.
-  static double ComparePiece(cv::Mat const &target, cv::Mat const &tmpl, Color targetColor, std::optional<PieceShape> shape, int degrees = 5, float translationRatio = 0.1f);
+  static std::pair<double, cv::Mat> ComparePiece(cv::Mat const &board,
+                                                 int x, int y,
+                                                 cv::Mat const &tmpl,
+                                                 Color targetColor,
+                                                 std::optional<PieceShape> shape);
   static double Similarity(cv::Mat const &left, cv::Mat const &right, int degrees = 5, float translationRatio = 0.1f);
   static std::string EncodeToPng(cv::Mat const &image);
   static void Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y);

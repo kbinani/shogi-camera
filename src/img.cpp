@@ -135,20 +135,20 @@ double Img::Similarity(cv::Mat const &left_, cv::Mat const &right, int degrees, 
   return maxSim;
 }
 
-double Img::ComparePiece(cv::Mat const &left_, cv::Mat const &right_, Color targetColor, std::optional<PieceShape> shape, int degrees, float translationRatio) {
+std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
+                                             int x, int y,
+                                             cv::Mat const &tmpl,
+                                             Color targetColor,
+                                             std::optional<PieceShape> shape) {
   using namespace std;
-  cv::Mat left;
-  cv::Mat right = right_;
-  if (left_.size() != right_.size()) {
-    cv::resize(left_, left, right_.size());
-  } else {
-    left = left_;
-  }
+  constexpr int degrees = 5;
+  constexpr float translationRatio = 0.1f;
 
-  int w = right_.size().width;
-  int h = right_.size().height;
-  float cx = w / 2.0f;
-  float cy = h / 2.0f;
+  int width = board.size().width;
+  int height = board.size().height;
+
+  int w = tmpl.size().width;
+  int h = tmpl.size().height;
   int dx = (int)round(w * translationRatio);
   int dy = (int)round(h * translationRatio);
   float maxSim = numeric_limits<float>::lowest();
@@ -156,16 +156,17 @@ double Img::ComparePiece(cv::Mat const &left_, cv::Mat const &right_, Color targ
   int maxDegrees = 99;
   int maxDx = 99;
   int maxDy = 99;
+  cv::Mat maxImg;
   cv::Mat mask;
   int count = w * h;
   if (shape) {
     vector<cv::Point2f> outline;
-    shape->poly(cv::Point2f(cx, cy), outline, targetColor);
-    mask = cv::Mat(h, w, CV_8U, cv::Scalar(0, 0, 0));
+    shape->poly(cv::Point2f(w * 0.5f, h * 0.5f), outline, targetColor);
     vector<cv::Point> points;
     for (auto const &p : outline) {
       points.push_back(p);
     }
+    mask = cv::Mat::zeros(h, w, CV_8U);
     cv::fillPoly(mask, points, cv::Scalar(255, 255, 255));
     count = cv::countNonZero(mask);
   } else {
@@ -175,16 +176,18 @@ double Img::ComparePiece(cv::Mat const &left_, cv::Mat const &right_, Color targ
   for (int t = -degrees; t <= degrees; t++) {
     for (int iy = -dy; iy <= dy; iy++) {
       for (int ix = -dx; ix <= dx; ix++) {
-        cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx + ix, cy + iy), t, 1);
-        m.at<double>(0, 2) -= ix;
-        m.at<double>(1, 2) -= iy;
-        cv::Mat rotated(h, w, left.type(), cv::Scalar(0, 0, 0));
-        cv::warpAffine(left, rotated, m, left.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+        float cx = width / 9.0f * (x + 0.5f) + ix;
+        float cy = height / 9.0f * (y + 0.5f) + iy;
+        cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
+        m.at<double>(0, 2) -= (cx - w / 2);
+        m.at<double>(1, 2) -= (cy - h / 2);
+        cv::Mat rotated = cv::Mat::zeros(h, w, board.type());
+        cv::warpAffine(board, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
         Bin(rotated, rotated);
 
-        cv::Mat mSum(h, w, CV_32F, cv::Scalar(0));
+        cv::Mat mSum = cv::Mat::zeros(h, w, CV_32F);
         cv::Mat mDiffU8;
-        cv::absdiff(rotated, right, mDiffU8);
+        cv::absdiff(rotated, tmpl, mDiffU8);
         cv::Mat mDiff;
         mDiffU8.convertTo(mDiff, CV_32F);
         cv::Mat mSq;
@@ -198,11 +201,12 @@ double Img::ComparePiece(cv::Mat const &left_, cv::Mat const &right_, Color targ
           maxDx = ix;
           maxDy = iy;
           maxDegrees = t;
+          maxImg = rotated;
         }
       }
     }
   }
-  return maxSim;
+  return make_pair(maxSim, maxImg);
 }
 
 std::string Img::EncodeToPng(cv::Mat const &image) {

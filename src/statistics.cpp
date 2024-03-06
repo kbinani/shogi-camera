@@ -25,7 +25,7 @@ bool IsIdentical(std::set<T, L> const &a, std::set<T, L> const &b) {
   return true;
 }
 
-void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter, PieceBook &book, std::optional<Move> hint) {
+void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter, PieceBook &book, std::optional<Move> hint, Status const &s) {
   using namespace std;
   if (!mv.from || IsPromotedPiece(mv.piece)) {
     return;
@@ -33,25 +33,34 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   if (!CanPromote(mv.piece)) {
     return;
   }
-  if (!IsPromotableMove(*mv.from, mv.to, mv.color)) {
-    return;
-  }
+  // TODO:debug
+  //  if (!IsPromotableMove(*mv.from, mv.to, mv.color)) {
+  //    return;
+  //  }
   if (MustPromote(PieceTypeFromPiece(mv.piece), *mv.from, mv.to, mv.color)) {
     mv.piece = Promote(mv.piece);
     mv.promote = 1;
     return;
   }
-  auto bp = Img::PieceROI(boardBefore, mv.from->file, mv.from->rank);
-  auto ap = Img::PieceROI(boardAfter, mv.to.file, mv.to.rank);
 
   auto const &entry = book.store[RemoveColorFromPiece(mv.piece)];
   vector<float> simAfter;
   vector<float> simBefore;
+  cv::Mat maxImgA;
+  cv::Mat maxImgB;
+  double maxSA = 0;
+  double maxSB = 0;
   entry.each(mv.color, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
-    double sa = Img::ComparePiece(ap, img, mv.color, shape);
-    double sb = Img::ComparePiece(bp, img, mv.color, shape);
-    simAfter.push_back(sa);
+    auto [sb, imgB] = Img::ComparePiece(boardBefore, mv.from->file, mv.from->rank, img, mv.color, shape);
+    auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape);
     simBefore.push_back(sb);
+    simAfter.push_back(sa);
+    if (sb > maxSB) {
+      maxImgB = imgB;
+    }
+    if (sa > maxSA) {
+      maxImgA = imgA;
+    }
   });
   cv::Scalar meanBeforeScalar, stddevBeforeScalar;
   cv::meanStdDev(cv::Mat(simBefore), meanBeforeScalar, stddevBeforeScalar);
@@ -67,17 +76,18 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   float tAfterMean = 10 * (meanAfter - meanBefore) / stddevBefore + 50;
   cout << "tBefore=" << tBeforeMean << ", tAfter=" << tAfterMean << ", (tBefore - tAfter)=" << (tBeforeMean - tAfterMean) << endl;
 
+  int promote = mv.promote;
+
   // before と after で, book の駒画像との類似度の分布を調べる. before 対 book の分布が, after 対 book の分布とだいたい同じなら不成, 大きくずれていれば成りと判定する.
-  if (tBeforeMean - tAfterMean > 10) {
+  if (tBeforeMean - tAfterMean > 20) {
     if (!hint || hint->promote == 1) {
-      mv.piece = Promote(mv.piece);
-      mv.promote = 1;
+      promote = 1;
     } else if (hint) {
       cout << "hint と promote フラグが矛盾する: expected=" << hint->promote << "; actual=1" << endl;
     }
   } else {
     if (!hint || hint->promote == -1) {
-      mv.promote = -1;
+      promote = -1;
     } else if (hint) {
       cout << "hint と promote フラグが矛盾する: expected=" << hint->promote << "; actual=-1" << endl;
     }
@@ -85,10 +95,26 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
 #if 1
   static int count = 0;
   count++;
-  cout << "b64png(promote_" << count << "_before_promote=" << mv.promote << "):" << base64::to_base64(Img::EncodeToPng(bp)) << endl;
-  cout << "b64png(promote_" << count << "_after_promote=" << mv.promote << "):" << base64::to_base64(Img::EncodeToPng(ap)) << endl;
-  cout << "b64png(promote_" << count << "_book_promote=" << mv.promote << "):" << base64::to_base64(book.toPng()) << endl;
+  auto bp = Img::PieceROI(boardBefore, mv.from->file, mv.from->rank);
+  auto ap = Img::PieceROI(boardAfter, mv.to.file, mv.to.rank);
+  cout << "b64png(promote_" << count << "_before_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(bp)) << endl;
+  cout << "b64png(promote_" << count << "_after_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(ap)) << endl;
+  cout << "b64png(promote_" << count << "_book_promote=" << promote << "):" << base64::to_base64(book.toPng()) << endl;
+  cout << "b64png(promote_" << count << "_maxbefore_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(maxImgB)) << endl;
+  cout << "b64png(promote_" << count << "_maxafter_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(maxImgA)) << endl;
 #endif
+
+  if (!IsPromotableMove(*mv.from, mv.to, mv.color)) {
+    // TODO:debug
+    return;
+  }
+
+  if (promote == 1) {
+    mv.piece = Promote(mv.piece);
+    mv.promote = 1;
+  } else if (promote == -1) {
+    mv.promote = -1;
+  }
 }
 
 } // namespace
@@ -259,7 +285,7 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   if (detected.size() + 1 == g.moves.size()) {
     hint = g.moves.back();
   }
-  optional<Move> move = Statistics::Detect(last.back().image, board, ch, g.position, detected, color, g.hand(color), *book, hint);
+  optional<Move> move = Detect(last.back().image, board, ch, g.position, detected, color, g.hand(color), *book, hint, s);
   if (!move) {
     return;
   }
@@ -334,7 +360,8 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
                                        Color const &color,
                                        std::deque<PieceType> const &hand,
                                        PieceBook &book,
-                                       std::optional<Move> hint) {
+                                       std::optional<Move> hint,
+                                       Status const &s) {
   using namespace std;
   optional<Move> move;
   auto [before, after] = Img::Equalize(boardBefore, boardAfter);
@@ -366,7 +393,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             // 持ち駒に無い.
             return;
           }
-          double sim = Img::ComparePiece(roi, pi, color, shape);
+          auto [sim, _] = Img::ComparePiece(boardAfter, ch.x, ch.y, pi, color, shape);
           cout << (char const *)ShortStringFromPieceTypeAndStatus(static_cast<PieceUnderlyingType>(pt)).c_str() << ":" << sim << endl;
           if (sim > maxSim) {
             maxSim = sim;
@@ -413,7 +440,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
         mv.captured = RemoveColorFromPiece(position.pieces[minSquare->file][minSquare->rank]);
         mv.piece = p;
         if (!moves.empty()) {
-          AppendPromotion(mv, before, after, book, hint);
+          AppendPromotion(mv, before, after, book, hint, s);
         }
         move = mv;
       } else {
@@ -446,7 +473,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             mv.piece = p0;
             mv.captured = RemoveColorFromPiece(p1);
             if (!moves.empty()) {
-              AppendPromotion(mv, before, after, book, hint);
+              AppendPromotion(mv, before, after, book, hint, s);
             }
             move = mv;
           } else {
@@ -462,7 +489,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             mv.piece = p1;
             mv.captured = RemoveColorFromPiece(p0);
             if (!moves.empty()) {
-              AppendPromotion(mv, before, after, book, hint);
+              AppendPromotion(mv, before, after, book, hint, s);
             }
             move = mv;
           } else {
@@ -482,7 +509,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
           mv.to = to;
           mv.piece = p0;
           if (!moves.empty()) {
-            AppendPromotion(mv, before, after, book, hint);
+            AppendPromotion(mv, before, after, book, hint, s);
           }
           move = mv;
         } else {
@@ -503,7 +530,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
           mv.to = to;
           mv.piece = p1;
           if (!moves.empty()) {
-            AppendPromotion(mv, before, after, book, hint);
+            AppendPromotion(mv, before, after, book, hint, s);
           }
           move = mv;
         } else {
