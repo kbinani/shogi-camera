@@ -84,58 +84,6 @@ std::pair<cv::Mat, cv::Mat> Img::Equalize(cv::Mat const &a, cv::Mat const &b) {
   return make_pair(ra.clone(), rb.clone());
 }
 
-#if 0
-double Img::Similarity(cv::Mat const &left_, cv::Mat const &right, int degrees, float translationRatio) {
-  using namespace std;
-  int w = right.size().width;
-  int h = right.size().height;
-  cv::Mat left;
-  if (left_.size() != right.size()) {
-    cv::resize(left_, left, right.size());
-  } else {
-    left = left_;
-  }
-
-  float cx = w / 2.0f;
-  float cy = h / 2.0f;
-  int dx = (int)round(w * translationRatio);
-  int dy = (int)round(h * translationRatio);
-  float maxSim = numeric_limits<float>::lowest();
-  int maxDegrees = 99;
-  int maxDx = 99;
-  int maxDy = 99;
-  for (int t = -degrees; t <= degrees; t++) {
-    cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
-    cv::Mat rotated(h, w, left.type(), cv::Scalar(0, 0, 0));
-    cv::warpAffine(left, rotated, m, left.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
-
-    for (int iy = -dy; iy <= dy; iy++) {
-      for (int ix = -dx; ix <= dx; ix++) {
-        float sum = 0;
-        int count = 0;
-        for (int j = 0; j < h; j++) {
-          for (int i = 0; i < w; i++) {
-            if (0 <= i + ix && i + ix < w && 0 <= j + iy && j + iy < h) {
-              // TODO: ここ (j, i) などが正しい. 行と列はyとxの関係.
-              float diff = (float)left.at<uint8_t>(i, j) - (float)rotated.at<uint8_t>(i + ix, j + iy);
-              sum += diff * diff;
-              count++;
-            }
-          }
-        }
-        float sim = 1 - sum / (count * 255.f * 255.f);
-        if (maxSim < sim) {
-          maxSim = sim;
-          maxDx = ix;
-          maxDy = iy;
-          maxDegrees = t;
-        }
-      }
-    }
-  }
-  return maxSim;
-}
-#else
 double Img::Similarity(cv::Mat const &before, cv::Mat const &after, int x, int y) {
   constexpr int degrees = 5;
   constexpr float translationRatio = 0.1f;
@@ -164,7 +112,7 @@ double Img::Similarity(cv::Mat const &before, cv::Mat const &after, int x, int y
         cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
         m.at<double>(0, 2) -= (cx - w / 2);
         m.at<double>(1, 2) -= (cy - h / 2);
-        cv::Mat b(h, w, before.type(), cv::Scalar(0, 0, 0));
+        cv::Mat b;
         cv::warpAffine(before, b, m, cv::Size(w, h), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
         Bin(b, b);
 
@@ -179,21 +127,6 @@ double Img::Similarity(cv::Mat const &before, cv::Mat const &after, int x, int y
 
         cv::Scalar sSum = cv::sum(mSum);
         float sim = 1 - sSum[0] / (w * h * 255.f * 255.f);
-        //
-        //
-        //        float sum = 0;
-        //        int count = 0;
-        //        for (int j = 0; j < h; j++) {
-        //          for (int i = 0; i < w; i++) {
-        //            if (0 <= i + ix && i + ix < w && 0 <= j + iy && j + iy < h) {
-        //              // TODO: ここ (j, i) などが正しい. 行と列はyとxの関係.
-        //              float diff = (float)left.at<uint8_t>(i, j) - (float)rotated.at<uint8_t>(i + ix, j + iy);
-        //              sum += diff * diff;
-        //              count++;
-        //            }
-        //          }
-        //        }
-        //        float sim = 1 - sum / (count * 255.f * 255.f);
         if (maxSim < sim) {
           maxSim = sim;
           maxDx = ix;
@@ -205,7 +138,7 @@ double Img::Similarity(cv::Mat const &before, cv::Mat const &after, int x, int y
   }
   return maxSim;
 }
-#endif
+
 std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
                                              int x, int y,
                                              cv::Mat const &tmpl,
@@ -213,7 +146,7 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
                                              std::optional<PieceShape> shape) {
   using namespace std;
   constexpr int degrees = 5;
-  constexpr float translationRatio = 0.1f;
+  constexpr float translationRatio = 0.2f;
 
   int width = board.size().width;
   int height = board.size().height;
@@ -238,10 +171,10 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
       points.push_back(p);
     }
     mask = cv::Mat::zeros(h, w, CV_8U);
-    cv::fillPoly(mask, points, cv::Scalar(255, 255, 255));
+    cv::fillPoly(mask, points, cv::Scalar::all(255));
     count = cv::countNonZero(mask);
   } else {
-    mask = cv::Mat(h, w, CV_8U, cv::Scalar(255, 255, 255));
+    mask = cv::Mat(h, w, CV_8U, cv::Scalar::all(255));
   }
 
   for (int t = -degrees; t <= degrees; t++) {
@@ -252,7 +185,7 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
         cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
         m.at<double>(0, 2) -= (cx - w / 2);
         m.at<double>(1, 2) -= (cy - h / 2);
-        cv::Mat rotated = cv::Mat::zeros(h, w, board.type());
+        cv::Mat rotated;
         cv::warpAffine(board, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
         Bin(rotated, rotated);
 
@@ -266,13 +199,13 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
         cv::add(mSq, mSum, mSum, mask);
 
         cv::Scalar sSum = cv::sum(mSum);
-        float sim = 1 - sSum[0] / (count * 255.f * 255.f);
+        float sim = 1 - sSum[0] / (count * 255.0f * 2550.f);
         if (maxSim < sim) {
           maxSim = sim;
           maxDx = ix;
           maxDy = iy;
           maxDegrees = t;
-          maxImg = rotated;
+          cv::bitwise_and(rotated, mask, maxImg);
         }
       }
     }
