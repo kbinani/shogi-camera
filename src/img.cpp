@@ -145,7 +145,7 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
                                              Color targetColor,
                                              std::optional<PieceShape> shape) {
   using namespace std;
-  constexpr int degrees = 5;
+  constexpr int degrees = 10;
   constexpr float translationRatio = 0.2f;
 
   int width = board.size().width;
@@ -178,7 +178,7 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
     mask = cv::Mat(h, w, CV_8U, cv::Scalar::all(255));
   }
 
-  for (int t = -degrees; t <= degrees; t++) {
+  for (int t = -degrees; t <= degrees; t += 2) {
     for (int iy = -dy; iy <= dy; iy++) {
       for (int ix = -dx; ix <= dx; ix++) {
         float cx = width / 9.0f * (x + 0.5f) + ix;
