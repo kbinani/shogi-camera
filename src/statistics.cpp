@@ -383,6 +383,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
         double maxSim = 0;
         std::optional<Piece> maxSimPiece;
         cv::Mat roi = Img::PieceROI(boardAfter, ch.x, ch.y);
+        map<PieceType, double> maxSimStat;
         book.each(color, [&](Piece piece, cv::Mat const &pi, optional<PieceShape> shape) {
           if (IsPromotedPiece(piece)) {
             // 成り駒は打てない.
@@ -394,12 +395,18 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             return;
           }
           auto [sim, _] = Img::ComparePiece(boardAfter, ch.x, ch.y, pi, color, shape);
-          cout << (char const *)ShortStringFromPieceTypeAndStatus(static_cast<PieceUnderlyingType>(pt)).c_str() << ":" << sim << endl;
+          if (maxSimStat[pt] < sim) {
+            maxSimStat[pt] = sim;
+          }
           if (sim > maxSim) {
             maxSim = sim;
             maxSimPiece = piece;
           }
         });
+        cout << "--" << endl;
+        for (auto const &it : maxSimStat) {
+          cout << (char const *)ShortStringFromPieceTypeAndStatus(static_cast<PieceUnderlyingType>(it.first)).c_str() << ":" << it.second << endl;
+        }
         if (maxSimPiece) {
           Move mv;
           mv.color = color;
@@ -423,9 +430,8 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
           if (!Move::CanMove(position, MakeSquare(ch.x, ch.y), MakeSquare(x, y))) {
             continue;
           }
-          auto bp = Img::PieceROI(before, x, y);
-          auto ap = Img::PieceROI(after, x, y);
-          double sim = Img::Similarity(bp, ap);
+          double sim = Img::Similarity(before, after, x, y);
+          cout << (char const *)StringFromSquare(MakeSquare(x, y)).c_str() << ":" << sim << endl;
           if (minSim > sim) {
             minSim = sim;
             minSquare = MakeSquare(x, y);

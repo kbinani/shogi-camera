@@ -982,7 +982,7 @@ public:
                                                  cv::Mat const &tmpl,
                                                  Color targetColor,
                                                  std::optional<PieceShape> shape);
-  static double Similarity(cv::Mat const &left, cv::Mat const &right, int degrees = 5, float translationRatio = 0.1f);
+  static double Similarity(cv::Mat const &before, cv::Mat const &after, int x, int y);
   static std::string EncodeToPng(cv::Mat const &image);
   static void Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y);
   static void FindContours(cv::Mat const &img, std::vector<std::shared_ptr<Contour>> &contours, std::vector<std::shared_ptr<Contour>> &squares, std::vector<std::shared_ptr<PieceContour>> &pieces);
