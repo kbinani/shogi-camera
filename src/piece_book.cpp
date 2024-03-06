@@ -214,7 +214,7 @@ std::string PieceBook::toPng() const {
   }
   int width = w * columns;
   int height = rows * h;
-  cv::Mat all(cv::Size(width, height), CV_8UC4, cv::Scalar(255, 255, 255, 255));
+  cv::Mat all(height, width, CV_8UC3, cv::Scalar::all(255));
   int row = 0;
   for (auto const &it : store) {
     int column = 0;
