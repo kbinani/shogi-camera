@@ -115,6 +115,7 @@ double Img::Similarity(cv::Mat const &left_, cv::Mat const &right, int degrees, 
         for (int j = 0; j < h; j++) {
           for (int i = 0; i < w; i++) {
             if (0 <= i + ix && i + ix < w && 0 <= j + iy && j + iy < h) {
+              // TODO: ここ (j, i) などが正しい. 行と列はyとxの関係.
               float diff = (float)left.at<uint8_t>(i, j) - (float)rotated.at<uint8_t>(i + ix, j + iy);
               sum += diff * diff;
               count++;
@@ -156,8 +157,9 @@ double Img::ComparePiece(cv::Mat const &left_, cv::Mat const &right_, Color targ
   int maxDx = 99;
   int maxDy = 99;
   cv::Mat mask;
-  vector<cv::Point2f> outline;
+  int count = w * h;
   if (shape) {
+    vector<cv::Point2f> outline;
     shape->poly(cv::Point2f(cx, cy), outline, targetColor);
     mask = cv::Mat(h, w, CV_8U, cv::Scalar(0, 0, 0));
     vector<cv::Point> points;
@@ -165,12 +167,11 @@ double Img::ComparePiece(cv::Mat const &left_, cv::Mat const &right_, Color targ
       points.push_back(p);
     }
     cv::fillPoly(mask, points, cv::Scalar(255, 255, 255));
+    count = cv::countNonZero(mask);
   } else {
     mask = cv::Mat(h, w, CV_8U, cv::Scalar(255, 255, 255));
   }
-  int count = cv::countNonZero(mask);
-  //  cv::Mat maxImg;
-  //  cv::Mat minImg;
+
   for (int t = -degrees; t <= degrees; t++) {
     for (int iy = -dy; iy <= dy; iy++) {
       for (int ix = -dx; ix <= dx; ix++) {
@@ -181,52 +182,23 @@ double Img::ComparePiece(cv::Mat const &left_, cv::Mat const &right_, Color targ
         cv::warpAffine(left, rotated, m, left.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
         Bin(rotated, rotated);
 
-        //        cv::Mat dbg;
-        //        cv::cvtColor(rotated, dbg, cv::COLOR_GRAY2BGR);
-
         cv::Mat mSum(h, w, CV_32F, cv::Scalar(0));
         cv::Mat mDiffU8;
-        cv::Mat mSq;
-        //        cout << "mDiffU8.type()=" << mDiffU8.type() << endl;
         cv::absdiff(rotated, right, mDiffU8);
         cv::Mat mDiff;
         mDiffU8.convertTo(mDiff, CV_32F);
-        //        cout << "mDiff.type()=" << mDiff.type() << endl;
+        cv::Mat mSq;
         cv::multiply(mDiff, mDiff, mSq);
-        //        cout << "mSq.type()=" << mSq.type() << endl;
         cv::add(mSq, mSum, mSum, mask);
 
-        //        float sum = 0;
-        //        int count = 0;
-        //        for (int j = 0; j < h; j++) {
-        //          for (int i = 0; i < w; i++) {
-        //            if (!outline.empty() && cv::pointPolygonTest(outline, cv::Point2f(i, j), false) <= 0) {
-        ////              auto &c = dbg.at<cv::Vec3b>(j, i);
-        ////              c[0] = 0;
-        ////              c[1] = 0;
-        ////              c[2] = 255;
-        //              continue;
-        //            }
-        //            float diff = (float)rotated.at<uint8_t>(j, i) - (float)right.at<uint8_t>(j, i);
-        //            sum += diff * diff;
-        //            count++;
-        //          }
-        //        }
         cv::Scalar sSum = cv::sum(mSum);
         float sim = 1 - sSum[0] / (count * 255.f * 255.f);
-        //        float sim = 1 - sum / (count * 255.f * 255.f);
-        //        cout << "b64png(similarity_t=" << t << "_ix=" << ix << "_iy=" << iy << "_sim=" << sim << "):" << base64::to_base64(EncodeToPng(dbg)) << endl;
         if (maxSim < sim) {
           maxSim = sim;
           maxDx = ix;
           maxDy = iy;
           maxDegrees = t;
-          //          maxImg = dbg.clone();
         }
-        //        if (minSim > sim) {
-        //          minSim = sim;
-        //          minImg = dbg.clone();
-        //        }
       }
     }
   }
