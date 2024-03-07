@@ -770,11 +770,13 @@ struct PieceBook {
   struct Image {
     cv::Mat mat;
     bool cut = false;
+    cv::Rect rect;
+    void resize(int width, int height);
   };
   struct Entry {
-    std::deque<Image> blackLast;
+    std::deque<Image> black;
     // 先手向きで格納する.
-    std::deque<Image> whiteLast;
+    std::deque<Image> white;
     cv::Point2d sumApex;
     cv::Point2d sumPoint1;
     cv::Point2d sumPoint2;
@@ -784,6 +786,7 @@ struct PieceBook {
 
     void each(Color color, std::function<void(cv::Mat const &, std::optional<PieceShape>)> cb) const;
     void push(cv::Mat const &mat, Color color, std::optional<PieceShape> shape);
+    void resize(int width, int height);
   };
 
   std::map<PieceUnderlyingType, Entry> store;

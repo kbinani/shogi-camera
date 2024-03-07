@@ -1,7 +1,9 @@
 #include <shogi_camera/shogi_camera.hpp>
 
+#include "base64.hpp"
 #include <opencv2/imgproc.hpp>
 
+#include <iostream>
 #include <numbers>
 
 namespace sci {
@@ -18,14 +20,14 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, std
   }
   int total = 0;
   int cut = 0;
-  total += blackLast.size();
-  for (auto const &it : blackLast) {
+  total += black.size();
+  for (auto const &it : black) {
     if (it.cut) {
       cut++;
     }
   }
-  total += whiteLast.size();
-  for (auto const &it : whiteLast) {
+  total += white.size();
+  for (auto const &it : white) {
     if (it.cut) {
       cut++;
     }
@@ -33,24 +35,24 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, std
   bool onlyCut = cut >= (total - cut) && total > 2;
 
   if (color == Color::Black) {
-    for (auto const &entry : blackLast) {
+    for (auto const &entry : black) {
       if (!onlyCut || entry.cut) {
         cb(entry.mat.clone(), shape);
       }
     }
-    for (auto const &entry : whiteLast) {
+    for (auto const &entry : white) {
       if (!onlyCut || entry.cut) {
         cv::rotate(entry.mat, img, cv::ROTATE_180);
         cb(img, shape);
       }
     }
   } else {
-    for (auto const &entry : whiteLast) {
+    for (auto const &entry : white) {
       if (!onlyCut || entry.cut) {
         cb(entry.mat.clone(), shape);
       }
     }
-    for (auto const &entry : blackLast) {
+    for (auto const &entry : black) {
       if (!onlyCut || entry.cut) {
         cv::rotate(entry.mat, img, cv::ROTATE_180);
         cb(img, shape);
@@ -67,47 +69,49 @@ void PieceBook::Entry::push(cv::Mat const &mat, Color color, std::optional<Piece
     sumPoint2 += cv::Point2d(shape->point2);
   }
   if (color == Color::Black) {
-    if (blackLast.size() >= kMaxLastImageCount) {
+    if (black.size() >= kMaxLastImageCount) {
       if (!shape) {
         return;
       }
       bool ok = false;
-      for (auto it = blackLast.begin(); it != blackLast.end(); it++) {
+      for (auto it = black.begin(); it != black.end(); it++) {
         if (!it->cut) {
-          blackLast.erase(it);
+          black.erase(it);
           ok = true;
           break;
         }
       }
       if (!ok) {
-        blackLast.pop_front();
+        black.pop_front();
       }
     }
     Image img;
     img.mat = mat;
     img.cut = shape != std::nullopt;
-    blackLast.push_back(img);
+    img.rect = cv::Rect(0, 0, mat.size().width, mat.size().height);
+    black.push_back(img);
   } else {
     Image tmp;
     tmp.cut = shape != std::nullopt;
+    tmp.rect = cv::Rect(0, 0, mat.size().width, mat.size().height);
     cv::rotate(mat, tmp.mat, cv::ROTATE_180);
-    if (whiteLast.size() >= kMaxLastImageCount) {
+    if (white.size() >= kMaxLastImageCount) {
       if (!shape) {
         return;
       }
       bool ok = false;
-      for (auto it = whiteLast.begin(); it != whiteLast.end(); it++) {
+      for (auto it = white.begin(); it != white.end(); it++) {
         if (!shape) {
-          whiteLast.erase(it);
+          white.erase(it);
           ok = true;
           break;
         }
       }
       if (!ok) {
-        whiteLast.pop_front();
+        white.pop_front();
       }
     }
-    whiteLast.push_back(tmp);
+    white.push_back(tmp);
   }
 }
 
@@ -189,6 +193,51 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
       }
     }
   }
+
+  // 駒画像のサイズを揃える
+  int width = 0;
+  int height = 0;
+  for (auto const &i : store) {
+    for (auto const &j : i.second.black) {
+      width = std::max(width, j.mat.size().width);
+      height = std::max(height, j.mat.size().height);
+    }
+    for (auto const &j : i.second.white) {
+      width = std::max(width, j.mat.size().width);
+      height = std::max(height, j.mat.size().height);
+    }
+  }
+  if (width > 0 && height > 0) {
+    for (auto &i : store) {
+      i.second.resize(width, height);
+    }
+  }
+}
+
+void PieceBook::Entry::resize(int width, int height) {
+  for (auto &i : black) {
+    i.resize(width, height);
+  }
+  for (auto &i : white) {
+    i.resize(width, height);
+  }
+}
+
+void PieceBook::Image::resize(int width, int height) {
+  if (mat.size().width == width && mat.size().height == height) {
+    return;
+  }
+  cv::Mat bu = mat;
+  cv::Mat tmp = cv::Mat::zeros(height, width, mat.type());
+  int dx = width / 2 - (rect.x + rect.width / 2);
+  int dy = height / 2 - (rect.y + rect.height / 2);
+  rect = cv::Rect(rect.x + dx, rect.y + dy, rect.width, rect.height);
+  for (int x = 0; x < rect.width; x++) {
+    for (int y = 0; y < rect.height; y++) {
+      tmp.at<cv::Vec3b>(x - dx, y - dy) = bu.at<cv::Vec3b>(x, y);
+    }
+  }
+  mat = tmp;
 }
 
 std::string PieceBook::toPng() const {
