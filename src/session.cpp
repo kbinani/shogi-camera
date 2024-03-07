@@ -189,8 +189,8 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       angles.push_back(angle * 180 / numbers::pi);
     }
     // 盤面の向きを推定する.
-    // 5 度単位でヒストグラムを作り, 最頻値を調べる. angle は [0, 90) に限定しているので index は [0, 17]
-    array<int, 18> count;
+    // 5 度単位でヒストグラムを作り, 最頻値を調べる. angle は [0, 90] に限定しているので index は [0, 18]
+    array<int, 19> count;
     count.fill(0);
     for (double const &angle : angles) {
       int index = angle / 5;
