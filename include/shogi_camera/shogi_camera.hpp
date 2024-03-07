@@ -774,9 +774,8 @@ struct PieceBook {
     void resize(int width, int height);
   };
   struct Entry {
-    std::deque<Image> black;
     // 先手向きで格納する.
-    std::deque<Image> white;
+    std::deque<Image> images;
     cv::Point2d sumApex;
     cv::Point2d sumPoint1;
     cv::Point2d sumPoint2;
@@ -785,7 +784,7 @@ struct PieceBook {
     static constexpr size_t kMaxLastImageCount = 16;
 
     void each(Color color, std::function<void(cv::Mat const &, std::optional<PieceShape>)> cb) const;
-    void push(cv::Mat const &mat, Color color, std::optional<PieceShape> shape);
+    void push(cv::Mat const &mat, std::optional<PieceShape> shape);
     void resize(int width, int height);
   };
 

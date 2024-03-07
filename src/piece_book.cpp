@@ -20,14 +20,8 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, std
   }
   int total = 0;
   int cut = 0;
-  total += black.size();
-  for (auto const &it : black) {
-    if (it.cut) {
-      cut++;
-    }
-  }
-  total += white.size();
-  for (auto const &it : white) {
+  total += images.size();
+  for (auto const &it : images) {
     if (it.cut) {
       cut++;
     }
@@ -35,24 +29,13 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, std
   bool onlyCut = cut >= (total - cut) && total > 2;
 
   if (color == Color::Black) {
-    for (auto const &entry : black) {
+    for (auto const &entry : images) {
       if (!onlyCut || entry.cut) {
         cb(entry.mat.clone(), shape);
-      }
-    }
-    for (auto const &entry : white) {
-      if (!onlyCut || entry.cut) {
-        cv::rotate(entry.mat, img, cv::ROTATE_180);
-        cb(img, shape);
       }
     }
   } else {
-    for (auto const &entry : white) {
-      if (!onlyCut || entry.cut) {
-        cb(entry.mat.clone(), shape);
-      }
-    }
-    for (auto const &entry : black) {
+    for (auto const &entry : images) {
       if (!onlyCut || entry.cut) {
         cv::rotate(entry.mat, img, cv::ROTATE_180);
         cb(img, shape);
@@ -61,58 +44,29 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, std
   }
 }
 
-void PieceBook::Entry::push(cv::Mat const &mat, Color color, std::optional<PieceShape> shape) {
+void PieceBook::Entry::push(cv::Mat const &mat, std::optional<PieceShape> shape) {
   if (shape) {
     sumCount++;
     sumApex += cv::Point2d(shape->apex);
     sumPoint1 += cv::Point2d(shape->point1);
     sumPoint2 += cv::Point2d(shape->point2);
   }
-  if (color == Color::Black) {
-    if (black.size() >= kMaxLastImageCount) {
-      if (!shape) {
-        return;
-      }
-      bool ok = false;
-      for (auto it = black.begin(); it != black.end(); it++) {
-        if (!it->cut) {
-          black.erase(it);
-          ok = true;
-          break;
-        }
-      }
-      if (!ok) {
-        black.pop_front();
+  if (images.size() >= kMaxLastImageCount) {
+    if (!shape) {
+      return;
+    }
+    for (auto it = images.begin(); it != images.end(); it++) {
+      if (!it->cut) {
+        images.erase(it);
+        break;
       }
     }
-    Image img;
-    img.mat = mat;
-    img.cut = shape != std::nullopt;
-    img.rect = cv::Rect(0, 0, mat.size().width, mat.size().height);
-    black.push_back(img);
-  } else {
-    Image tmp;
-    tmp.cut = shape != std::nullopt;
-    tmp.rect = cv::Rect(0, 0, mat.size().width, mat.size().height);
-    cv::rotate(mat, tmp.mat, cv::ROTATE_180);
-    if (white.size() >= kMaxLastImageCount) {
-      if (!shape) {
-        return;
-      }
-      bool ok = false;
-      for (auto it = white.begin(); it != white.end(); it++) {
-        if (!shape) {
-          white.erase(it);
-          ok = true;
-          break;
-        }
-      }
-      if (!ok) {
-        white.pop_front();
-      }
-    }
-    white.push_back(tmp);
   }
+  Image img;
+  img.cut = shape != std::nullopt;
+  img.rect = cv::Rect(0, 0, mat.size().width, mat.size().height);
+  img.mat = mat;
+  images.push_back(img);
 }
 
 void PieceBook::each(Color color, std::function<void(Piece, cv::Mat const &, std::optional<PieceShape> shape)> cb) const {
@@ -177,7 +131,7 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
         Img::Bitblt(masked, part, -bounds.x, -bounds.y);
         PieceUnderlyingType p = RemoveColorFromPiece(piece);
         Color color = ColorFromPiece(piece);
-        store[p].push(part.clone(), color, nearest->toShape());
+        store[p].push(part.clone(), nearest->toShape());
       } else {
         auto roi = Img::PieceROI(board, x, y);
         PieceUnderlyingType p = RemoveColorFromPiece(piece);
@@ -189,7 +143,7 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
         } else {
           Img::Bin(roi, tmp);
         }
-        store[p].push(tmp, color, nullopt);
+        store[p].push(tmp, nullopt);
       }
     }
   }
@@ -198,11 +152,7 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
   int width = 0;
   int height = 0;
   for (auto const &i : store) {
-    for (auto const &j : i.second.black) {
-      width = std::max(width, j.mat.size().width);
-      height = std::max(height, j.mat.size().height);
-    }
-    for (auto const &j : i.second.white) {
+    for (auto const &j : i.second.images) {
       width = std::max(width, j.mat.size().width);
       height = std::max(height, j.mat.size().height);
     }
@@ -215,10 +165,7 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
 }
 
 void PieceBook::Entry::resize(int width, int height) {
-  for (auto &i : black) {
-    i.resize(width, height);
-  }
-  for (auto &i : white) {
+  for (auto &i : images) {
     i.resize(width, height);
   }
 }
