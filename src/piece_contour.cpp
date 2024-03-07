@@ -95,12 +95,12 @@ PieceShape PieceContour::toShape() const {
   if (p23.x < 0) {
     p23.x = -p23.x;
   }
-  cv::Point2f mean = (p14 + cv::Point2f(-p14.x, p14.y) + p23 + cv::Point2f(-p23.x, p23.y)) / 5.0f;
+  cv::Point2f center(0, p23.y * 0.5f);
 
   PieceShape ps;
-  ps.apex = -mean;
-  ps.point1 = p14 - mean;
-  ps.point2 = p23 - mean;
+  ps.apex = -center;
+  ps.point1 = p14 - center;
+  ps.point2 = p23 - center;
 
   return ps;
 }

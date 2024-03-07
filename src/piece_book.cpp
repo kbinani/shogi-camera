@@ -135,7 +135,7 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
         if (!wPiece) {
           continue;
         }
-        cv::Point2f wpCenter = wPiece->mean();
+        cv::Point2f wpCenter = wPiece->center();
         if (!rect.contains(wpCenter)) {
           continue;
         }
@@ -146,14 +146,14 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
         }
       }
       if (nearest) {
-        cv::Point2f center = nearest->mean();
+        cv::Point2f center = nearest->center();
         double direction = atan2(nearest->direction.y, nearest->direction.x) * 180 / numbers::pi;
         cv::Mat rot = cv::getRotationMatrix2D(center, direction - 90 + 180, 1);
         cv::Mat rotated;
         cv::warpAffine(board, rotated, rot, board.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
         Img::Bin(rotated, rotated);
 
-        cv::Mat mask(board.size(), board.type(), cv::Scalar(0, 0, 0));
+        cv::Mat mask(board.size(), board.type(), cv::Scalar::all(0));
         vector<cv::Point> points;
         for (auto const &p : nearest->points) {
           cv::Point2f pp = WarpAffine(p, rot);

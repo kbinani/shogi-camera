@@ -306,7 +306,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
             // 処理済み
             continue;
           }
-          cv::Point2f c = p->mean();
+          cv::Point2f c = p->center();
           double distance = Distance(axis, c);
           if (!isfinite(distance)) {
             continue;
@@ -356,7 +356,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       centers.push_back(center);
     }
     for (auto const &piece : s.pieces) {
-      auto center = Rotate(piece->mean(), -s.boardDirection);
+      auto center = Rotate(piece->center(), -s.boardDirection);
       centers.push_back(center);
     }
     if (!centers.empty()) {
@@ -422,7 +422,7 @@ void FindPieces(cv::Mat const &frame, Status &s) {
           if (attached.find(key) != attached.end()) {
             continue;
           }
-          cv::Point2f m = s.pieces[i]->mean();
+          cv::Point2f m = s.pieces[i]->center();
           float distance = cv::norm(m - center);
           if (distance > squareSize * 0.5) {
             continue;

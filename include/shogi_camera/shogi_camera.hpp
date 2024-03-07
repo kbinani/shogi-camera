@@ -655,11 +655,11 @@ struct PieceContour;
 
 // 駒の形を決めるパラメータ
 struct PieceShape {
-  // 駒の頂点. PieceContour#mean() を原点とした時の PieceContour#points[0] と一致する
+  // 駒の頂点. PieceContour#center() を原点とした時の PieceContour#points[0] と一致する
   cv::Point2f apex;
-  // PieceContour#mean() を原点とした時の PieceContour#points[1] と一致する
+  // PieceContour#center() を原点とした時の PieceContour#points[1] と一致する
   cv::Point2f point1;
-  // PieceContour#mean() を原点とした時の PieceContour#points[2] と一致する
+  // PieceContour#center() を原点とした時の PieceContour#points[2] と一致する
   cv::Point2f point2;
 
   // PieceContour#mean と center が一致するような頂点の列を計算する.
@@ -674,14 +674,10 @@ struct PieceContour {
   // 底辺の長さ/(頂点と底辺の中点を結ぶ線分の長さ)
   double aspectRatio;
 
-  cv::Point2f mean() const {
-    double x = 0;
-    double y = 0;
-    for (auto const &p : points) {
-      x += p.x;
-      y += p.y;
-    }
-    return cv::Point2f(x / points.size(), y / points.size());
+  cv::Point2f center() const {
+    cv::Point2f mid = (points[2] + points[3]) * 0.5f;
+    cv::Point2f apex = points[0];
+    return (mid + apex) * 0.5f;
   }
 
   Contour toContour() const {
