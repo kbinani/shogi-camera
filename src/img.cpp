@@ -188,7 +188,9 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
         m.at<double>(1, 2) -= (cy - h / 2);
         cv::Mat rotated;
         cv::warpAffine(board, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+        cv::bitwise_and(rotated, mask, rotated);
         Bin(rotated, rotated);
+        cv::bitwise_and(rotated, mask, rotated);
 
         cv::Mat mSum = cv::Mat::zeros(h, w, CV_32F);
         cv::Mat mDiffU8;
@@ -206,7 +208,7 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
           maxDx = ix;
           maxDy = iy;
           maxDegrees = t;
-          cv::bitwise_and(rotated, mask, maxImg);
+          maxImg = rotated;
         }
       }
     }
