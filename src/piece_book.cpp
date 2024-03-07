@@ -20,13 +20,13 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, std
   int cut = 0;
   total += blackLast.size();
   for (auto const &it : blackLast) {
-    if (it.shape) {
+    if (it.cut) {
       cut++;
     }
   }
   total += whiteLast.size();
   for (auto const &it : whiteLast) {
-    if (it.shape) {
+    if (it.cut) {
       cut++;
     }
   }
@@ -34,24 +34,24 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, std
 
   if (color == Color::Black) {
     for (auto const &entry : blackLast) {
-      if (!onlyCut || entry.shape) {
+      if (!onlyCut || entry.cut) {
         cb(entry.mat.clone(), shape);
       }
     }
     for (auto const &entry : whiteLast) {
-      if (!onlyCut || entry.shape) {
+      if (!onlyCut || entry.cut) {
         cv::rotate(entry.mat, img, cv::ROTATE_180);
         cb(img, shape);
       }
     }
   } else {
     for (auto const &entry : whiteLast) {
-      if (!onlyCut || entry.shape) {
+      if (!onlyCut || entry.cut) {
         cb(entry.mat.clone(), shape);
       }
     }
     for (auto const &entry : blackLast) {
-      if (!onlyCut || entry.shape) {
+      if (!onlyCut || entry.cut) {
         cv::rotate(entry.mat, img, cv::ROTATE_180);
         cb(img, shape);
       }
@@ -59,21 +59,21 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, std
   }
 }
 
-void PieceBook::Entry::push(PieceBook::Image const &img, Color color) {
-  if (img.shape) {
+void PieceBook::Entry::push(cv::Mat const &mat, Color color, std::optional<PieceShape> shape) {
+  if (shape) {
     sumCount++;
-    sumApex += cv::Point2d(img.shape->apex);
-    sumPoint1 += cv::Point2d(img.shape->point1);
-    sumPoint2 += cv::Point2d(img.shape->point2);
+    sumApex += cv::Point2d(shape->apex);
+    sumPoint1 += cv::Point2d(shape->point1);
+    sumPoint2 += cv::Point2d(shape->point2);
   }
   if (color == Color::Black) {
     if (blackLast.size() >= kMaxLastImageCount) {
-      if (!img.shape) {
+      if (!shape) {
         return;
       }
       bool ok = false;
       for (auto it = blackLast.begin(); it != blackLast.end(); it++) {
-        if (!it->shape) {
+        if (!it->cut) {
           blackLast.erase(it);
           ok = true;
           break;
@@ -83,18 +83,21 @@ void PieceBook::Entry::push(PieceBook::Image const &img, Color color) {
         blackLast.pop_front();
       }
     }
+    Image img;
+    img.mat = mat;
+    img.cut = shape != std::nullopt;
     blackLast.push_back(img);
   } else {
-    PieceBook::Image tmp;
-    tmp.shape = img.shape;
-    cv::rotate(img.mat, tmp.mat, cv::ROTATE_180);
+    Image tmp;
+    tmp.cut = shape != std::nullopt;
+    cv::rotate(mat, tmp.mat, cv::ROTATE_180);
     if (whiteLast.size() >= kMaxLastImageCount) {
-      if (!img.shape) {
+      if (!shape) {
         return;
       }
       bool ok = false;
       for (auto it = whiteLast.begin(); it != whiteLast.end(); it++) {
-        if (!it->shape) {
+        if (!shape) {
           whiteLast.erase(it);
           ok = true;
           break;
@@ -170,23 +173,19 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
         Img::Bitblt(masked, part, -bounds.x, -bounds.y);
         PieceUnderlyingType p = RemoveColorFromPiece(piece);
         Color color = ColorFromPiece(piece);
-        PieceBook::Image tmp;
-        tmp.mat = part.clone();
-        tmp.shape = nearest->toShape();
-        store[p].push(tmp, color);
+        store[p].push(part.clone(), color, nearest->toShape());
       } else {
         auto roi = Img::PieceROI(board, x, y);
         PieceUnderlyingType p = RemoveColorFromPiece(piece);
         Color color = ColorFromPiece(piece);
-        PieceBook::Image tmp;
-        tmp.shape = nullopt;
+        cv::Mat tmp;
         if (color == Color::White) {
-          cv::rotate(roi, tmp.mat, cv::ROTATE_180);
+          cv::rotate(roi, tmp, cv::ROTATE_180);
+          Img::Bin(tmp, tmp);
         } else {
-          tmp.mat = roi.clone();
+          Img::Bin(roi, tmp);
         }
-        Img::Bin(tmp.mat, tmp.mat);
-        store[p].push(tmp, color);
+        store[p].push(tmp, color, nullopt);
       }
     }
   }

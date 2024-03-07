@@ -769,7 +769,7 @@ struct Status;
 struct PieceBook {
   struct Image {
     cv::Mat mat;
-    std::optional<PieceShape> shape;
+    bool cut = false;
   };
   struct Entry {
     std::deque<Image> blackLast;
@@ -783,7 +783,7 @@ struct PieceBook {
     static constexpr size_t kMaxLastImageCount = 16;
 
     void each(Color color, std::function<void(cv::Mat const &, std::optional<PieceShape>)> cb) const;
-    void push(Image const &img, Color color);
+    void push(cv::Mat const &mat, Color color, std::optional<PieceShape> shape);
   };
 
   std::map<PieceUnderlyingType, Entry> store;
