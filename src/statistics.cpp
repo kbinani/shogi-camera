@@ -50,9 +50,11 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   cv::Mat maxImgB;
   double maxSA = 0;
   double maxSB = 0;
+  Img::ComparePieceCache cacheB;
+  Img::ComparePieceCache cacheA;
   entry.each(mv.color, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
-    auto [sb, imgB] = Img::ComparePiece(boardBefore, mv.from->file, mv.from->rank, img, mv.color, shape, pool);
-    auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool);
+    auto [sb, imgB] = Img::ComparePiece(boardBefore, mv.from->file, mv.from->rank, img, mv.color, shape, pool, cacheB);
+    auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool, cacheA);
     simBefore.push_back(sb);
     simAfter.push_back(sa);
     if (sb > maxSB) {
@@ -395,6 +397,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
         std::optional<Piece> maxSimPiece;
         cv::Mat roi = Img::PieceROI(boardAfter, ch.x, ch.y);
         map<PieceType, double> maxSimStat;
+        Img::ComparePieceCache cache;
         book.each(color, [&](Piece piece, cv::Mat const &pi, optional<PieceShape> shape) {
           if (IsPromotedPiece(piece)) {
             // 成り駒は打てない.
@@ -405,7 +408,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             // 持ち駒に無い.
             return;
           }
-          auto [sim, _] = Img::ComparePiece(boardAfter, ch.x, ch.y, pi, color, shape, pool);
+          auto [sim, _] = Img::ComparePiece(boardAfter, ch.x, ch.y, pi, color, shape, pool, cache);
           if (maxSimStat[pt] < sim) {
             maxSimStat[pt] = sim;
           }

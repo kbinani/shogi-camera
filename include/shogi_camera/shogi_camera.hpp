@@ -980,13 +980,17 @@ public:
   static void Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9] = nullptr);
   // 2 つの画像を同じサイズになるよう変形する
   static std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b);
+  struct ComparePieceCache {
+    std::map<std::tuple<int, int, int>, cv::Mat> images;
+  };
   // 2 枚の画像を比較する. right を ±degrees 度, x と y 方向にそれぞれ ±width*translationRatio, ±height*translationRatio 移動して画像の一致度を計算し, 最大の一致度を返す.
   static std::pair<double, cv::Mat> ComparePiece(cv::Mat const &board,
                                                  int x, int y,
                                                  cv::Mat const &tmpl,
                                                  Color targetColor,
                                                  std::optional<PieceShape> shape,
-                                                 hwm::task_queue &pool);
+                                                 hwm::task_queue &pool,
+                                                 ComparePieceCache &cache);
   static double Similarity(cv::Mat const &before, cv::Mat const &after, int x, int y);
   static std::string EncodeToPng(cv::Mat const &image);
   static void Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y);

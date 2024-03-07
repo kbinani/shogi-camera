@@ -144,7 +144,8 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
                                              cv::Mat const &tmpl,
                                              Color targetColor,
                                              std::optional<PieceShape> shape,
-                                             hwm::task_queue &pool) {
+                                             hwm::task_queue &pool,
+                                             ComparePieceCache &cache) {
   using namespace std;
   constexpr int degrees = 10;
   constexpr float translationRatio = 0.2f;
@@ -174,23 +175,38 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
   } else {
     mask = cv::Mat(h, w, CV_8U, cv::Scalar::all(255));
   }
+  mutex mut;
 
   for (int t = -degrees; t <= degrees; t += 2) {
     deque<future<pair<float, cv::Mat>>> futures;
     for (int iy = -dy; iy <= dy; iy++) {
       for (int ix = -dx; ix <= dx; ix++) {
         futures.push_back(pool.enqueue(
-            [width, height, x, y, w, h, count, &board, &mask, &tmpl](int t, int ix, int iy) {
-              float cx = width / 9.0f * (x + 0.5f) + ix;
-              float cy = height / 9.0f * (y + 0.5f) + iy;
-              cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
-              m.at<double>(0, 2) -= (cx - w / 2);
-              m.at<double>(1, 2) -= (cy - h / 2);
+            [width, height, x, y, w, h, count, &board, &mask, &tmpl, &cache, &mut](int t, int ix, int iy) {
               cv::Mat rotated;
-              cv::warpAffine(board, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
-              cv::bitwise_and(rotated, mask, rotated);
-              Bin(rotated, rotated);
-              cv::bitwise_and(rotated, mask, rotated);
+              tuple<int, int, int> key(t, ix, iy);
+              {
+                lock_guard<mutex> lock(mut);
+                auto found = cache.images.find(key);
+                if (found != cache.images.end()) {
+                  rotated = found->second;
+                }
+              }
+
+              if (rotated.empty()) {
+                float cx = width / 9.0f * (x + 0.5f) + ix;
+                float cy = height / 9.0f * (y + 0.5f) + iy;
+                cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
+                m.at<double>(0, 2) -= (cx - w / 2);
+                m.at<double>(1, 2) -= (cy - h / 2);
+                cv::warpAffine(board, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+                cv::bitwise_and(rotated, mask, rotated);
+                Bin(rotated, rotated);
+                cv::bitwise_and(rotated, mask, rotated);
+
+                lock_guard<mutex> lock(mut);
+                cache.images[key] = rotated;
+              }
 
               cv::Mat mSum = cv::Mat::zeros(h, w, CV_32F);
               cv::Mat mDiffU8;
