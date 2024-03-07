@@ -25,7 +25,7 @@ bool IsIdentical(std::set<T, L> const &a, std::set<T, L> const &b) {
   return true;
 }
 
-void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter, PieceBook &book, std::optional<Move> hint, Status const &s) {
+void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter, PieceBook &book, std::optional<Move> hint, Status const &s, hwm::task_queue &pool) {
   using namespace std;
   if (!mv.from || IsPromotedPiece(mv.piece)) {
     return;
@@ -51,8 +51,8 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   double maxSA = 0;
   double maxSB = 0;
   entry.each(mv.color, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
-    auto [sb, imgB] = Img::ComparePiece(boardBefore, mv.from->file, mv.from->rank, img, mv.color, shape);
-    auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape);
+    auto [sb, imgB] = Img::ComparePiece(boardBefore, mv.from->file, mv.from->rank, img, mv.color, shape, pool);
+    auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool);
     simBefore.push_back(sb);
     simAfter.push_back(sa);
     if (sb > maxSB) {
@@ -119,7 +119,7 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
 
 } // namespace
 
-Statistics::Statistics() : book(std::make_shared<PieceBook>()) {
+Statistics::Statistics() : book(std::make_shared<PieceBook>()), pool(std::make_unique<hwm::task_queue>(3)) {
 }
 
 void Statistics::update(Status const &s) {
@@ -285,7 +285,17 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   if (detected.size() + 1 == g.moves.size()) {
     hint = g.moves.back();
   }
-  optional<Move> move = Detect(last.back().image, board, ch, g.position, detected, color, g.hand(color), *book, hint, s);
+  optional<Move> move = Detect(last.back().image,
+                               board,
+                               ch,
+                               g.position,
+                               detected,
+                               color,
+                               g.hand(color),
+                               *book,
+                               hint,
+                               s,
+                               *pool);
   if (!move) {
     return;
   }
@@ -361,7 +371,8 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
                                        std::deque<PieceType> const &hand,
                                        PieceBook &book,
                                        std::optional<Move> hint,
-                                       Status const &s) {
+                                       Status const &s,
+                                       hwm::task_queue &pool) {
   using namespace std;
   optional<Move> move;
   auto [before, after] = Img::Equalize(boardBefore, boardAfter);
@@ -394,7 +405,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             // 持ち駒に無い.
             return;
           }
-          auto [sim, _] = Img::ComparePiece(boardAfter, ch.x, ch.y, pi, color, shape);
+          auto [sim, _] = Img::ComparePiece(boardAfter, ch.x, ch.y, pi, color, shape, pool);
           if (maxSimStat[pt] < sim) {
             maxSimStat[pt] = sim;
           }
@@ -446,7 +457,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
         mv.captured = RemoveColorFromPiece(position.pieces[minSquare->file][minSquare->rank]);
         mv.piece = p;
         if (!moves.empty()) {
-          AppendPromotion(mv, before, after, book, hint, s);
+          AppendPromotion(mv, before, after, book, hint, s, pool);
         }
         move = mv;
       } else {
@@ -479,7 +490,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             mv.piece = p0;
             mv.captured = RemoveColorFromPiece(p1);
             if (!moves.empty()) {
-              AppendPromotion(mv, before, after, book, hint, s);
+              AppendPromotion(mv, before, after, book, hint, s, pool);
             }
             move = mv;
           } else {
@@ -495,7 +506,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             mv.piece = p1;
             mv.captured = RemoveColorFromPiece(p0);
             if (!moves.empty()) {
-              AppendPromotion(mv, before, after, book, hint, s);
+              AppendPromotion(mv, before, after, book, hint, s, pool);
             }
             move = mv;
           } else {
@@ -515,7 +526,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
           mv.to = to;
           mv.piece = p0;
           if (!moves.empty()) {
-            AppendPromotion(mv, before, after, book, hint, s);
+            AppendPromotion(mv, before, after, book, hint, s, pool);
           }
           move = mv;
         } else {
@@ -536,7 +547,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
           mv.to = to;
           mv.piece = p1;
           if (!moves.empty()) {
-            AppendPromotion(mv, before, after, book, hint, s);
+            AppendPromotion(mv, before, after, book, hint, s, pool);
           }
           move = mv;
         } else {

@@ -37,6 +37,7 @@ target_include_directories(shogi_camera PUBLIC
   include
   deps/sunfish3/src
   deps/base64/include
+  deps/hwm.task
   deps/opencv/opencv/build-ios/opencv2.xcframework/ios-arm64/opencv2.framework
 )
 target_include_directories(shogi_camera PRIVATE

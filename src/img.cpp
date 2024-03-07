@@ -143,7 +143,8 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
                                              int x, int y,
                                              cv::Mat const &tmpl,
                                              Color targetColor,
-                                             std::optional<PieceShape> shape) {
+                                             std::optional<PieceShape> shape,
+                                             hwm::task_queue &pool) {
   using namespace std;
   constexpr int degrees = 10;
   constexpr float translationRatio = 0.2f;
@@ -156,10 +157,6 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
   int dx = (int)round(w * translationRatio);
   int dy = (int)round(h * translationRatio);
   float maxSim = numeric_limits<float>::lowest();
-  float minSim = numeric_limits<float>::max();
-  int maxDegrees = 99;
-  int maxDx = 99;
-  int maxDy = 99;
   cv::Mat maxImg;
   cv::Mat mask;
   int count = w * h;
@@ -179,39 +176,46 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
   }
 
   for (int t = -degrees; t <= degrees; t += 2) {
+    deque<future<pair<float, cv::Mat>>> futures;
     for (int iy = -dy; iy <= dy; iy++) {
       for (int ix = -dx; ix <= dx; ix++) {
-        float cx = width / 9.0f * (x + 0.5f) + ix;
-        float cy = height / 9.0f * (y + 0.5f) + iy;
-        cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
-        m.at<double>(0, 2) -= (cx - w / 2);
-        m.at<double>(1, 2) -= (cy - h / 2);
-        cv::Mat rotated;
-        cv::warpAffine(board, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
-        cv::bitwise_and(rotated, mask, rotated);
-        Bin(rotated, rotated);
-        cv::bitwise_and(rotated, mask, rotated);
+        futures.push_back(pool.enqueue(
+            [width, height, x, y, w, h, count, &board, &mask, &tmpl](int t, int ix, int iy) {
+              float cx = width / 9.0f * (x + 0.5f) + ix;
+              float cy = height / 9.0f * (y + 0.5f) + iy;
+              cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
+              m.at<double>(0, 2) -= (cx - w / 2);
+              m.at<double>(1, 2) -= (cy - h / 2);
+              cv::Mat rotated;
+              cv::warpAffine(board, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+              cv::bitwise_and(rotated, mask, rotated);
+              Bin(rotated, rotated);
+              cv::bitwise_and(rotated, mask, rotated);
 
-        cv::Mat mSum = cv::Mat::zeros(h, w, CV_32F);
-        cv::Mat mDiffU8;
-        cv::absdiff(rotated, tmpl, mDiffU8);
-        cv::Mat mDiff;
-        mDiffU8.convertTo(mDiff, CV_32F);
-        cv::Mat mSq;
-        cv::multiply(mDiff, mDiff, mSq);
-        cv::add(mSq, mSum, mSum, mask);
+              cv::Mat mSum = cv::Mat::zeros(h, w, CV_32F);
+              cv::Mat mDiffU8;
+              cv::absdiff(rotated, tmpl, mDiffU8);
+              cv::Mat mDiff;
+              mDiffU8.convertTo(mDiff, CV_32F);
+              cv::Mat mSq;
+              cv::multiply(mDiff, mDiff, mSq);
+              cv::add(mSq, mSum, mSum, mask);
 
-        cv::Scalar sSum = cv::sum(mSum);
-        float sim = 1 - sSum[0] / (count * 255.0f * 2550.f);
-        if (maxSim < sim) {
-          maxSim = sim;
-          maxDx = ix;
-          maxDy = iy;
-          maxDegrees = t;
-          maxImg = rotated;
-        }
+              cv::Scalar sSum = cv::sum(mSum);
+              float sim = 1 - sSum[0] / (count * 255.0f * 2550.f);
+              return make_pair(sim, rotated);
+            },
+            t, ix, iy));
       }
     }
+    for (auto &f : futures) {
+      auto [sim, img] = f.get();
+      if (maxSim < sim) {
+        maxSim = sim;
+        maxImg = img;
+      }
+    }
+    futures.clear();
   }
   return make_pair(maxSim, maxImg);
 }

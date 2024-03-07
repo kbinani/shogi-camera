@@ -1,5 +1,6 @@
 #pragma once
 
+#include <hwm/task/task_queue.hpp>
 #include <opencv2/core.hpp>
 
 #include <deque>
@@ -914,13 +915,16 @@ struct Statistics {
                                     std::deque<PieceType> const &hand,
                                     PieceBook &book,
                                     std::optional<Move> hint,
-                                    Status const &s);
+                                    Status const &s,
+                                    hwm::task_queue &pool);
   std::shared_ptr<PieceBook> book;
   // stableBoardHistory をリセットする処理で, 最初の stableBoardHistory との差分がデカいフレームがいくつ連続したかを数えるカウンター.
   // これが閾値を超えたら stableBoardHistory をリセットする.
   int stableBoardInitialResetCounter = 0;
   // stableBoardHistory を ready 判定とする閾値
   int stableBoardInitialReadyCounter = 0;
+  std::unique_ptr<hwm::task_queue> pool;
+
   static int constexpr kStableBoardCounterThreshold = 10;
 };
 
@@ -982,7 +986,8 @@ public:
                                                  int x, int y,
                                                  cv::Mat const &tmpl,
                                                  Color targetColor,
-                                                 std::optional<PieceShape> shape);
+                                                 std::optional<PieceShape> shape,
+                                                 hwm::task_queue &pool);
   static double Similarity(cv::Mat const &before, cv::Mat const &after, int x, int y);
   static std::string EncodeToPng(cv::Mat const &image);
   static void Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y);
