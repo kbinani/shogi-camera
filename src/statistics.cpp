@@ -33,10 +33,11 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   if (!CanPromote(mv.piece)) {
     return;
   }
-  // TODO:debug
-  //  if (!IsPromotableMove(*mv.from, mv.to, mv.color)) {
-  //    return;
-  //  }
+#if !defined(SHOGI_CAMERA_DEBUG)
+  if (!IsPromotableMove(*mv.from, mv.to, mv.color)) {
+    return;
+  }
+#endif
   if (MustPromote(PieceTypeFromPiece(mv.piece), *mv.from, mv.to, mv.color)) {
     mv.piece = Promote(mv.piece);
     mv.promote = 1;
@@ -106,10 +107,11 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   cout << "b64png(promote_" << count << "_maxafter_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(maxImgA)) << endl;
 #endif
 
+#if defined(SHOGI_CAMERA_DEBUG)
   if (!IsPromotableMove(*mv.from, mv.to, mv.color)) {
-    // TODO:debug
     return;
   }
+#endif
 
   if (promote == 1) {
     mv.piece = Promote(mv.piece);
