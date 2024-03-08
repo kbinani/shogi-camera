@@ -44,55 +44,107 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
     return;
   }
 
-  auto const &entry = book.store[RemoveColorFromPiece(mv.piece)];
-  vector<float> simAfter;
-  vector<float> simBefore;
-  cv::Mat maxImgA;
-  cv::Mat maxImgB;
-  double maxSA = 0;
-  double maxSB = 0;
+  // 成る前の駒用の PieceBook::Entry を使って, 移動前後でそれぞれ駒画像との類似度を調べる.
+  float meanUnpromoteBefore;
+  float stddevUnpromoteBefore;
+  float meanUnpromoteAfter;
+  float stddevUnpromoteAfter;
+  cv::Mat maxImgUnpromoteAfter;
+  cv::Mat maxImgUnpromoteBefore;
   Img::ComparePieceCache cacheB;
   Img::ComparePieceCache cacheA;
-  entry.each(mv.color, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
-    auto [sb, imgB] = Img::ComparePiece(boardBefore, mv.from->file, mv.from->rank, img, mv.color, shape, pool, cacheB);
-    auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool, cacheA);
-    simBefore.push_back(sb);
-    simAfter.push_back(sa);
-    if (sb > maxSB) {
-      maxImgB = imgB;
-    }
-    if (sa > maxSA) {
-      maxImgA = imgA;
-    }
-  });
-  cv::Scalar meanBeforeScalar, stddevBeforeScalar;
-  cv::meanStdDev(cv::Mat(simBefore), meanBeforeScalar, stddevBeforeScalar);
-  cv::Scalar meanAfterScalar, stddevAfterScalar;
-  cv::meanStdDev(cv::Mat(simAfter), meanAfterScalar, stddevAfterScalar);
+  {
+    auto const &entry = book.store[RemoveColorFromPiece(mv.piece)];
+    vector<float> simUnpromoteAfter;
+    vector<float> simUnpromoteBefore;
+    double maxSimUnpromoteAfter = 0;
+    double maxSimUnpromoteBefore = 0;
+    entry.each(mv.color, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
+      auto [sb, imgB] = Img::ComparePiece(boardBefore, mv.from->file, mv.from->rank, img, mv.color, shape, pool, cacheB);
+      auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool, cacheA);
+      simUnpromoteBefore.push_back(sb);
+      simUnpromoteAfter.push_back(sa);
+      if (sb > maxSimUnpromoteBefore) {
+        maxImgUnpromoteBefore = imgB;
+      }
+      if (sa > maxSimUnpromoteAfter) {
+        maxImgUnpromoteAfter = imgA;
+      }
+    });
+    cv::Scalar meanBeforeScalar, stddevBeforeScalar;
+    cv::meanStdDev(cv::Mat(simUnpromoteBefore), meanBeforeScalar, stddevBeforeScalar);
+    cv::Scalar meanAfterScalar, stddevAfterScalar;
+    cv::meanStdDev(cv::Mat(simUnpromoteAfter), meanAfterScalar, stddevAfterScalar);
 
-  float meanBefore = meanBeforeScalar[0];
-  float stddevBefore = stddevBeforeScalar[0];
-  float meanAfter = meanAfterScalar[0];
-  float stddevAfter = stddevAfterScalar[0];
+    meanUnpromoteBefore = meanBeforeScalar[0];
+    stddevUnpromoteBefore = stddevBeforeScalar[0];
+    meanUnpromoteAfter = meanAfterScalar[0];
+    stddevUnpromoteAfter = stddevAfterScalar[0];
+  }
+
+  // 成り駒用の PieceBook::Entry を使って, 移動後の駒画像との類似度を調べる.
+  optional<float> meanPromoteAfter;
+  optional<float> stddevPromoteAfter;
+  if (auto const &entry = book.store[static_cast<PieceUnderlyingType>(Promote(RemoveColorFromPiece(mv.piece)))]; !entry.images.empty()) {
+    vector<float> simPromoteAfter;
+    double maxSimPromoteAfter = 0;
+    entry.each(mv.color, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
+      auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool, cacheA);
+      simPromoteAfter.push_back(sa);
+    });
+    cv::Scalar meanAfterScalar, stddevAfterScalar;
+    cv::meanStdDev(cv::Mat(simPromoteAfter), meanAfterScalar, stddevAfterScalar);
+    meanPromoteAfter = meanAfterScalar[0];
+    stddevPromoteAfter = stddevAfterScalar[0];
+  }
+
   // before の平均値の, after から見たときの偏差値
-  float tBeforeMean = 10 * (meanBefore - meanAfter) / stddevAfter + 50;
-  float tAfterMean = 10 * (meanAfter - meanBefore) / stddevBefore + 50;
-  cout << "tBefore=" << tBeforeMean << ", tAfter=" << tAfterMean << ", (tBefore - tAfter)=" << (tBeforeMean - tAfterMean) << endl;
+  // before と after で, book の駒画像との類似度の分布を調べる. before 対 book の分布が, after 対 book の分布とだいたい同じなら不成, 大きくずれていれば成りと判定する.
+  float tScoreBeforeUnpromote = 10 * (meanUnpromoteBefore - meanUnpromoteAfter) / stddevUnpromoteAfter + 50;
+  float tScoreAfterUnpromote = 10 * (meanUnpromoteAfter - meanUnpromoteBefore) / stddevUnpromoteBefore + 50;
 
   int promote = mv.promote;
 
-  // before と after で, book の駒画像との類似度の分布を調べる. before 対 book の分布が, after 対 book の分布とだいたい同じなら不成, 大きくずれていれば成りと判定する.
-  if (tBeforeMean - tAfterMean > 20) {
-    if (!hint || hint->promote == 1) {
-      promote = 1;
-    } else if (hint) {
-      cout << "hint と promote フラグが矛盾する: expected=" << hint->promote << "; actual=1" << endl;
+  if (meanPromoteAfter && stddevPromoteAfter) {
+    // 成り駒画像群と比較した時の類似度の平均値が, 不成駒画像群と比較したときの類似度の集合に居たと仮定した時の偏差値.
+    float tScoreAfterPromote = 10 * (*meanPromoteAfter - meanUnpromoteAfter) / stddevUnpromoteAfter + 50;
+    // mv が成りならばこの値は tScoreAfterUnpromote より大きく, 不成なら tScoreAfterUnpromote より小さくなるはず.
+
+    cout << "tScoreBeforeUnpromote=" << tScoreBeforeUnpromote << ", tScoreAfterUnpromote=" << tScoreAfterUnpromote << ", (tScoreBeforeUnpromote - tScoreAfterUnpromote)=" << (tScoreBeforeUnpromote - tScoreAfterUnpromote) << endl;
+    cout << "tScoreAfterPromote=" << tScoreAfterPromote << ", tScoreAfterUnpromote=" << tScoreAfterUnpromote << ", (tScoreAfterPromote - tScoreAfterUnpromote)=" << (tScoreAfterPromote - tScoreAfterUnpromote) << endl;
+
+    if (tScoreBeforeUnpromote - tScoreAfterUnpromote > 20 || tScoreAfterPromote - tScoreAfterUnpromote > 20) {
+      if (!hint || hint->promote == 1) {
+        promote = 1;
+      } else if (hint && promote != hint->promote) {
+        cout << "hint と promote フラグが矛盾する: expected=" << hint->promote << "; actual=1" << endl;
+        promote = hint->promote;
+      }
+    } else {
+      if (!hint || hint->promote == -1) {
+        promote = -1;
+      } else if (hint && promote != hint->promote) {
+        cout << "hint と promote フラグが矛盾する: expected=" << hint->promote << "; actual=-1" << endl;
+        promote = hint->promote;
+      }
     }
   } else {
-    if (!hint || hint->promote == -1) {
-      promote = -1;
-    } else if (hint) {
-      cout << "hint と promote フラグが矛盾する: expected=" << hint->promote << "; actual=-1" << endl;
+    cout << "tScoreBeforeUnpromote=" << tScoreBeforeUnpromote << ", tScoreAfterUnpromote=" << tScoreAfterUnpromote << ", (tScoreBeforeUnpromote - tScoreAfterUnpromote)=" << (tScoreBeforeUnpromote - tScoreAfterUnpromote) << endl;
+
+    if (tScoreBeforeUnpromote - tScoreAfterUnpromote > 20) {
+      if (!hint || hint->promote == 1) {
+        promote = 1;
+      } else if (hint && promote != hint->promote) {
+        cout << "hint と promote フラグが矛盾する: expected=" << hint->promote << "; actual=1" << endl;
+        promote = hint->promote;
+      }
+    } else {
+      if (!hint || hint->promote == -1) {
+        promote = -1;
+      } else if (hint && promote != hint->promote) {
+        cout << "hint と promote フラグが矛盾する: expected=" << hint->promote << "; actual=-1" << endl;
+        promote = hint->promote;
+      }
     }
   }
 #if 1
@@ -103,8 +155,8 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   cout << "b64png(promote_" << count << "_before_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(bp)) << endl;
   cout << "b64png(promote_" << count << "_after_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(ap)) << endl;
   cout << "b64png(promote_" << count << "_book_promote=" << promote << "):" << base64::to_base64(book.toPng()) << endl;
-  cout << "b64png(promote_" << count << "_maxbefore_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(maxImgB)) << endl;
-  cout << "b64png(promote_" << count << "_maxafter_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(maxImgA)) << endl;
+  cout << "b64png(promote_" << count << "_maxbefore_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(maxImgUnpromoteBefore)) << endl;
+  cout << "b64png(promote_" << count << "_maxafter_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(maxImgUnpromoteAfter)) << endl;
 #endif
 
 #if defined(SHOGI_CAMERA_DEBUG)
