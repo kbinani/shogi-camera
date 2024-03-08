@@ -781,11 +781,12 @@ struct PieceBook {
     cv::Point2d sumPoint2;
     uint64_t sumCount = 0;
 
-    static constexpr size_t kMaxLastImageCount = 16;
+    static constexpr size_t kMaxNumImages = 32;
 
     void each(Color color, std::function<void(cv::Mat const &, std::optional<PieceShape>)> cb) const;
     void push(cv::Mat const &mat, std::optional<PieceShape> shape);
     void resize(int width, int height);
+    void gc();
   };
 
   std::map<PieceUnderlyingType, Entry> store;

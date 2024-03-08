@@ -51,7 +51,7 @@ void PieceBook::Entry::push(cv::Mat const &mat, std::optional<PieceShape> shape)
     sumPoint1 += cv::Point2d(shape->point1);
     sumPoint2 += cv::Point2d(shape->point2);
   }
-  if (images.size() >= kMaxLastImageCount) {
+  if (images.size() >= kMaxNumImages) {
     if (!shape) {
       return;
     }
@@ -161,6 +161,80 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
     for (auto &i : store) {
       i.second.resize(width, height);
     }
+  }
+
+  for (auto &i : store) {
+    i.second.gc();
+  }
+}
+
+void PieceBook::Entry::gc() {
+  using namespace std;
+  if (images.size() <= kMaxNumImages) {
+    return;
+  }
+  for (int i = (int)images.size() - 1; i >= 0 && images.size() > kMaxNumImages; i--) {
+    if (!images[i].cut) {
+      images.erase(images.begin() + i);
+    }
+  }
+  if (images.size() <= kMaxNumImages) {
+    return;
+  }
+  vector<tuple<int, int, float>> sims;
+  for (int i = 0; i < (int)images.size() - 1; i++) {
+    cv::Mat im = images[i].mat;
+    for (int j = i + 1; j < (int)images.size(); j++) {
+      cv::Mat diffu8;
+      cv::absdiff(im, images[j].mat, diffu8);
+      cv::Mat diff;
+      diffu8.convertTo(diff, CV_32F);
+      cv::Scalar sum = cv::sum(diff);
+      float sim = 1 - sum[0] / (im.size().width * im.size().height * 255.0f);
+      sims.push_back(make_tuple(i, j, sim));
+    }
+  }
+  vector<pair<int, float>> tscores;
+  for (int k = 0; k < (int)images.size(); k++) {
+    vector<float> values;
+    float sum = 0;
+    int count = 0;
+    for (auto const &it : sims) {
+      auto [i, j, sim] = it;
+      if (i == k || j == k) {
+        sum += sim;
+        count++;
+      } else {
+        values.push_back(sim);
+      }
+    }
+    float m = sum / count;
+    // 自分(k)と他との類似度の平均値(m)が、自分以外の者同士の類似度からどの程度乖離しているかを調べる.
+    cv::Scalar mean;
+    cv::Scalar stddev;
+    cv::meanStdDev(cv::Mat(values), mean, stddev);
+    float t = 10 * (m - mean[0]) / stddev[0] + 50;
+    // 自分と, 他の駒との類似度が低い場合, t は小さくなるはず
+    tscores.push_back(make_pair(k, t));
+  }
+  sort(tscores.begin(), tscores.end(), [](auto const &a, auto const &b) {
+    return a.second < b.second;
+  });
+#if 0
+  cv::Mat all(images[0].mat.size().height, images[0].mat.size().width * images.size(), CV_8UC3, cv::Scalar::all(255));
+  for (int i = 0; i < tscores.size(); i++) {
+    int index = tscores[i].first;
+    Img::Bitblt(images[index].mat, all, i * images[0].mat.size().width, 0);
+  }
+  cout << "b64png(sorted):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
+#endif
+  vector<int> erasing;
+  for (int i = 0; i < tscores.size() && i < (int)images.size() - kMaxNumImages; i++) {
+    erasing.push_back(tscores[i].first);
+  }
+  sort(erasing.begin(), erasing.end(), [](int a, int b) { return a > b; });
+  for (auto i : erasing) {
+    images.erase(images.begin() + i);
   }
 }
 
