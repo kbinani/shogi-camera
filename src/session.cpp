@@ -245,17 +245,56 @@ void FindBoard(cv::Mat const &frame, Status &s) {
 #if 1
   {
     for (auto const &square : s.squares) {
-      auto l = make_shared<Lattice>();
-      l->content = make_shared<LatticeContent>(square);
-      s.lattices.push_back(l);
+      bool found = false;
+      cv::Point2f center = square->mean();
+      for (auto &lattice : s.lattices) {
+        if (lattice->content->index() == 0) {
+          if (cv::pointPolygonTest(get<0>(*lattice->content)->points, center, false) >= 0) {
+            lattice->center.insert(make_shared<LatticeContent>(square));
+            found = true;
+            break;
+          }
+        } else {
+          if (cv::pointPolygonTest(get<1>(*lattice->content)->points, center, false) >= 0) {
+            lattice->center.insert(make_shared<LatticeContent>(square));
+            found = true;
+            break;
+          }
+        }
+      }
+      if (!found) {
+        auto l = make_shared<Lattice>();
+        l->content = make_shared<LatticeContent>(square);
+        s.lattices.push_back(l);
+      }
     }
     for (auto const &piece : s.pieces) {
-      auto l = make_shared<Lattice>();
-      l->content = make_shared<LatticeContent>(piece);
-      s.lattices.push_back(l);
+      bool found = false;
+      cv::Point2f center = piece->center();
+      for (auto &lattice : s.lattices) {
+        if (lattice->content->index() == 0) {
+          if (cv::pointPolygonTest(get<0>(*lattice->content)->points, center, false) >= 0) {
+            lattice->center.insert(make_shared<LatticeContent>(piece));
+            found = true;
+            break;
+          }
+        } else {
+          if (cv::pointPolygonTest(get<1>(*lattice->content)->points, center, false) >= 0) {
+            lattice->center.insert(make_shared<LatticeContent>(piece));
+            found = true;
+            break;
+          }
+        }
+      }
+      if (!found) {
+        auto l = make_shared<Lattice>();
+        l->content = make_shared<LatticeContent>(piece);
+        s.lattices.push_back(l);
+      }
     }
+    cout << "total = " << (s.squares.size() + s.pieces.size()) << ", lattices.size() = " << s.lattices.size() << endl;
     // 同じ点と判定するための閾値. この距離より近ければ同じ点と見做す.
-    float distanceTh = sqrt(s.squareArea) * 0.1;
+    float distanceTh = sqrt(s.squareArea) * 0.3;
     float w = sqrt(s.squareArea * s.aspectRatio);
     float h = sqrt(s.squareArea / s.aspectRatio);
     for (auto const &lattice : s.lattices) {
@@ -268,6 +307,24 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         }
         if (IsAdj(*lattice->content, *other->content, w, h, distanceTh)) {
           lattice->adjacent.insert(other);
+          continue;
+        }
+        bool found = false;
+        for (auto const &c : lattice->center) {
+          if (IsAdj(*c, *other->content, w, h, distanceTh)) {
+            lattice->adjacent.insert(other);
+            found = true;
+            break;
+          }
+        }
+        if (found) {
+          continue;
+        }
+        for (auto const &c : other->center) {
+          if (IsAdj(*c, *lattice->content, w, h, distanceTh)) {
+            lattice->adjacent.insert(other);
+            break;
+          }
         }
       }
     }
@@ -400,8 +457,12 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       s.clusters.push_back(indexed);
     }
 #if 1
-    cv::Mat all(s.height * 2, s.width * 2, CV_8UC3, cv::Scalar::all(0));
+    static int cnt = 0;
+    cnt++;
+    int index = 0;
     for (auto const &cluster : s.clusters) {
+      index++;
+      cv::Mat all(s.height * 2, s.width * 2, CV_8UC3, cv::Scalar::all(0));
       for (auto const &it : cluster) {
         for (auto const &c : it.second) {
           if (c->content->index() == 0) {
@@ -429,11 +490,8 @@ void FindBoard(cv::Mat const &frame, Status &s) {
           break;
         }
       }
-      break;
+      cout << "b64png(sample_" << cnt << "_" << index << "):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
     }
-    static int cnt = 0;
-    cnt++;
-    cout << "b64png(sample_" << cnt << "):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
 #endif
   }
 #elif 1

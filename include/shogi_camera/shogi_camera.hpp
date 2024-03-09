@@ -728,6 +728,8 @@ inline cv::Point2f CenterFromLatticeContent(LatticeContent lc) {
 
 struct Lattice {
   std::shared_ptr<LatticeContent> content;
+  // content と位置が重なっている物.
+  std::set<std::shared_ptr<LatticeContent>> center;
   std::set<std::shared_ptr<Lattice>> adjacent;
 };
 
