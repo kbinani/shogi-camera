@@ -708,6 +708,21 @@ struct PieceContour {
   PieceShape toShape() const;
 };
 
+using LatticeContent = std::variant<std::shared_ptr<Contour>, std::shared_ptr<PieceContour>>;
+
+inline std::shared_ptr<Contour> ContourFromLatticeContent(LatticeContent lc) {
+  return std::get<0>(lc);
+}
+
+inline std::shared_ptr<PieceContour> PieceContourFromLatticeContent(LatticeContent lc) {
+  return std::get<1>(lc);
+}
+
+struct Lattice {
+  std::shared_ptr<LatticeContent> content;
+  std::set<std::shared_ptr<Lattice>> adjacent;
+};
+
 inline std::shared_ptr<PieceContour> PerspectiveTransform(std::shared_ptr<PieceContour> const &src, cv::Mat const &mtx, bool rotate180, int width, int height) {
   if (!src) {
     return nullptr;
@@ -870,6 +885,7 @@ struct Status {
   // AI の示した手と違う手が指されている時に true
   bool wrongMove = false;
   std::shared_ptr<PieceBook> book;
+  std::deque<std::shared_ptr<Lattice>> lattices;
 };
 
 // 盤面画像.

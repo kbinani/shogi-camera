@@ -30,6 +30,45 @@ class VideoOverlay: CALayer {
     }
   }
 
+  struct Point: Hashable {
+    let x: CGFloat
+    let y: CGFloat
+
+    init(_ p: CGPoint) {
+      self.x = p.x
+      self.y = p.y
+    }
+  }
+
+  private func Draw(ctx: CGContext, lattice: sci.Lattice, visited: inout Set<Point>) {
+    if lattice.content.pointee.index() == 0 {
+      let sq = sci.ContourFromLatticeContent(lattice.content.pointee)
+      let key = Point(sq.pointee.mean().cgPoint)
+      guard !visited.contains(key) else {
+        return
+      }
+      visited.insert(.init(sq.pointee.mean().cgPoint))
+      ctx.setFillColor(UIColor.red.cgColor)
+      ctx.addPath(sq.pointee.cgPath)
+      ctx.fillPath()
+    } else {
+      let p = sci.PieceContourFromLatticeContent(lattice.content.pointee)
+      let key = Point(p.pointee.center().cgPoint)
+      guard !visited.contains(key) else {
+        return
+      }
+      visited.insert(key)
+      ctx.setFillColor(UIColor.blue.cgColor)
+      ctx.addPath(p.pointee.cgPath)
+      ctx.fillPath()
+    }
+    lattice.adjacent.forEach { adj in
+      Draw(ctx: ctx, lattice: adj.pointee, visited: &visited)
+    }
+  }
+
+  private var index: Int? = 0
+
   override func draw(in ctx: CGContext) {
     guard enableDebug, let status else {
       return
@@ -61,44 +100,52 @@ class VideoOverlay: CALayer {
       ctx.strokePath()
     }
 
-    for y in 0..<9 {
-      for x in 0..<9 {
-        let p = status.detected[x][y]
-        if !p.__convertToBool() {
-          continue
-        }
-        let detected = p.pointee
-        if detected.points.size() == 4 {
-          let path = detected.cgPath
-          ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
-          ctx.addPath(path)
-          ctx.fillPath()
-
-          ctx.setStrokeColor(UIColor.red.cgColor)
-          ctx.addPath(path)
-          ctx.setLineWidth(3)
-          ctx.strokePath()
-        } else {
-          let path = detected.cgPath
-          ctx.setFillColor(UIColor.blue.withAlphaComponent(0.2).cgColor)
-          ctx.addPath(path)
-          ctx.fillPath()
-
-          ctx.setStrokeColor(UIColor.blue.cgColor)
-          ctx.addPath(path)
-          ctx.setLineWidth(3)
-          ctx.strokePath()
-
-          if let direction = detected.direction(Float(min(width, height) * 0.1)).value?.cgPoint {
-            let mean = detected.mean().cgPoint
-            ctx.move(to: mean)
-            ctx.addLine(to: .init(x: mean.x + direction.x, y: mean.y + direction.y))
-            ctx.setLineWidth(1)
-            ctx.strokePath()
-          }
-        }
-      }
+    if status.lattices.size() > 0 {
+      let index: Int = ((self.index ?? 0) + 1) % Int(status.lattices.size())
+      let lattice = status.lattices[index]
+      var visited = Set<Point>()
+      Draw(ctx: ctx, lattice: lattice.pointee, visited: &visited)
+      self.index = index
     }
+
+    //    for y in 0..<9 {
+    //      for x in 0..<9 {
+    //        let p = status.detected[x][y]
+    //        if !p.__convertToBool() {
+    //          continue
+    //        }
+    //        let detected = p.pointee
+    //        if detected.points.size() == 4 {
+    //          let path = detected.cgPath
+    //          ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
+    //          ctx.addPath(path)
+    //          ctx.fillPath()
+    //
+    //          ctx.setStrokeColor(UIColor.red.cgColor)
+    //          ctx.addPath(path)
+    //          ctx.setLineWidth(3)
+    //          ctx.strokePath()
+    //        } else {
+    //          let path = detected.cgPath
+    //          ctx.setFillColor(UIColor.blue.withAlphaComponent(0.2).cgColor)
+    //          ctx.addPath(path)
+    //          ctx.fillPath()
+    //
+    //          ctx.setStrokeColor(UIColor.blue.cgColor)
+    //          ctx.addPath(path)
+    //          ctx.setLineWidth(3)
+    //          ctx.strokePath()
+    //
+    //          if let direction = detected.direction(Float(min(width, height) * 0.1)).value?.cgPoint {
+    //            let mean = detected.mean().cgPoint
+    //            ctx.move(to: mean)
+    //            ctx.addLine(to: .init(x: mean.x + direction.x, y: mean.y + direction.y))
+    //            ctx.setLineWidth(1)
+    //            ctx.strokePath()
+    //          }
+    //        }
+    //      }
+    //    }
 
     // 盤面の向きを表示
     let cx = width * 0.5
