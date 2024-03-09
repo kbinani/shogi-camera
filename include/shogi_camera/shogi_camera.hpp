@@ -619,6 +619,22 @@ inline void WarpAffine(std::vector<cv::Point2f> &buffer, cv::Mat const &mtx) {
   }
 }
 
+struct RadianAverage {
+  void push(double radian) {
+    x += cos(radian);
+    y += sin(radian);
+    count++;
+  }
+
+  double get() const {
+    return atan2(y, x);
+  }
+
+  double x = 0;
+  double y = 0;
+  size_t count = 0;
+};
+
 struct Contour {
   std::vector<cv::Point2f> points;
   double area;

@@ -28,22 +28,6 @@ float Normalize90To90(float a) {
   return a;
 }
 
-struct RadianAverage {
-  void push(double radian) {
-    x += cos(radian);
-    y += sin(radian);
-    count++;
-  }
-
-  double get() const {
-    return atan2(y, x);
-  }
-
-  double x = 0;
-  double y = 0;
-  size_t count = 0;
-};
-
 float MeanAngle(std::initializer_list<float> values) {
   RadianAverage ra;
   for (float v : values) {
