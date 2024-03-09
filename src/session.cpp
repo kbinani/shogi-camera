@@ -454,7 +454,20 @@ void FindBoard(cv::Mat const &frame, Status &s) {
           }
         }
       }
-      s.clusters.push_back(indexed);
+      int minX = numeric_limits<int>::max();
+      int minY = numeric_limits<int>::max();
+      for (auto const &it : indexed) {
+        auto [x, y] = it.first;
+        minX = std::min(minX, x);
+        minY = std::min(minY, y);
+      }
+
+      map<pair<int, int>, set<shared_ptr<Lattice>>> reindexed;
+      for (auto const &it : indexed) {
+        auto [x, y] = it.first;
+        reindexed[make_pair(x - minX, y - minY)] = it.second;
+      }
+      s.clusters.push_back(reindexed);
     }
 #if 1
     static int cnt = 0;
