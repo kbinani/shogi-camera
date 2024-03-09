@@ -261,6 +261,41 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       }
     }
   }
+  {
+    // s.lattices から, 隣接しているもの同士を取り出してクラスター化する.
+    set<shared_ptr<Lattice>> lattices;
+    for (auto const &l : s.lattices) {
+      lattices.insert(l);
+    }
+    deque<set<shared_ptr<Lattice>>> clusters;
+    while (!lattices.empty()) {
+      set<shared_ptr<Lattice>> cluster;
+      shared_ptr<Lattice> first = *lattices.begin();
+      cluster.insert(first);
+      lattices.erase(first);
+      bool changed = true;
+      while (changed) {
+        changed = false;
+        for (auto const &l : cluster) {
+          for (auto const &adj : l->adjacent) {
+            if (cluster.find(adj) != cluster.end()) {
+              continue;
+            }
+            cluster.insert(adj);
+            if (auto found = lattices.find(adj); found != lattices.end()) {
+              lattices.erase(found);
+            }
+            changed = true;
+          }
+        }
+      }
+      clusters.push_back(cluster);
+    }
+    cout << "clusters.size()=" << clusters.size() << endl;
+    for (auto const &cluster : clusters) {
+      cout << "  " << cluster.size() << endl;
+    }
+  }
 #elif 1
   {
     RadianAverage av;
