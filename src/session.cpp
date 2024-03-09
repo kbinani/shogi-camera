@@ -119,9 +119,19 @@ std::optional<cv::Vec4f> FitLine(std::vector<cv::Point2f> const &points) {
   return line;
 }
 
-bool IsAdjSquareAndSquare(Contour const &a, Contour const &b, float th) {
+bool IsAdjSquareAndSquare(Contour const &a, Contour const &b, float width, float height, float th) {
   assert(a.points.size() == 4);
   assert(b.points.size() == 4);
+  float distance = cv::norm(a.mean() - b.mean());
+  float size = std::min(width, height);
+  if (distance > size * 1.5f) {
+    // 遠すぎる
+    return false;
+  }
+  if (distance < size * 0.5f) {
+    // 近すぎる
+    return false;
+  }
   for (int i = 0; i < 4; i++) {
     cv::Point2f p0 = a.points[i];
     cv::Point2f p1 = a.points[(i + 1) % 4];
@@ -180,7 +190,7 @@ bool IsAdj(LatticeContent const &a, LatticeContent const &b, float width, float 
     shared_ptr<Contour> sqA = get<0>(a);
     if (b.index() == 0) {
       shared_ptr<Contour> sqB = get<0>(b);
-      if (IsAdjSquareAndSquare(*sqA, *sqB, th)) {
+      if (IsAdjSquareAndSquare(*sqA, *sqB, width, height, th)) {
         return true;
       }
     } else {
