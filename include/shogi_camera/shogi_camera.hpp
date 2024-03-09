@@ -718,6 +718,14 @@ inline std::shared_ptr<PieceContour> PieceContourFromLatticeContent(LatticeConte
   return std::get<1>(lc);
 }
 
+inline cv::Point2f CenterFromLatticeContent(LatticeContent lc) {
+  if (lc.index() == 0) {
+    return std::get<0>(lc)->mean();
+  } else {
+    return std::get<1>(lc)->center();
+  }
+}
+
 struct Lattice {
   std::shared_ptr<LatticeContent> content;
   std::set<std::shared_ptr<Lattice>> adjacent;
@@ -886,6 +894,7 @@ struct Status {
   bool wrongMove = false;
   std::shared_ptr<PieceBook> book;
   std::deque<std::shared_ptr<Lattice>> lattices;
+  std::deque<std::map<std::pair<int, int>, std::set<std::shared_ptr<Lattice>>>> clusters;
 };
 
 // 盤面画像.

@@ -100,12 +100,41 @@ class VideoOverlay: CALayer {
       ctx.strokePath()
     }
 
-    if status.lattices.size() > 0 {
-      let index: Int = ((self.index ?? 0) + 1) % Int(status.lattices.size())
-      let lattice = status.lattices[index]
-      var visited = Set<Point>()
-      Draw(ctx: ctx, lattice: lattice.pointee, visited: &visited)
-      self.index = index
+    //    if status.lattices.size() > 0 {
+    //      let index: Int = ((self.index ?? 0) + 1) % Int(status.lattices.size())
+    //      let lattice = status.lattices[index]
+    //      var visited = Set<Point>()
+    //      Draw(ctx: ctx, lattice: lattice.pointee, visited: &visited)
+    //      self.index = index
+    //    }
+
+    status.clusters.first?.forEach { cluster in
+      let key = cluster.first
+      let x = key.first
+      let y = key.second
+      var first = true
+      cluster.second.forEach { lattice in
+        if lattice.pointee.content.pointee.index() == 0 {
+          let sq = sci.ContourFromLatticeContent(lattice.pointee.content.pointee)
+          ctx.addPath(sq.pointee.cgPath)
+          ctx.setStrokeColor(UIColor.red.cgColor)
+          ctx.strokePath()
+        } else {
+          let p = sci.PieceContourFromLatticeContent(lattice.pointee.content.pointee)
+          ctx.addPath(p.pointee.cgPath)
+          ctx.setStrokeColor(UIColor.blue.cgColor)
+          ctx.strokePath()
+        }
+        if first {
+          first = false
+          let center = sci.CenterFromLatticeContent(lattice.pointee.content.pointee)
+          let s = NSAttributedString(string: "(\(x), \(y))", attributes: [:])
+          let line = CTLineCreateWithAttributedString(s)
+          ctx.textMatrix = .identity
+          ctx.textPosition = center.cgPoint
+          CTLineDraw(line, ctx)
+        }
+      }
     }
 
     //    for y in 0..<9 {

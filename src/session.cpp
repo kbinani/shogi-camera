@@ -1,5 +1,6 @@
 #include <shogi_camera/shogi_camera.hpp>
 
+#include "base64.hpp"
 #include <opencv2/imgproc.hpp>
 
 #include <iostream>
@@ -244,7 +245,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       s.lattices.push_back(l);
     }
     // 同じ点と判定するための閾値. この距離より近ければ同じ点と見做す.
-    float distanceTh = sqrt(s.squareArea) * 0.3;
+    float distanceTh = sqrt(s.squareArea) * 0.1;
     float w = sqrt(s.squareArea * s.aspectRatio);
     float h = sqrt(s.squareArea / s.aspectRatio);
     for (auto const &lattice : s.lattices) {
@@ -291,10 +292,139 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       }
       clusters.push_back(cluster);
     }
+    sort(clusters.begin(), clusters.end(), [](auto const &a, auto const &b) {
+      return a.size() > b.size();
+    });
     cout << "clusters.size()=" << clusters.size() << endl;
     for (auto const &cluster : clusters) {
       cout << "  " << cluster.size() << endl;
     }
+
+    // クラスター内でx,yのインデックスを付ける.
+    for (auto const &cluster : clusters) {
+      map<pair<int, int>, set<shared_ptr<Lattice>>> indexed;
+      set<shared_ptr<Lattice>> done;
+
+      // 画面中央に一番近い物を方向の基準にする
+      cv::Point2f center(s.width * 0.5f, s.height * 0.5f);
+      float minDistance = numeric_limits<float>::max();
+      shared_ptr<Lattice> pivot;
+      optional<cv::Point2f> direction;
+      for (auto const &lattice : cluster) {
+        float distance = cv::norm(CenterFromLatticeContent(*lattice->content) - center);
+        if (distance >= minDistance) {
+          continue;
+        }
+        optional<cv::Point2f> dir;
+        if (lattice->content->index() == 0) {
+          shared_ptr<Contour> sq = get<0>(*lattice->content);
+          if (auto d = sq->direction(); d) {
+            dir = *d;
+          } else {
+            continue;
+          }
+        } else {
+          shared_ptr<PieceContour> piece = get<1>(*lattice->content);
+          dir = piece->direction;
+        }
+        minDistance = distance;
+        pivot = lattice;
+        direction = dir;
+      }
+      if (!direction || !pivot) {
+        continue;
+      }
+      double base = atan2(direction->y, direction->x);
+      // direction の方向を +y 方向, -90 度回した方向を +x 方向にする.
+      indexed[make_pair(0, 0)].insert(pivot);
+      done.insert(pivot);
+      bool changed = true;
+      while (changed) {
+        changed = false;
+        for (auto const &it : indexed) {
+          auto [x, y] = it.first;
+          map<pair<int, int>, set<shared_ptr<Lattice>>> update;
+          for (auto const &lattice : it.second) {
+            cv::Point2f p0 = CenterFromLatticeContent(*lattice->content);
+            for (auto const &adj : lattice->adjacent) {
+              if (done.find(adj) != done.end()) {
+                continue;
+              }
+              cv::Point2f p1 = CenterFromLatticeContent(*adj->content);
+              // lattice から見て, adj はどっち向き?
+              cv::Point2f dir = p1 - p0;
+              double angle = atan2(dir.y, dir.x);
+              double diff = angle - base;
+              while (diff < 0) {
+                diff += pi * 2;
+              }
+              int dx = 0;
+              int dy = 0;
+              if (diff < pi / 4 || pi * 7 / 4 <= diff) {
+                dx = 0;
+                dy = 1;
+              } else if (diff < pi * 3 / 4) {
+                dx = -1;
+                dy = 0;
+              } else if (diff < pi * 5 / 4) {
+                dx = 0;
+                dy = -1;
+              } else {
+                dx = 1;
+                dy = 0;
+              }
+              update[make_pair(x + dx, y + dy)].insert(adj);
+              done.insert(adj);
+            }
+          }
+          if (!update.empty()) {
+            changed = true;
+            for (auto const &j : update) {
+              for (auto const &k : j.second) {
+                indexed[j.first].insert(k);
+              }
+            }
+          }
+        }
+      }
+      s.clusters.push_back(indexed);
+    }
+#if 1
+    cv::Mat all(s.height * 2, s.width * 2, CV_8UC3, cv::Scalar::all(0));
+    for (auto const &cluster : s.clusters) {
+      for (auto const &it : cluster) {
+        for (auto const &c : it.second) {
+          if (c->content->index() == 0) {
+            auto sq = get<0>(*c->content);
+            vector<cv::Point> points;
+            for (auto p : sq->points) {
+              points.push_back(cv::Point(p.x * 2, p.y * 2));
+            }
+            cv::fillPoly(all, points, cv::Scalar(0, 0, 255));
+          } else {
+            auto piece = get<1>(*c->content);
+            vector<cv::Point> points;
+            for (auto p : piece->points) {
+              points.push_back(cv::Point(p.x * 2, p.y * 2));
+            }
+            cv::fillPoly(all, points, cv::Scalar(255, 0, 0));
+          }
+        }
+      }
+      for (auto const &it : cluster) {
+        auto [x, y] = it.first;
+        for (auto const &c : it.second) {
+          auto center = CenterFromLatticeContent(*c->content);
+          cv::putText(all, to_string(x) + "," + to_string(y), cv::Point(center.x * 2 - sqrt(s.squareArea) / 2, center.y * 2), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar::all(255));
+          break;
+        }
+      }
+      break;
+    }
+    static int cnt = 0;
+    cnt++;
+    cout << "b64png(sample_" << cnt << "):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
+#endif
   }
 #elif 1
   {
