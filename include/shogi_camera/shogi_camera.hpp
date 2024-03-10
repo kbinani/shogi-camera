@@ -861,13 +861,13 @@ struct Status {
   // 盤面の向き. 後手番の対局者の座る向き. 手番がまだ不明の場合, boardDirection 回転後に画像の原点に近い側に居る対局者を後手番として扱う.
   float boardDirection = 0;
   // 駒・升の中心に外接する矩形. 中心なので面積は駒面積の約 8x8 = 64 倍の範囲. 座標系は入力画像の座標系.
-  Contour outline;
+  //  Contour outline;
   // bx, by: "9一" の中心座標. 値は入力画像を -boardDirection 回転した座標系での値.
-  float bx;
-  float by;
+  //  float bx;
+  //  float by;
   // bwidth, bheight: [bx + bwidth, by + bheight] が "1九" の中心座標. 値は入力画像を -boardDirection 回転した座標系での値.
-  float bwidth;
-  float bheight;
+  //  float bwidth;
+  //  float bheight;
 
   std::vector<cv::Vec4f> vgrids;
   std::vector<cv::Vec4f> hgrids;
@@ -974,6 +974,12 @@ struct Statistics {
   // stableBoardHistory を ready 判定とする閾値
   int stableBoardInitialReadyCounter = 0;
   std::unique_ptr<hwm::task_queue> pool;
+
+  std::deque<cv::Point2f> outlineTL;
+  std::deque<cv::Point2f> outlineTR;
+  std::deque<cv::Point2f> outlineBR;
+  std::deque<cv::Point2f> outlineBL;
+  static int constexpr kOutlineMaxCount = 32;
 
   static int constexpr kStableBoardCounterThreshold = 10;
 };

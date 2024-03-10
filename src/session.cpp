@@ -244,7 +244,7 @@ bool IsAdj(LatticeContent const &a, LatticeContent const &b, float width, float 
   return false;
 }
 
-void FindBoard(cv::Mat const &frame, Status &s) {
+void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
   using namespace std;
   using namespace std::numbers;
   vector<shared_ptr<Contour>> squares;
@@ -326,7 +326,6 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         s.lattices.push_back(l);
       }
     }
-    cout << "total = " << (s.squares.size() + s.pieces.size()) << ", lattices.size() = " << s.lattices.size() << endl;
     float w = sqrt(s.squareArea * s.aspectRatio);
     float h = sqrt(s.squareArea / s.aspectRatio);
     for (auto const &lattice : s.lattices) {
@@ -498,6 +497,16 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       s.clusters.push_back(reindexed);
     }
   }
+  struct Line {
+    cv::Vec4f line;
+    int min;
+    cv::Point2f minCenter;
+    int max;
+    cv::Point2f maxCenter;
+    vector<cv::Point2f> points;
+  };
+  map<int, Line> vlines;
+  map<int, Line> hlines;
   if (s.clusters.size() > 1) {
     // s.clusters の 2 番目以降について, s.clusters[0] にマージできないか調べる.
     deque<map<pair<int, int>, set<shared_ptr<Lattice>>>> clusters = s.clusters;
@@ -534,16 +543,8 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         grids[i.first] = cv::Point2f(sumX / i.second.size(), sumY / i.second.size());
       }
       // 補間により, 四隅を除いて足りていない格子の中心座標を計算する.
-      struct Line {
-        cv::Vec4f line;
-        int min;
-        cv::Point2f minCenter;
-        int max;
-        cv::Point2f maxCenter;
-        vector<cv::Point2f> points;
-      };
       // 縦方向の既知の格子毎に, 直線をフィッティングする.
-      map<int, Line> vlines;
+      vlines.clear();
       for (int x = minX; x <= maxX; x++) {
         vector<cv::Point2f> points;
         optional<pair<int, cv::Point2f>> top;
@@ -596,7 +597,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         }
       }
       // 横方向の既知の格子毎に, 直線をフィッティングする.
-      map<int, Line> hlines;
+      hlines.clear();
       for (int y = minY; y <= maxY; y++) {
         vector<cv::Point2f> points;
         optional<pair<int, cv::Point2f>> left;
@@ -810,11 +811,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         s.clusters.push_back(cluster);
       }
     }
-    cout << "clusters.size()=" << clusters.size() << endl;
-    for (auto const &cluster : clusters) {
-      cout << "  " << cluster.size() << endl;
-    }
-#if 1
+#if 0
     static int cnt = 0;
     cnt++;
     int index = 0;
@@ -851,6 +848,124 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       cout << "b64png(sample_" << cnt << "_" << index << "):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
     }
 #endif
+  }
+  if (!s.clusters.empty()) {
+    auto const &largest = s.clusters[0];
+    int minX, maxX, minY, maxY;
+    minX = minY = numeric_limits<int>::max();
+    maxX = maxY = numeric_limits<int>::min();
+    for (auto const &i : largest) {
+      auto [x, y] = i.first;
+      minX = std::min(minX, x);
+      maxX = std::max(maxX, x);
+      minY = std::min(minY, y);
+      maxY = std::max(maxY, y);
+    }
+    if (maxX - minX == 8 && maxY - minY == 8) {
+      for (auto const &i : largest) {
+        auto [x, y] = i.first;
+        int file = x - minX;
+        int rank = y - minY;
+        std::shared_ptr<Contour> square;
+        std::shared_ptr<PieceContour> piece;
+        for (auto const &j : i.second) {
+          if (j->content->index() == 0) {
+            if (!square) {
+              square = get<0>(*j->content);
+            }
+          } else {
+            if (!piece) {
+              piece = get<1>(*j->content);
+              break;
+            }
+          }
+          if (piece) {
+            break;
+          }
+          for (auto const &k : j->center) {
+            if (k->index() == 0) {
+              if (!square) {
+                square = get<0>(*k);
+              }
+            } else {
+              if (!piece) {
+                piece = get<1>(*k);
+                break;
+              }
+            }
+          }
+          if (piece) {
+            break;
+          }
+        }
+        if (piece) {
+          s.detected[file][rank] = make_shared<Contour>(piece->toContour());
+        } else if (square) {
+          s.detected[file][rank] = square;
+        }
+      }
+      auto top = hlines.find(0);
+      auto bottom = hlines.find(8);
+      auto left = vlines.find(0);
+      auto right = vlines.find(8);
+      if (top != hlines.end() && bottom != hlines.end() && left != vlines.end() && right != vlines.end()) {
+        auto tl = Intersection(top->second.line, left->second.line);
+        auto tr = Intersection(top->second.line, right->second.line);
+        auto br = Intersection(bottom->second.line, right->second.line);
+        auto bl = Intersection(bottom->second.line, left->second.line);
+        if (tl && tr && br && bl) {
+          // tl, tr, br, bl は駒中心を元に計算しているので 8x8 の範囲しか無い. 半マス分増やす
+          cv::Point2f topLeft = (*tl) + (((*tl) - (*tr)) / 16) + (((*tl) - (*bl)) / 16);
+          cv::Point2f topRight = (*tr) + (((*tr) - (*tl)) / 16) + (((*tr) - (*br)) / 16);
+          cv::Point2f bottomRight = (*br) + (((*br) - (*bl)) / 16) + (((*br) - (*tr)) / 16);
+          cv::Point2f bottomLeft = (*bl) + (((*bl) - (*br)) / 16) + (((*bl) - (*tl)) / 16);
+
+          stat.outlineTL.push_back(topLeft);
+          stat.outlineTR.push_back(topRight);
+          stat.outlineBR.push_back(bottomRight);
+          stat.outlineBL.push_back(bottomLeft);
+          if (stat.outlineTL.size() > Statistics::kOutlineMaxCount) {
+            stat.outlineTL.pop_front();
+          }
+          if (stat.outlineTR.size() > Statistics::kOutlineMaxCount) {
+            stat.outlineTR.pop_front();
+          }
+          if (stat.outlineBR.size() > Statistics::kOutlineMaxCount) {
+            stat.outlineBR.pop_front();
+          }
+          if (stat.outlineBL.size() > Statistics::kOutlineMaxCount) {
+            stat.outlineBL.pop_front();
+          }
+        }
+      }
+    }
+  }
+  if (!stat.outlineTL.empty() && !stat.outlineTR.empty() && !stat.outlineBR.empty() && !stat.outlineBL.empty()) {
+    cv::Point2f sumTL(0, 0);
+    cv::Point2f sumTR(0, 0);
+    cv::Point2f sumBR(0, 0);
+    cv::Point2f sumBL(0, 0);
+    for (auto const &p : stat.outlineTL) {
+      sumTL += p;
+    }
+    sumTL = sumTL / float(stat.outlineTL.size());
+    for (auto const &p : stat.outlineTR) {
+      sumTR += p;
+    }
+    sumTR = sumTR / float(stat.outlineTR.size());
+    for (auto const &p : stat.outlineBR) {
+      sumBR += p;
+    }
+    sumBR = sumBR / float(stat.outlineBR.size());
+    for (auto const &p : stat.outlineBL) {
+      sumBL += p;
+    }
+    sumBL = sumBL / float(stat.outlineBL.size());
+
+    Contour preciseOutline;
+    preciseOutline.points = {sumTL, sumTR, sumBR, sumBL};
+    preciseOutline.area = fabs(cv::contourArea(preciseOutline.points));
+    s.preciseOutline = preciseOutline;
   }
 #elif 1
   {
@@ -1092,6 +1207,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
   }
 #endif
 
+#if 0
   {
     // squares と pieces を -1 * boardDirection 回転した状態で矩形を検出する.
     vector<cv::Point2d> centers;
@@ -1139,153 +1255,154 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       s.bheight = bottom.y - top.y;
     }
   }
+#endif
 }
 
 // [x, y] の升目の中心位置を返す.
 // [0, 0] が 9一, [8, 8] が 1九. 戻り値の座標は入力画像での座標系.
-cv::Point2f PieceCenter(Status const &s, int x, int y) {
-  float fx = s.bx + x * s.bwidth / 8;
-  float fy = s.by + y * s.bheight / 8;
-  return Rotate(cv::Point2f(fx, fy), s.boardDirection);
-}
+// cv::Point2f PieceCenter(Status const &s, int x, int y) {
+//  float fx = s.bx + x * s.bwidth / 8;
+//  float fy = s.by + y * s.bheight / 8;
+//  return Rotate(cv::Point2f(fx, fy), s.boardDirection);
+//}
 
-void FindPieces(cv::Mat const &frame, Status &s) {
-  using namespace std;
-  {
-    set<pair<bool, int>> attached; // first => s.square なら true, s.pieces なら false, second => s.squares または s.pieces のインデックス.
-    float const squareSize = sqrtf(s.squareArea);
-    for (int y = 0; y < 9; y++) {
-      for (int x = 0; x < 9; x++) {
-        cv::Point2f center = PieceCenter(s, x, y);
-        // center に最も中心が近い Contour を s.pieces か s.squares の中から探す.
-        // 距離は駒サイズのスケール sqrt(squareArea) / 2 より離れていると対象外にする.
-        optional<pair<bool, int>> index;
-        float nearest = numeric_limits<float>::max();
-        for (int i = 0; i < s.pieces.size(); i++) {
-          pair<bool, int> key = make_pair(false, i);
-          if (attached.find(key) != attached.end()) {
-            continue;
-          }
-          cv::Point2f m = s.pieces[i]->center();
-          float distance = cv::norm(m - center);
-          if (distance > squareSize * 0.5) {
-            continue;
-          }
-          if (distance < nearest) {
-            nearest = distance;
-            index = key;
-          }
-        }
-        if (!index) {
-          // 駒の方を優先で探す. 既に見つかっているならそちらを優先.
-          for (int i = 0; i < s.squares.size(); i++) {
-            pair<bool, int> key = make_pair(true, i);
-            if (attached.find(key) != attached.end()) {
-              continue;
-            }
-            cv::Point2f m = s.squares[i]->mean();
-            float distance = cv::norm(m - center);
-            if (distance > squareSize * 0.5) {
-              continue;
-            }
-            if (distance < nearest) {
-              nearest = distance;
-              index = key;
-            }
-          }
-        }
-        if (!index) {
-          continue;
-        }
-        attached.insert(*index);
-        if (index->first) {
-          s.detected[x][y] = s.squares[index->second];
-        } else {
-          s.detected[x][y] = make_shared<Contour>(s.pieces[index->second]->toContour());
-        }
-      }
-    }
-  }
-
-  {
-    // 検出した駒・升を元に, より正確な盤面の矩形を検出する.
-    // 先手から見て盤面の上辺
-    optional<cv::Vec4f> top;
-    {
-      vector<cv::Point2f> points;
-      for (int x = 0; x < 9; x++) {
-        if (s.detected[x][0]) {
-          points.push_back(s.detected[x][0]->mean());
-        }
-      }
-      if (points.size() > 1) {
-        cv::Vec4f v;
-        cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
-        top = v;
-      }
-    }
-    optional<cv::Vec4f> bottom;
-    {
-      vector<cv::Point2f> points;
-      for (int x = 0; x < 9; x++) {
-        if (s.detected[x][8]) {
-          points.push_back(s.detected[x][8]->mean());
-        }
-      }
-      if (points.size() > 1) {
-        cv::Vec4f v;
-        cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
-        bottom = v;
-      }
-    }
-    optional<cv::Vec4f> left;
-    {
-      vector<cv::Point2f> points;
-      for (int y = 0; y < 9; y++) {
-        if (s.detected[0][y]) {
-          points.push_back(s.detected[0][y]->mean());
-        }
-      }
-      if (points.size() > 1) {
-        cv::Vec4f v;
-        cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
-        left = v;
-      }
-    }
-    optional<cv::Vec4f> right;
-    {
-      vector<cv::Point2f> points;
-      for (int y = 0; y < 9; y++) {
-        if (s.detected[8][y]) {
-          points.push_back(s.detected[8][y]->mean());
-        }
-      }
-      if (points.size() > 1) {
-        cv::Vec4f v;
-        cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
-        right = v;
-      }
-    }
-    if (top && bottom && left && right) {
-      auto tl = Intersection(*top, *left);
-      auto tr = Intersection(*top, *right);
-      auto br = Intersection(*bottom, *right);
-      auto bl = Intersection(*bottom, *left);
-      if (tl && tr && br && bl) {
-        // tl, tr, br, bl は駒中心を元に計算しているので 8x8 の範囲しか無い. 半マス分増やす
-        cv::Point2d topLeft = (*tl) + (((*tl) - (*tr)) / 16) + (((*tl) - (*bl)) / 16);
-        cv::Point2d topRight = (*tr) + (((*tr) - (*tl)) / 16) + (((*tr) - (*br)) / 16);
-        cv::Point2d bottomRight = (*br) + (((*br) - (*bl)) / 16) + (((*br) - (*tr)) / 16);
-        cv::Point2d bottomLeft = (*bl) + (((*bl) - (*br)) / 16) + (((*bl) - (*tl)) / 16);
-
-        Contour preciseOutline;
-        preciseOutline.points = {topLeft, topRight, bottomRight, bottomLeft};
-        preciseOutline.area = fabs(cv::contourArea(preciseOutline.points));
-        s.preciseOutline = preciseOutline;
-      }
-    }
-  }
-}
+// void FindPieces(cv::Mat const &frame, Status &s) {
+//   using namespace std;
+//   {
+//     set<pair<bool, int>> attached; // first => s.square なら true, s.pieces なら false, second => s.squares または s.pieces のインデックス.
+//     float const squareSize = sqrtf(s.squareArea);
+//     for (int y = 0; y < 9; y++) {
+//       for (int x = 0; x < 9; x++) {
+//         cv::Point2f center = PieceCenter(s, x, y);
+//         // center に最も中心が近い Contour を s.pieces か s.squares の中から探す.
+//         // 距離は駒サイズのスケール sqrt(squareArea) / 2 より離れていると対象外にする.
+//         optional<pair<bool, int>> index;
+//         float nearest = numeric_limits<float>::max();
+//         for (int i = 0; i < s.pieces.size(); i++) {
+//           pair<bool, int> key = make_pair(false, i);
+//           if (attached.find(key) != attached.end()) {
+//             continue;
+//           }
+//           cv::Point2f m = s.pieces[i]->center();
+//           float distance = cv::norm(m - center);
+//           if (distance > squareSize * 0.5) {
+//             continue;
+//           }
+//           if (distance < nearest) {
+//             nearest = distance;
+//             index = key;
+//           }
+//         }
+//         if (!index) {
+//           // 駒の方を優先で探す. 既に見つかっているならそちらを優先.
+//           for (int i = 0; i < s.squares.size(); i++) {
+//             pair<bool, int> key = make_pair(true, i);
+//             if (attached.find(key) != attached.end()) {
+//               continue;
+//             }
+//             cv::Point2f m = s.squares[i]->mean();
+//             float distance = cv::norm(m - center);
+//             if (distance > squareSize * 0.5) {
+//               continue;
+//             }
+//             if (distance < nearest) {
+//               nearest = distance;
+//               index = key;
+//             }
+//           }
+//         }
+//         if (!index) {
+//           continue;
+//         }
+//         attached.insert(*index);
+//         if (index->first) {
+//           s.detected[x][y] = s.squares[index->second];
+//         } else {
+//           s.detected[x][y] = make_shared<Contour>(s.pieces[index->second]->toContour());
+//         }
+//       }
+//     }
+//   }
+//
+//   {
+//     // 検出した駒・升を元に, より正確な盤面の矩形を検出する.
+//     // 先手から見て盤面の上辺
+//     optional<cv::Vec4f> top;
+//     {
+//       vector<cv::Point2f> points;
+//       for (int x = 0; x < 9; x++) {
+//         if (s.detected[x][0]) {
+//           points.push_back(s.detected[x][0]->mean());
+//         }
+//       }
+//       if (points.size() > 1) {
+//         cv::Vec4f v;
+//         cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
+//         top = v;
+//       }
+//     }
+//     optional<cv::Vec4f> bottom;
+//     {
+//       vector<cv::Point2f> points;
+//       for (int x = 0; x < 9; x++) {
+//         if (s.detected[x][8]) {
+//           points.push_back(s.detected[x][8]->mean());
+//         }
+//       }
+//       if (points.size() > 1) {
+//         cv::Vec4f v;
+//         cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
+//         bottom = v;
+//       }
+//     }
+//     optional<cv::Vec4f> left;
+//     {
+//       vector<cv::Point2f> points;
+//       for (int y = 0; y < 9; y++) {
+//         if (s.detected[0][y]) {
+//           points.push_back(s.detected[0][y]->mean());
+//         }
+//       }
+//       if (points.size() > 1) {
+//         cv::Vec4f v;
+//         cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
+//         left = v;
+//       }
+//     }
+//     optional<cv::Vec4f> right;
+//     {
+//       vector<cv::Point2f> points;
+//       for (int y = 0; y < 9; y++) {
+//         if (s.detected[8][y]) {
+//           points.push_back(s.detected[8][y]->mean());
+//         }
+//       }
+//       if (points.size() > 1) {
+//         cv::Vec4f v;
+//         cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
+//         right = v;
+//       }
+//     }
+//     if (top && bottom && left && right) {
+//       auto tl = Intersection(*top, *left);
+//       auto tr = Intersection(*top, *right);
+//       auto br = Intersection(*bottom, *right);
+//       auto bl = Intersection(*bottom, *left);
+//       if (tl && tr && br && bl) {
+//         // tl, tr, br, bl は駒中心を元に計算しているので 8x8 の範囲しか無い. 半マス分増やす
+//         cv::Point2d topLeft = (*tl) + (((*tl) - (*tr)) / 16) + (((*tl) - (*bl)) / 16);
+//         cv::Point2d topRight = (*tr) + (((*tr) - (*tl)) / 16) + (((*tr) - (*br)) / 16);
+//         cv::Point2d bottomRight = (*br) + (((*br) - (*bl)) / 16) + (((*br) - (*tr)) / 16);
+//         cv::Point2d bottomLeft = (*bl) + (((*bl) - (*br)) / 16) + (((*bl) - (*tl)) / 16);
+//
+//         Contour preciseOutline;
+//         preciseOutline.points = {topLeft, topRight, bottomRight, bottomLeft};
+//         preciseOutline.area = fabs(cv::contourArea(preciseOutline.points));
+//         s.preciseOutline = preciseOutline;
+//       }
+//     }
+//   }
+// }
 
 void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) {
   using namespace std;
@@ -1363,8 +1480,8 @@ void Session::run() {
     s->width = frame.size().width;
     s->height = frame.size().height;
     Img::FindContours(frame, s->contours, s->squares, s->pieces);
-    FindBoard(frame, *s);
-    FindPieces(frame, *s);
+    FindBoard(frame, *s, stat);
+    //    FindPieces(frame, *s);
     stat.update(*s);
     s->book = stat.book;
     CreateWarpedBoard(frame, *s, stat);

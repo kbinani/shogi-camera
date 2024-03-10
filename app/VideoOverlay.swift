@@ -217,12 +217,6 @@ class VideoOverlay: CALayer {
       ctx.strokePath()
     }
 
-    let outlinePath = status.outline.cgPath
-    ctx.addPath(outlinePath)
-    ctx.setLineWidth(1)
-    ctx.setStrokeColor(UIColor.orange.cgColor)
-    ctx.strokePath()
-
     if let preciseOutlinePath = status.preciseOutline.value?.cgPath {
       ctx.addPath(preciseOutlinePath)
       ctx.setLineWidth(3)
