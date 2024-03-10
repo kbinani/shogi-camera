@@ -165,9 +165,15 @@ class GameView: UIView {
 
   private var status: sci.Status? {
     didSet {
-      self.boardLayer?.status = status
-      self.videoOverlay?.status = status
-      self.stableBoardLayer?.status = status
+      if self.boardLayer?.isHidden != true {
+        self.boardLayer?.status = status
+      }
+      if self.videoOverlay?.isHidden != true {
+        self.videoOverlay?.status = status
+      }
+      if self.stableBoardLayer?.isHidden != true {
+        self.stableBoardLayer?.status = status
+      }
       guard let status, status.boardReady else {
         return
       }
@@ -262,6 +268,9 @@ class GameView: UIView {
 
   private func updatePieceBook() {
     guard let status, let pieceBookView else {
+      return
+    }
+    guard !pieceBookView.isHidden else {
       return
     }
     let book = status.book
@@ -443,6 +452,7 @@ class GameView: UIView {
         boardLayer?.isHidden = false
         stableBoardLayer?.isHidden = true
         pieceBookView?.isHidden = true
+        boardLayer?.status = self.status
       case 1:
         boardLayer?.isHidden = true
         if let stableBoardLayer {
@@ -457,6 +467,7 @@ class GameView: UIView {
           self.stableBoardLayer = sbl
         }
         pieceBookView?.isHidden = true
+        stableBoardLayer?.status = status
       case 2:
         boardLayer?.isHidden = true
         stableBoardLayer?.isHidden = true
@@ -471,6 +482,7 @@ class GameView: UIView {
           addSubview(pbv)
           self.pieceBookView = pbv
         }
+        updatePieceBook()
       default:
         break
       }
