@@ -394,10 +394,6 @@ void FindBoard(cv::Mat const &frame, Status &s) {
     sort(clusters.begin(), clusters.end(), [](auto const &a, auto const &b) {
       return a.size() > b.size();
     });
-    cout << "clusters.size()=" << clusters.size() << endl;
-    for (auto const &cluster : clusters) {
-      cout << "  " << cluster.size() << endl;
-    }
 
     // クラスター内でx,yのインデックスを付ける.
     for (auto const &cluster : clusters) {
@@ -520,8 +516,8 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         maxY = std::max(maxY, y);
       }
       // largest の外側 dx, dy マス分補外する
-      int dx = std::max(9 - (maxX - minX + 1), 1);
-      int dy = std::max(9 - (maxY - minY + 1), 1);
+      int const dx = std::max(9 - (maxX - minX + 1), 1);
+      int const dy = std::max(9 - (maxY - minY + 1), 1);
 
       // cluster[k] との比較用に, 各格子の中心座標を計算する.
       map<pair<int, int>, cv::Point2f> grids;
@@ -652,46 +648,6 @@ void FindBoard(cv::Mat const &frame, Status &s) {
           hlines[y] = l;
         }
       }
-      //      // フィッティングした直線の傾きを平滑化する
-      //      static auto Equalize = [](map<int, Line> &lines) {
-      //        vector<cv::Point2f> tangents;
-      //        for (auto const& it : lines) {
-      //          float v = it.first;
-      //          float tangent = it.second.line[1] / it.second.line[0];
-      //          tangents.push_back(cv::Point2f(v, tangent));
-      //        }
-      //        auto fit = FitLine(tangents);
-      //        if (!fit) {
-      //          return;
-      //        }
-      //        map<int, Line> result;
-      //        for (auto const& it : lines) {
-      //          float v = it.first;
-      //          Line line = it.second;
-      //          auto tangent = YFromX(*fit, v);
-      //          if (!tangent) {
-      //            result[it.first] = line;
-      //            continue;
-      //          }
-      //          // line.line の傾きを tan(angle) に変更して, 切片を最小二乗法で最適化する.
-      //          float m = *tangent;
-      //          if (!(m == 0 || isnormal(m))) {
-      //            result[it.first] = line;
-      //            continue;
-      //          }
-      //          float sum = 0;
-      //          for (auto const& p : line.points) {
-      //            sum += p.y - m * p.x;
-      //          }
-      //          float b = sum / line.points.size();
-      //          Line cp = line;
-      //          cp.line = cv::Vec4f(1, *tangent, 0, b);
-      //          result[it.first] = cp;
-      //        }
-      //        result.swap(lines);
-      //      };
-      //      Equalize(vlines);
-      //      Equalize(hlines);
       // フィッティングした直線を元に, まず補完によって largest の内側の足りていない点を補う
       // 縦から
       for (int x = minX; x <= maxX; x++) {
@@ -736,13 +692,11 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         }
       }
 
-      // 補間した点を元に, 足りていない hlines, vlines を補う.
-
-#if 1
+#if 0
       static int cnt = 0;
       cnt++;
       int index = 0;
-      cv::Mat all(s.height * 2, s.width * 2, CV_8UC3, cv::Scalar::all(255));
+      cv::Mat img(s.height * 2, s.width * 2, CV_8UC3, cv::Scalar::all(255));
       for (auto const &it : largest) {
         for (auto const &c : it.second) {
           if (c->content->index() == 0) {
@@ -751,19 +705,19 @@ void FindBoard(cv::Mat const &frame, Status &s) {
             for (auto p : sq->points) {
               points.push_back(cv::Point(p.x * 2, p.y * 2));
             }
-            cv::polylines(all, points, true, cv::Scalar(0, 0, 255));
+            cv::polylines(img, points, true, cv::Scalar(0, 0, 255));
           } else {
             auto piece = get<1>(*c->content);
             vector<cv::Point> points;
             for (auto p : piece->points) {
               points.push_back(cv::Point(p.x * 2, p.y * 2));
             }
-            cv::polylines(all, points, true, cv::Scalar(255, 0, 0));
+            cv::polylines(img, points, true, cv::Scalar(255, 0, 0));
           }
         }
       }
       for (auto const &it : grids) {
-        cv::circle(all, cv::Point2f(it.second.x * 2, it.second.y * 2), 5, cv::Scalar(0, 0, 255));
+        cv::circle(img, cv::Point2f(it.second.x * 2, it.second.y * 2), distanceTh * 2 / 2, cv::Scalar(0, 0, 255));
       }
       for (auto const &it : vlines) {
         cv::Point2f center = it.second.minCenter;
@@ -774,7 +728,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         vector<cv::Point> points;
         points.push_back(from * 2);
         points.push_back(to * 2);
-        cv::polylines(all, points, false, cv::Scalar(255, 0, 0));
+        cv::polylines(img, points, false, cv::Scalar(255, 0, 0));
       }
       for (auto const &it : hlines) {
         cv::Point2f center = it.second.minCenter;
@@ -785,16 +739,82 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         vector<cv::Point> points;
         points.push_back(from * 2);
         points.push_back(to * 2);
-        cv::polylines(all, points, false, cv::Scalar(0, 255, 0));
+        cv::polylines(img, points, false, cv::Scalar(0, 255, 0));
       }
-      cout << "b64png(grids_" << cnt << "):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
+      cout << "b64png(grids_" << cnt << "):" << base64::to_base64(Img::EncodeToPng(img)) << endl;
 #endif
 
       // 以上の計算を largest に対して最初に 1 回だけ行っても良いかもしれないが, k = 2 以降でマージした結果を流用したいので毎回の k で計算する.
 
       auto const &cluster = clusters[k];
+
+      bool all;
+      optional<int> diffx;
+      optional<int> diffy;
+      bool rotate;
+      for (auto r : {false, true}) {
+        all = true;
+        for (auto const &i : cluster) {
+          auto [x, y] = i.first;
+          if (r) {
+            x = -x;
+            y = -y;
+          }
+          for (auto const &j : i.second) {
+            cv::Point2f center = j->meanCenter();
+            optional<pair<int, int>> found;
+            for (auto const &grid : grids) {
+              cv::Point2f center0 = grid.second;
+              if (cv::norm(center - center0) <= distanceTh) {
+                found = grid.first;
+                break;
+              }
+            }
+            if (!found) {
+              continue;
+            }
+            int tdx = x - found->first;
+            int tdy = y - found->second;
+            if (diffx && diffy) {
+              if (*diffx != tdx || *diffy != tdy) {
+                all = false;
+                break;
+              }
+            } else {
+              diffx = tdx;
+              diffy = tdy;
+            }
+          }
+          if (!all) {
+            break;
+          }
+        }
+        if (all && diffx && diffy) {
+          rotate = r;
+          break;
+        }
+      }
+      if (all && diffx && diffy) {
+        // cluster 内の lattice が全て largest 内の lattice のいずれかと中心が一致し, かつ, largest との grid の格子位置のズレが一定だった場合, cluster は largest にマージできる.
+        for (auto const &i : cluster) {
+          auto [x, y] = i.first;
+          if (rotate) {
+            x = -x;
+            y = -y;
+          }
+          for (auto const &j : i.second) {
+            largest[make_pair(x - *diffx, y - *diffy)].insert(j);
+          }
+        }
+      } else {
+        s.clusters.push_back(cluster);
+      }
     }
-#if 0
+    cout << "clusters.size()=" << clusters.size() << endl;
+    for (auto const &cluster : clusters) {
+      cout << "  " << cluster.size() << endl;
+    }
+#if 1
     static int cnt = 0;
     cnt++;
     int index = 0;
