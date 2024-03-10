@@ -119,7 +119,7 @@ std::optional<cv::Vec4f> FitLine(std::vector<cv::Point2f> const &points) {
   return line;
 }
 
-std::optional<cv::Point2f> FootOfPerpendicular(cv::Vec4f const &line, cv::Point2f const &point) {
+std::optional<cv::Point2f> PerpendicularFoot(cv::Vec4f const &line, cv::Point2f const &point) {
   // point を通り line に直行する直線
   cv::Vec4f perpendicular(line[1], line[0], point.x, point.y);
   return Intersection(line, perpendicular);
@@ -396,7 +396,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       shared_ptr<Lattice> pivot;
       optional<cv::Point2f> direction;
       for (auto const &lattice : cluster) {
-        float distance = cv::norm(CenterFromLatticeContent(*lattice->content) - center);
+        float distance = cv::norm(lattice->meanCenter() - center);
         if (distance >= minDistance) {
           continue;
         }
@@ -430,12 +430,12 @@ void FindBoard(cv::Mat const &frame, Status &s) {
           auto [x, y] = it.first;
           map<pair<int, int>, set<shared_ptr<Lattice>>> update;
           for (auto const &lattice : it.second) {
-            cv::Point2f p0 = CenterFromLatticeContent(*lattice->content);
+            cv::Point2f p0 = lattice->meanCenter();
             for (auto const &adj : lattice->adjacent) {
               if (done.find(adj) != done.end()) {
                 continue;
               }
-              cv::Point2f p1 = CenterFromLatticeContent(*adj->content);
+              cv::Point2f p1 = adj->meanCenter();
               // lattice から見て, adj はどっち向き?
               cv::Point2f dir = p1 - p0;
               double angle = atan2(dir.y, dir.x);
@@ -517,7 +517,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         float sumX = 0;
         float sumY = 0;
         for (auto const &j : i.second) {
-          cv::Point2f center = CenterFromLatticeContent(*j->content);
+          cv::Point2f center = j->meanCenter();
           sumX += center.x;
           sumY += center.y;
         }
@@ -530,6 +530,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         cv::Point2f minCenter;
         int max;
         cv::Point2f maxCenter;
+        vector<cv::Point2f> points;
       };
       // 縦方向の既知の格子毎に, 直線をフィッティングする.
       map<int, Line> vlines;
@@ -545,7 +546,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
           float sumX = 0;
           float sumY = 0;
           for (auto const &j : i.second) {
-            cv::Point2f center = CenterFromLatticeContent(*j->content);
+            cv::Point2f center = j->meanCenter();
             sumX += center.x;
             sumY += center.y;
           }
@@ -580,6 +581,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
           l.minCenter = top->second;
           l.max = bottom->first;
           l.maxCenter = bottom->second;
+          l.points.swap(points);
           vlines[x] = l;
         }
       }
@@ -597,7 +599,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
           float sumX = 0;
           float sumY = 0;
           for (auto const &j : i.second) {
-            cv::Point2f center = CenterFromLatticeContent(*j->content);
+            cv::Point2f center = j->meanCenter();
             sumX += center.x;
             sumY += center.y;
           }
@@ -632,6 +634,7 @@ void FindBoard(cv::Mat const &frame, Status &s) {
           l.minCenter = left->second;
           l.max = right->first;
           l.maxCenter = right->second;
+          l.points.swap(points);
           hlines[y] = l;
         }
       }
@@ -645,12 +648,12 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         Line line = found->second;
         cv::Point2f min = line.minCenter;
         // line.minCenter をそのまま使ってもいいけど, 可能なら line.minCenter から line.line に下ろした垂線の足を起点に用いる.
-        if (auto foot = FootOfPerpendicular(line.line, line.minCenter); foot) {
+        if (auto foot = PerpendicularFoot(line.line, line.minCenter); foot) {
           min = *foot;
         }
         cv::Point2f max = line.maxCenter;
         cv::Point2f unit = (max - min) / (line.max - line.min);
-        if (auto foot = FootOfPerpendicular(line.line, line.maxCenter); foot) {
+        if (auto foot = PerpendicularFoot(line.line, line.maxCenter); foot) {
           max = *foot;
         }
         for (int y = line.min; y <= line.max; y++) {
@@ -671,12 +674,12 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         Line line = found->second;
         cv::Point2f min = line.minCenter;
         // line.minCenter をそのまま使ってもいいけど, 可能なら line.minCenter から line.line に下ろした垂線の足を起点に用いる.
-        if (auto foot = FootOfPerpendicular(line.line, line.minCenter); foot) {
+        if (auto foot = PerpendicularFoot(line.line, line.minCenter); foot) {
           min = *foot;
         }
         cv::Point2f max = line.maxCenter;
         cv::Point2f unit = (max - min) / (line.max - line.min);
-        if (auto foot = FootOfPerpendicular(line.line, line.maxCenter); foot) {
+        if (auto foot = PerpendicularFoot(line.line, line.maxCenter); foot) {
           max = *foot;
         }
         for (int x = line.min; x <= line.max; x++) {

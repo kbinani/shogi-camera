@@ -731,6 +731,14 @@ struct Lattice {
   // content と位置が重なっている物.
   std::set<std::shared_ptr<LatticeContent>> center;
   std::set<std::shared_ptr<Lattice>> adjacent;
+
+  cv::Point2f meanCenter() const {
+    cv::Point2f sum = CenterFromLatticeContent(*content);
+    for (auto const &c : center) {
+      sum += CenterFromLatticeContent(*c);
+    }
+    return sum / float(center.size() + 1);
+  }
 };
 
 inline std::shared_ptr<PieceContour> PerspectiveTransform(std::shared_ptr<PieceContour> const &src, cv::Mat const &mtx, bool rotate180, int width, int height) {
