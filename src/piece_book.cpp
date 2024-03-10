@@ -255,7 +255,9 @@ void PieceBook::Image::resize(int width, int height) {
   rect = cv::Rect(rect.x + dx, rect.y + dy, rect.width, rect.height);
   for (int x = 0; x < rect.width; x++) {
     for (int y = 0; y < rect.height; y++) {
-      tmp.at<cv::Vec3b>(x - dx, y - dy) = bu.at<cv::Vec3b>(x, y);
+      if (0 <= x - dx && x - dx < width && 0 <= y - dy && y - dy < height) {
+        tmp.at<cv::Vec3b>(x - dx, y - dy) = bu.at<cv::Vec3b>(x, y);
+      }
     }
   }
   mat = tmp;
