@@ -119,6 +119,11 @@ std::optional<cv::Vec4f> FitLine(std::vector<cv::Point2f> const &points) {
   return line;
 }
 
+bool SimilarArea(double a, double b) {
+  double r = a / b;
+  return 0.6 <= r && r <= 1.4;
+}
+
 bool IsAdjSquareAndSquare(Contour const &a, Contour const &b, float width, float height, float th) {
   assert(a.points.size() == 4);
   assert(b.points.size() == 4);
@@ -130,6 +135,9 @@ bool IsAdjSquareAndSquare(Contour const &a, Contour const &b, float width, float
   }
   if (distance < size * 0.5f) {
     // 近すぎる
+    return false;
+  }
+  if (!SimilarArea(a.area, b.area)) {
     return false;
   }
   for (int i = 0; i < 4; i++) {
@@ -249,13 +257,15 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       cv::Point2f center = square->mean();
       for (auto &lattice : s.lattices) {
         if (lattice->content->index() == 0) {
-          if (cv::pointPolygonTest(get<0>(*lattice->content)->points, center, false) >= 0) {
+          auto sq = get<0>(*lattice->content);
+          if (cv::pointPolygonTest(sq->points, center, false) >= 0 && SimilarArea(square->area, sq->area)) {
             lattice->center.insert(make_shared<LatticeContent>(square));
             found = true;
             break;
           }
         } else {
-          if (cv::pointPolygonTest(get<1>(*lattice->content)->points, center, false) >= 0) {
+          auto pi = get<1>(*lattice->content);
+          if (cv::pointPolygonTest(pi->points, center, false) >= 0) {
             lattice->center.insert(make_shared<LatticeContent>(square));
             found = true;
             break;
@@ -273,13 +283,15 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       cv::Point2f center = piece->center();
       for (auto &lattice : s.lattices) {
         if (lattice->content->index() == 0) {
-          if (cv::pointPolygonTest(get<0>(*lattice->content)->points, center, false) >= 0) {
+          auto sq = get<0>(*lattice->content);
+          if (cv::pointPolygonTest(sq->points, center, false) >= 0) {
             lattice->center.insert(make_shared<LatticeContent>(piece));
             found = true;
             break;
           }
         } else {
-          if (cv::pointPolygonTest(get<1>(*lattice->content)->points, center, false) >= 0) {
+          auto pi = get<1>(*lattice->content);
+          if (cv::pointPolygonTest(pi->points, center, false) >= 0 && SimilarArea(piece->area, pi->area)) {
             lattice->center.insert(make_shared<LatticeContent>(piece));
             found = true;
             break;
