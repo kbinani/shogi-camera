@@ -119,6 +119,12 @@ std::optional<cv::Vec4f> FitLine(std::vector<cv::Point2f> const &points) {
   return line;
 }
 
+std::optional<cv::Point2f> FootOfPerpendicular(cv::Vec4f const &line, cv::Point2f const &point) {
+  // point を通り line に直行する直線
+  cv::Vec4f perpendicular(line[1], line[0], point.x, point.y);
+  return Intersection(line, perpendicular);
+}
+
 bool SimilarArea(double a, double b) {
   double r = a / b;
   return 0.6 <= r && r <= 1.4;
@@ -489,61 +495,259 @@ void FindBoard(cv::Mat const &frame, Status &s) {
     s.clusters.push_back(clusters[0]);
     auto &largest = s.clusters[0];
     for (int k = 1; k < clusters.size(); k++) {
-      auto const &cluster = clusters[k];
-      bool all = true;
-      optional<int> dx;
-      optional<int> dy;
-      for (auto const &i : cluster) {
+      int minX, maxX, minY, maxY;
+      minX = minY = numeric_limits<int>::max();
+      maxX = maxY = numeric_limits<int>::min();
+      for (auto const &i : largest) {
         auto [x, y] = i.first;
+        minX = std::min(minX, x);
+        maxX = std::max(maxX, x);
+        minY = std::min(minY, y);
+        maxY = std::max(maxY, y);
+      }
+      // largest の外側 dx, dy マス分補外する
+      int dx = std::max(9 - (maxX - minX + 1), 1);
+      int dy = std::max(9 - (maxY - minY + 1), 1);
+
+      // cluster[k] との比較用に, 各格子の中心座標を計算する.
+      map<pair<int, int>, cv::Point2f> grids;
+      // まずは既に content が存在している lattice の座標を埋める.
+      for (auto const &i : largest) {
+        auto [x, y] = i.first;
+        float sumX = 0;
+        float sumY = 0;
         for (auto const &j : i.second) {
           cv::Point2f center = CenterFromLatticeContent(*j->content);
-          optional<pair<int, int>> found;
-          for (auto const &t : largest) {
-            for (auto const &u : t.second) {
-              cv::Point2f c = CenterFromLatticeContent(*u->content);
-              if (cv::norm(c - center) <= distanceTh) {
-                found = t.first;
-                break;
-              }
-            }
-            if (found) {
-              break;
-            }
-          }
-          if (found) {
-            int tdx = x - found->first;
-            int tdy = y - found->second;
-            if (dx && dy) {
-              if (*dx != tdx || *dy != tdy) {
-                all = false;
-                break;
-              }
-            } else {
-              dx = tdx;
-              dy = tdy;
-            }
-          } else {
-            all = false;
-            break;
-          }
+          sumX += center.x;
+          sumY += center.y;
         }
-        if (!all) {
-          break;
-        }
+        grids[i.first] = cv::Point2f(sumX / i.second.size(), sumY / i.second.size());
       }
-      if (all && dx && dy) {
-        // cluster 内の lattice が全て largest 内の lattice のいずれかと中心が一致し, かつ, largest との grid の格子位置のズレが一定だった場合, cluster は largest にマージできる.
-        for (auto const &i : cluster) {
-          auto [x, y] = i.first;
+      // 補間により, 四隅を除いて足りていない格子の中心座標を計算する.
+      struct Line {
+        cv::Vec4f line;
+        int min;
+        cv::Point2f minCenter;
+        int max;
+        cv::Point2f maxCenter;
+      };
+      // 縦方向の既知の格子毎に, 直線をフィッティングする.
+      map<int, Line> vlines;
+      for (int x = minX; x <= maxX; x++) {
+        vector<cv::Point2f> points;
+        optional<pair<int, cv::Point2f>> top;
+        optional<pair<int, cv::Point2f>> bottom;
+        for (auto const &i : largest) {
+          auto [x0, y0] = i.first;
+          if (x0 != x) {
+            continue;
+          }
+          float sumX = 0;
+          float sumY = 0;
           for (auto const &j : i.second) {
-            largest[make_pair(x + *dx, y + *dy)].insert(j);
+            cv::Point2f center = CenterFromLatticeContent(*j->content);
+            sumX += center.x;
+            sumY += center.y;
+          }
+          cv::Point2f average(sumX / i.second.size(), sumY / i.second.size());
+          points.push_back(average);
+          if (!top || !bottom) {
+            top = make_pair(y0, average);
+            bottom = make_pair(y0, average);
+          } else {
+            if (top->first > y0) {
+              top = make_pair(y0, average);
+            }
+            if (bottom->first < y0) {
+              bottom = make_pair(y0, average);
+            }
           }
         }
-      } else {
-        s.clusters.push_back(cluster);
+        if (points.empty() || !top || !bottom) {
+          continue;
+        }
+        if (auto line = FitLine(points); line) {
+          Line l;
+          // line の方向ベクトルが top -> bottom の向きと逆になっていたら反転させる
+          double lineAngle = atan2((*line)[0], (*line)[1]);
+          double direction = Angle(bottom->second - top->second);
+          if (cos(lineAngle - direction) < 0) {
+            l.line = cv::Vec4f(-(*line)[0], -(*line)[1], (*line)[2], (*line)[3]);
+          } else {
+            l.line = *line;
+          }
+          l.min = top->first;
+          l.minCenter = top->second;
+          l.max = bottom->first;
+          l.maxCenter = bottom->second;
+          vlines[x] = l;
+        }
       }
-    }
+      // 横方向の既知の格子毎に, 直線をフィッティングする.
+      map<int, Line> hlines;
+      for (int y = minY; y <= maxY; y++) {
+        vector<cv::Point2f> points;
+        optional<pair<int, cv::Point2f>> left;
+        optional<pair<int, cv::Point2f>> right;
+        for (auto const &i : largest) {
+          auto [x0, y0] = i.first;
+          if (y0 != y) {
+            continue;
+          }
+          float sumX = 0;
+          float sumY = 0;
+          for (auto const &j : i.second) {
+            cv::Point2f center = CenterFromLatticeContent(*j->content);
+            sumX += center.x;
+            sumY += center.y;
+          }
+          cv::Point2f average(sumX / i.second.size(), sumY / i.second.size());
+          points.push_back(average);
+          if (!left || !right) {
+            left = make_pair(x0, average);
+            right = make_pair(x0, average);
+          } else {
+            if (left->first > x0) {
+              left = make_pair(x0, average);
+            }
+            if (right->first < x0) {
+              right = make_pair(x0, average);
+            }
+          }
+        }
+        if (points.empty() || !left || !right) {
+          continue;
+        }
+        if (auto line = FitLine(points); line) {
+          Line l;
+          // line の方向ベクトルが left -> right と逆向きになっていたら反転させる
+          double lineAngle = atan2((*line)[0], (*line)[1]);
+          double direction = Angle(right->second - left->second);
+          if (cos(lineAngle - direction) < 0) {
+            l.line = cv::Vec4f(-(*line)[0], -(*line)[1], (*line)[2], (*line)[3]);
+          } else {
+            l.line = *line;
+          }
+          l.min = left->first;
+          l.minCenter = left->second;
+          l.max = right->first;
+          l.maxCenter = right->second;
+          hlines[y] = l;
+        }
+      }
+      // フィッティングした直線を元に, まず補完によって largest の内側の足りていない点を補う
+      // 縦から
+      for (int x = minX; x <= maxX; x++) {
+        auto found = vlines.find(x);
+        if (found == vlines.end()) {
+          continue;
+        }
+        Line line = found->second;
+        cv::Point2f min = line.minCenter;
+        // line.minCenter をそのまま使ってもいいけど, 可能なら line.minCenter から line.line に下ろした垂線の足を起点に用いる.
+        if (auto foot = FootOfPerpendicular(line.line, line.minCenter); foot) {
+          min = *foot;
+        }
+        cv::Point2f max = line.maxCenter;
+        cv::Point2f unit = (max - min) / (line.max - line.min);
+        if (auto foot = FootOfPerpendicular(line.line, line.maxCenter); foot) {
+          max = *foot;
+        }
+        for (int y = line.min; y <= line.max; y++) {
+          if (grids.find(make_pair(x, y)) != grids.end()) {
+            // 補間の必要無い.
+            continue;
+          }
+          int dy = y - line.min;
+          grids[make_pair(x, y)] = min + unit * dy;
+        }
+      }
+      // 横も
+      for (int y = minY; y <= maxY; y++) {
+        auto found = hlines.find(y);
+        if (found == hlines.end()) {
+          continue;
+        }
+        Line line = found->second;
+        cv::Point2f min = line.minCenter;
+        // line.minCenter をそのまま使ってもいいけど, 可能なら line.minCenter から line.line に下ろした垂線の足を起点に用いる.
+        if (auto foot = FootOfPerpendicular(line.line, line.minCenter); foot) {
+          min = *foot;
+        }
+        cv::Point2f max = line.maxCenter;
+        cv::Point2f unit = (max - min) / (line.max - line.min);
+        if (auto foot = FootOfPerpendicular(line.line, line.maxCenter); foot) {
+          max = *foot;
+        }
+        for (int x = line.min; x <= line.max; x++) {
+          if (grids.find(make_pair(x, y)) != grids.end()) {
+            // 補間の必要無い.
+            continue;
+          }
+          int dy = y - line.min;
+          grids[make_pair(x, y)] = min + unit * dy;
+        }
+      }
+
+      // 補間した点を元に, 足りていない hlines, vlines を補う.
+
 #if 1
+      static int cnt = 0;
+      cnt++;
+      int index = 0;
+      cv::Mat all(s.height * 2, s.width * 2, CV_8UC3, cv::Scalar::all(255));
+      for (auto const &it : largest) {
+        for (auto const &c : it.second) {
+          if (c->content->index() == 0) {
+            auto sq = get<0>(*c->content);
+            vector<cv::Point> points;
+            for (auto p : sq->points) {
+              points.push_back(cv::Point(p.x * 2, p.y * 2));
+            }
+            cv::polylines(all, points, true, cv::Scalar(0, 0, 255));
+          } else {
+            auto piece = get<1>(*c->content);
+            vector<cv::Point> points;
+            for (auto p : piece->points) {
+              points.push_back(cv::Point(p.x * 2, p.y * 2));
+            }
+            cv::polylines(all, points, true, cv::Scalar(255, 0, 0));
+          }
+        }
+      }
+      for (auto const &it : grids) {
+        cv::circle(all, cv::Point2f(it.second.x * 2, it.second.y * 2), 5, cv::Scalar(0, 0, 255));
+      }
+      for (auto const &it : vlines) {
+        cv::Point2f center = it.second.minCenter;
+        cv::Point2f dir(it.second.line[0], it.second.line[1]);
+        dir = dir / cv::norm(dir);
+        cv::Point2f from = center + s.height * 2 * dir;
+        cv::Point2f to = center - s.height * 2 * dir;
+        vector<cv::Point> points;
+        points.push_back(from * 2);
+        points.push_back(to * 2);
+        cv::polylines(all, points, false, cv::Scalar(255, 0, 0));
+      }
+      for (auto const &it : hlines) {
+        cv::Point2f center = it.second.minCenter;
+        cv::Point2f dir(it.second.line[0], it.second.line[1]);
+        dir = dir / cv::norm(dir);
+        cv::Point2f from = center + s.width * 2 * dir;
+        cv::Point2f to = center - s.width * 2 * dir;
+        vector<cv::Point> points;
+        points.push_back(from * 2);
+        points.push_back(to * 2);
+        cv::polylines(all, points, false, cv::Scalar(0, 255, 0));
+      }
+      cout << "b64png(grids_" << cnt << "):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
+#endif
+
+      // 以上の計算を largest に対して最初に 1 回だけ行っても良いかもしれないが, k = 2 以降でマージした結果を流用したいので毎回の k で計算する.
+
+      auto const &cluster = clusters[k];
+    }
+#if 0
     static int cnt = 0;
     cnt++;
     int index = 0;
