@@ -125,6 +125,20 @@ std::optional<cv::Point2f> PerpendicularFoot(cv::Vec4f const &line, cv::Point2f 
   return Intersection(line, perpendicular);
 }
 
+std::optional<float> YFromX(cv::Vec4f const &line, float x) {
+  // p = b + t * a
+  cv::Point2f b(line[0], line[1]);
+  cv::Point2f a(line[2], line[3]);
+  // px = bx + t * ax
+  // t = (px - bx) / ax
+  float t = (x - b.x) / a.x;
+  if (t == 0 || std::isnormal(t)) {
+    return b.y + t * a.y;
+  } else {
+    return std::nullopt;
+  }
+}
+
 bool SimilarArea(double a, double b) {
   double r = a / b;
   return 0.6 <= r && r <= 1.4;
@@ -638,6 +652,46 @@ void FindBoard(cv::Mat const &frame, Status &s) {
           hlines[y] = l;
         }
       }
+      //      // フィッティングした直線の傾きを平滑化する
+      //      static auto Equalize = [](map<int, Line> &lines) {
+      //        vector<cv::Point2f> tangents;
+      //        for (auto const& it : lines) {
+      //          float v = it.first;
+      //          float tangent = it.second.line[1] / it.second.line[0];
+      //          tangents.push_back(cv::Point2f(v, tangent));
+      //        }
+      //        auto fit = FitLine(tangents);
+      //        if (!fit) {
+      //          return;
+      //        }
+      //        map<int, Line> result;
+      //        for (auto const& it : lines) {
+      //          float v = it.first;
+      //          Line line = it.second;
+      //          auto tangent = YFromX(*fit, v);
+      //          if (!tangent) {
+      //            result[it.first] = line;
+      //            continue;
+      //          }
+      //          // line.line の傾きを tan(angle) に変更して, 切片を最小二乗法で最適化する.
+      //          float m = *tangent;
+      //          if (!(m == 0 || isnormal(m))) {
+      //            result[it.first] = line;
+      //            continue;
+      //          }
+      //          float sum = 0;
+      //          for (auto const& p : line.points) {
+      //            sum += p.y - m * p.x;
+      //          }
+      //          float b = sum / line.points.size();
+      //          Line cp = line;
+      //          cp.line = cv::Vec4f(1, *tangent, 0, b);
+      //          result[it.first] = cp;
+      //        }
+      //        result.swap(lines);
+      //      };
+      //      Equalize(vlines);
+      //      Equalize(hlines);
       // フィッティングした直線を元に, まず補完によって largest の内側の足りていない点を補う
       // 縦から
       for (int x = minX; x <= maxX; x++) {
@@ -645,24 +699,19 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         if (found == vlines.end()) {
           continue;
         }
-        Line line = found->second;
-        cv::Point2f min = line.minCenter;
-        // line.minCenter をそのまま使ってもいいけど, 可能なら line.minCenter から line.line に下ろした垂線の足を起点に用いる.
-        if (auto foot = PerpendicularFoot(line.line, line.minCenter); foot) {
-          min = *foot;
-        }
-        cv::Point2f max = line.maxCenter;
-        cv::Point2f unit = (max - min) / (line.max - line.min);
-        if (auto foot = PerpendicularFoot(line.line, line.maxCenter); foot) {
-          max = *foot;
-        }
-        for (int y = line.min; y <= line.max; y++) {
+        Line vline = found->second;
+        for (int y = minY; y <= maxY; y++) {
           if (grids.find(make_pair(x, y)) != grids.end()) {
             // 補間の必要無い.
             continue;
           }
-          int dy = y - line.min;
-          grids[make_pair(x, y)] = min + unit * dy;
+          auto hline = hlines.find(y);
+          if (hline == hlines.end()) {
+            continue;
+          }
+          if (auto cross = Intersection(vline.line, hline->second.line); cross) {
+            grids[make_pair(x, y)] = *cross;
+          }
         }
       }
       // 横も
@@ -671,24 +720,19 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         if (found == hlines.end()) {
           continue;
         }
-        Line line = found->second;
-        cv::Point2f min = line.minCenter;
-        // line.minCenter をそのまま使ってもいいけど, 可能なら line.minCenter から line.line に下ろした垂線の足を起点に用いる.
-        if (auto foot = PerpendicularFoot(line.line, line.minCenter); foot) {
-          min = *foot;
-        }
-        cv::Point2f max = line.maxCenter;
-        cv::Point2f unit = (max - min) / (line.max - line.min);
-        if (auto foot = PerpendicularFoot(line.line, line.maxCenter); foot) {
-          max = *foot;
-        }
-        for (int x = line.min; x <= line.max; x++) {
+        Line hline = found->second;
+        for (int x = minX; x <= maxX; x++) {
           if (grids.find(make_pair(x, y)) != grids.end()) {
             // 補間の必要無い.
             continue;
           }
-          int dy = y - line.min;
-          grids[make_pair(x, y)] = min + unit * dy;
+          auto vline = vlines.find(x);
+          if (vline == vlines.end()) {
+            continue;
+          }
+          if (auto cross = Intersection(hline.line, vline->second.line); cross) {
+            grids[make_pair(x, y)] = *cross;
+          }
         }
       }
 
