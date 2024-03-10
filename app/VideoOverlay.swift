@@ -100,81 +100,44 @@ class VideoOverlay: CALayer {
       ctx.strokePath()
     }
 
-    //    if status.lattices.size() > 0 {
-    //      let index: Int = ((self.index ?? 0) + 1) % Int(status.lattices.size())
-    //      let lattice = status.lattices[index]
-    //      var visited = Set<Point>()
-    //      Draw(ctx: ctx, lattice: lattice.pointee, visited: &visited)
-    //      self.index = index
-    //    }
+    for y in 0..<9 {
+      for x in 0..<9 {
+        let p = status.detected[x][y]
+        if !p.__convertToBool() {
+          continue
+        }
+        let detected = p.pointee
+        if detected.points.size() == 4 {
+          let path = detected.cgPath
+          ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
+          ctx.addPath(path)
+          ctx.fillPath()
 
-    status.clusters.first?.forEach { cluster in
-      let key = cluster.first
-      let x = key.first
-      let y = key.second
-      var first = true
-      cluster.second.forEach { lattice in
-        if lattice.pointee.content.pointee.index() == 0 {
-          let sq = sci.ContourFromLatticeContent(lattice.pointee.content.pointee)
-          ctx.addPath(sq.pointee.cgPath)
           ctx.setStrokeColor(UIColor.red.cgColor)
+          ctx.addPath(path)
+          ctx.setLineWidth(3)
           ctx.strokePath()
         } else {
-          let p = sci.PieceContourFromLatticeContent(lattice.pointee.content.pointee)
-          ctx.addPath(p.pointee.cgPath)
+          let path = detected.cgPath
+          ctx.setFillColor(UIColor.blue.withAlphaComponent(0.2).cgColor)
+          ctx.addPath(path)
+          ctx.fillPath()
+
           ctx.setStrokeColor(UIColor.blue.cgColor)
+          ctx.addPath(path)
+          ctx.setLineWidth(3)
           ctx.strokePath()
-        }
-        if first {
-          first = false
-          let center = sci.CenterFromLatticeContent(lattice.pointee.content.pointee)
-          let s = NSAttributedString(string: "(\(x), \(y))", attributes: [:])
-          let line = CTLineCreateWithAttributedString(s)
-          ctx.textMatrix = .identity
-          ctx.textPosition = center.cgPoint
-          CTLineDraw(line, ctx)
+
+          if let direction = detected.direction(Float(min(width, height) * 0.1)).value?.cgPoint {
+            let mean = detected.mean().cgPoint
+            ctx.move(to: mean)
+            ctx.addLine(to: .init(x: mean.x + direction.x, y: mean.y + direction.y))
+            ctx.setLineWidth(1)
+            ctx.strokePath()
+          }
         }
       }
     }
-
-    //    for y in 0..<9 {
-    //      for x in 0..<9 {
-    //        let p = status.detected[x][y]
-    //        if !p.__convertToBool() {
-    //          continue
-    //        }
-    //        let detected = p.pointee
-    //        if detected.points.size() == 4 {
-    //          let path = detected.cgPath
-    //          ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
-    //          ctx.addPath(path)
-    //          ctx.fillPath()
-    //
-    //          ctx.setStrokeColor(UIColor.red.cgColor)
-    //          ctx.addPath(path)
-    //          ctx.setLineWidth(3)
-    //          ctx.strokePath()
-    //        } else {
-    //          let path = detected.cgPath
-    //          ctx.setFillColor(UIColor.blue.withAlphaComponent(0.2).cgColor)
-    //          ctx.addPath(path)
-    //          ctx.fillPath()
-    //
-    //          ctx.setStrokeColor(UIColor.blue.cgColor)
-    //          ctx.addPath(path)
-    //          ctx.setLineWidth(3)
-    //          ctx.strokePath()
-    //
-    //          if let direction = detected.direction(Float(min(width, height) * 0.1)).value?.cgPoint {
-    //            let mean = detected.mean().cgPoint
-    //            ctx.move(to: mean)
-    //            ctx.addLine(to: .init(x: mean.x + direction.x, y: mean.y + direction.y))
-    //            ctx.setLineWidth(1)
-    //            ctx.strokePath()
-    //          }
-    //        }
-    //      }
-    //    }
 
     // 盤面の向きを表示
     let cx = width * 0.5
@@ -187,35 +150,6 @@ class VideoOverlay: CALayer {
     ctx.setLineWidth(3)
     ctx.setStrokeColor(UIColor.white.cgColor)
     ctx.strokePath()
-
-    status.hgrids.forEach { grid in
-      let vx = CGFloat(grid[0])
-      let vy = CGFloat(grid[1])
-      let x = CGFloat(grid[2])
-      let y = CGFloat(grid[3])
-      let scale = width * 2 / sqrt(vx * vx + vy * vy)
-      let a = CGPoint(x: x - vx * scale, y: y - vy * scale)
-      let b = CGPoint(x: x + vx * scale, y: y + vy * scale)
-      ctx.move(to: a)
-      ctx.addLine(to: b)
-      ctx.setLineWidth(1)
-      ctx.setStrokeColor(UIColor.white.cgColor)
-      ctx.strokePath()
-    }
-    status.vgrids.forEach { grid in
-      let vx = CGFloat(grid[0])
-      let vy = CGFloat(grid[1])
-      let x = CGFloat(grid[2])
-      let y = CGFloat(grid[3])
-      let scale = width * 2 / sqrt(vx * vx + vy * vy)
-      let a = CGPoint(x: x - vx * scale, y: y - vy * scale)
-      let b = CGPoint(x: x + vx * scale, y: y + vy * scale)
-      ctx.move(to: a)
-      ctx.addLine(to: b)
-      ctx.setLineWidth(1)
-      ctx.setStrokeColor(UIColor.black.cgColor)
-      ctx.strokePath()
-    }
 
     if let preciseOutlinePath = status.preciseOutline.value?.cgPath {
       ctx.addPath(preciseOutlinePath)

@@ -860,17 +860,7 @@ struct Status {
   float aspectRatio;
   // 盤面の向き. 後手番の対局者の座る向き. 手番がまだ不明の場合, boardDirection 回転後に画像の原点に近い側に居る対局者を後手番として扱う.
   float boardDirection = 0;
-  // 駒・升の中心に外接する矩形. 中心なので面積は駒面積の約 8x8 = 64 倍の範囲. 座標系は入力画像の座標系.
-  //  Contour outline;
-  // bx, by: "9一" の中心座標. 値は入力画像を -boardDirection 回転した座標系での値.
-  //  float bx;
-  //  float by;
-  // bwidth, bheight: [bx + bwidth, by + bheight] が "1九" の中心座標. 値は入力画像を -boardDirection 回転した座標系での値.
-  //  float bwidth;
-  //  float bheight;
 
-  std::vector<cv::Vec4f> vgrids;
-  std::vector<cv::Vec4f> hgrids;
   // 検出された駒、または升目. squares または pieces の中から最も近かったものが代入される. 検出できなかった場合 nullopt になる.
   std::array<std::array<std::shared_ptr<Contour>, 9>, 9> detected;
 
@@ -903,7 +893,6 @@ struct Status {
   // AI の示した手と違う手が指されている時に true
   bool wrongMove = false;
   std::shared_ptr<PieceBook> book;
-  std::deque<std::shared_ptr<Lattice>> lattices;
   std::deque<std::map<std::pair<int, int>, std::set<std::shared_ptr<Lattice>>>> clusters;
 };
 

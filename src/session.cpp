@@ -270,14 +270,14 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
     s.aspectRatio = squares[mid]->aspectRatio();
   }
 
-#if 1
+  set<shared_ptr<Lattice>> lattices;
   // 同じ点と判定するための閾値. この距離より近ければ同じ点と見做す.
   float const distanceTh = sqrt(s.squareArea) * 0.3;
   {
     for (auto const &square : s.squares) {
       bool found = false;
       cv::Point2f center = square->mean();
-      for (auto &lattice : s.lattices) {
+      for (auto &lattice : lattices) {
         if (lattice->content->index() == 0) {
           auto sq = get<0>(*lattice->content);
           if (cv::pointPolygonTest(sq->points, center, false) >= 0 && SimilarArea(square->area, sq->area)) {
@@ -297,13 +297,13 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
       if (!found) {
         auto l = make_shared<Lattice>();
         l->content = make_shared<LatticeContent>(square);
-        s.lattices.push_back(l);
+        lattices.insert(l);
       }
     }
     for (auto const &piece : s.pieces) {
       bool found = false;
       cv::Point2f center = piece->center();
-      for (auto &lattice : s.lattices) {
+      for (auto &lattice : lattices) {
         if (lattice->content->index() == 0) {
           auto sq = get<0>(*lattice->content);
           if (cv::pointPolygonTest(sq->points, center, false) >= 0) {
@@ -323,13 +323,13 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
       if (!found) {
         auto l = make_shared<Lattice>();
         l->content = make_shared<LatticeContent>(piece);
-        s.lattices.push_back(l);
+        lattices.insert(l);
       }
     }
     float w = sqrt(s.squareArea * s.aspectRatio);
     float h = sqrt(s.squareArea / s.aspectRatio);
-    for (auto const &lattice : s.lattices) {
-      for (auto const &other : s.lattices) {
+    for (auto const &lattice : lattices) {
+      for (auto const &other : lattices) {
         if (lattice == other) {
           continue;
         }
@@ -362,10 +362,6 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
   }
   {
     // s.lattices から, 隣接しているもの同士を取り出してクラスター化する.
-    set<shared_ptr<Lattice>> lattices;
-    for (auto const &l : s.lattices) {
-      lattices.insert(l);
-    }
     deque<set<shared_ptr<Lattice>>> clusters;
     while (!lattices.empty()) {
       set<shared_ptr<Lattice>> cluster;
@@ -971,442 +967,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
     cv::Point2f midTop = (topRight + topLeft) * 0.5f;
     s.boardDirection = Angle(midBottom - midTop);
   }
-#elif 1
-  {
-    RadianAverage av;
-    double sumCos = 0;
-    int count = 0;
-    vector<float> all;
-    double sum = 0;
-    //    for (auto const &square : s.squares) {
-    //      if (auto direction = square->direction(); direction) {
-    //        double angle = Normalize90To90(Angle(*direction));
-    //        sumCos += fabs(cos(angle));
-    //        av.push(angle);
-    //        all.push_back(angle / pi * 180);
-    //        if (-5 <= angle / pi * 180 & angle / pi * 180 <= 5) {
-    //          square->direction();
-    //        }
-    //        count++;
-    //      }
-    //    }
-    for (auto const &piece : s.pieces) {
-      double angle = Angle(piece->direction);
-      while (angle < 0) {
-        angle += pi * 2;
-      }
-      angle = fmod(angle, pi);
-      //      if (angle > pi * 3 / 2) {
-      //        angle = pi * 2 - angle;
-      //      } else if (angle > pi) {
-      //        angle = angle - pi;
-      //      } else if (angle > pi / 2) {
-      //        angle = pi - angle;
-      //      }
-      av.push(angle);
-      sumCos += fabs(cos(angle));
-      sum += angle / pi * 180;
-      count++;
-      all.push_back(angle / pi * 180);
-    }
-    double p = av.get();
-    double q = acos(sumCos / count);
-    double r = sum / count;
-    double t = r / 180 * pi;
-    s.boardDirection = t; // sum / count / 180 * pi;// acos(sumCos / count);
-    cout << "p=" << (p * 180 / pi) << "q=" << (q * 180 / pi) << "r=" << r << endl;
-  }
-#else
-  {
-    // squares の各辺の傾きから, 盤面の向きを推定する.
-    vector<double> angles;
-    for (auto const &square : s.squares) {
-      for (size_t i = 0; i < 3; i++) {
-        auto const &a = square->points[i];
-        auto const &b = square->points[i + 1];
-        double dx = b.x - a.x;
-        double dy = b.y - a.y;
-        double angle = atan2(dy, dx);
-        while (angle < 0) {
-          angle += pi * 2;
-        }
-        while (pi * 0.5 < angle) {
-          angle -= pi * 0.5;
-        }
-        angles.push_back(angle * 180 / pi);
-      }
-    }
-    for (auto const &piece : s.pieces) {
-      float angle = Angle(piece->direction);
-      while (angle < 0) {
-        angle += pi * 2;
-      }
-      while (pi * 0.5 < angle) {
-        angle -= pi * 0.5;
-      }
-      angles.push_back(angle * 180 / pi);
-    }
-    // 盤面の向きを推定する.
-    // 5 度単位でヒストグラムを作り, 最頻値を調べる. angle は [0, 90] に限定しているので index は [0, 18]
-    array<int, 19> count;
-    count.fill(0);
-    for (double const &angle : angles) {
-      int index = angle / 5;
-      count[index] += 1;
-    }
-    int maxIndex = -1;
-    int maxCount = -1;
-    for (int i = 0; i < (int)count.size(); i++) {
-      if (maxCount < count[i]) {
-        maxCount = count[i];
-        maxIndex = i;
-      }
-    }
-    // 最頻となったヒストグラムの位置から, 前後 5 度に収まっている angle について, その平均値を計算する.
-    double targetAngle = (maxIndex + 0.5) * 5;
-    RadianAverage ra;
-    for (double const &angle : angles) {
-      if (cos(5.0 / 180.0 * pi) <= fabs(cos((angle - targetAngle) / 180 * pi))) {
-        double radian = angle / 180.0 * pi;
-        ra.push(radian);
-      }
-    }
-    float direction = Normalize90To90(ra.get());
-    s.boardDirection = direction;
-
-    // Session.boardDirection は対局者の向きにしたい.
-    map<bool, int> vote;
-    // square の長手方向から, direction を 90 度回して訂正するか, そのまま採用するか投票する.
-    for (auto const &square : s.squares) {
-      if (auto d = SquareDirection(square->points); d) {
-        bool shouldCorrect = fabs(cos(*d - direction)) < 0.25;
-        vote[shouldCorrect] += 1;
-      }
-    }
-    // piece の頂点の向きから, direction を 90 度回して訂正するか, そのまま採用するか投票する.
-    for (auto const &piece : s.pieces) {
-      float a = Normalize90To90(Angle(piece->direction));
-      bool shouldCorrect = fabs(cos(a - direction)) < 0.25;
-      vote[shouldCorrect] += 1;
-    }
-    //    cout << "vote[true] = " << vote[true] << "; vote[false] = " << vote[false] << endl;
-    if (vote[true] > vote[false]) {
-      cout << "vote[true] = " << vote[true] << "; vote[false] = " << vote[false] << "; correct" << endl;
-      direction = Normalize90To90(direction + pi * 0.5);
-      //      s.boardDirection = direction;
-    } else {
-      cout << "vote[true] = " << vote[true] << "; vote[false] = " << vote[false] << "; no-correct" << endl;
-    }
-  }
-
-  if (false) {
-    // TODO: ここの処理は斜めから撮影した時に s.outline が盤面を正確に覆わなくなる問題の対策のための処理. 多少斜め方向からの撮影なら, この処理なくても問題なく盤面を認識できているので無くても良い. 本当は斜め角度大のときも正確に検出できるようにしたい.
-    //  各 square, piece を起点に, その長軸と短軸それぞれについて, 軸付近に中心を持つ駒・升を検出する.
-    //  どの軸にも属さない square, piece を除去する.
-    set<shared_ptr<Contour>> squares;     // 抽出した squares. 後で s.squares と swap する.
-    set<shared_ptr<PieceContour>> pieces; // 抽出した pieces. 後で s.pieces と swap する.
-    double cosThreshold = cos(2.5 / 180.0 * pi);
-    auto Detect = [&](double direction, double tolerance, vector<cv::Vec4f> &grids) {
-      set<shared_ptr<Contour>> cSquares;
-      set<shared_ptr<PieceContour>> cPieces;
-      // tolerance: 軸との距離の最大値. この距離以下なら軸上に居るとみなす.
-      for (auto const &square : s.squares) {
-        if (square->area <= s.squareArea * 0.7 || s.squareArea * 1.3 <= square->area) {
-          // 升目の面積と比べて 3 割以上差がある場合対象外にする.
-          continue;
-        }
-        if (cSquares.find(square) != cSquares.end()) {
-          // 処理済み.
-          continue;
-        }
-        cv::Point2f center = square->mean();
-        // square の各辺の方向のうち, direction と近い方向をその square の向きとする.
-        RadianAverage ra;
-        for (int i = 0; i < 4; i++) {
-          cv::Point2f edge = square->points[i] - square->points[(i + 1) % 4];
-          double dir = Angle(edge);
-          if (fabs(cos(dir - direction)) > cosThreshold) {
-            ra.push(dir);
-          }
-        }
-        if (ra.count != 2) {
-          continue;
-        }
-        double squareDirection = ra.get();
-        cv::Vec4f axis(cos(squareDirection), sin(squareDirection), center.x, center.y);
-        vector<cv::Point2f> centers;
-        for (auto const &sq : s.squares) {
-          cv::Point2f c = sq->mean();
-          if (sq == square) {
-            // 自分自身.
-            centers.push_back(c);
-            continue;
-          }
-          if (cSquares.find(sq) != cSquares.end()) {
-            // 処理済み.
-            continue;
-          }
-          if (sq->area <= s.squareArea * 0.7 || s.squareArea * 1.3 <= sq->area) {
-            // 升目の面積と比べて 3 割以上差がある場合対象外にする.
-            continue;
-          }
-          double distance = Distance(axis, c);
-          if (!isfinite(distance)) {
-            continue;
-          }
-          if (distance <= tolerance) {
-            cSquares.insert(sq);
-            centers.push_back(c);
-          }
-        }
-        for (auto const &p : s.pieces) {
-          if (p->area > s.squareArea) {
-            // 升目の面積より大きい piece は対象外にする.
-            continue;
-          }
-          if (cPieces.find(p) != cPieces.end()) {
-            // 処理済み
-            continue;
-          }
-          cv::Point2f c = p->center();
-          double distance = Distance(axis, c);
-          if (!isfinite(distance)) {
-            continue;
-          }
-          if (distance <= tolerance) {
-            cPieces.insert(p);
-            centers.push_back(c);
-          }
-        }
-        if (centers.empty()) {
-          continue;
-        }
-        auto grid = FitLine(centers);
-        if (!grid) {
-          continue;
-        }
-        if (fabs(atan2((*grid)[1], (*grid)[0]) - direction) <= cosThreshold) {
-          // grid の向きと direction が大きく違っていたら, 検出した grid は無視する.
-          continue;
-        }
-        for (auto const &cS : cSquares) {
-          squares.insert(cS);
-        }
-        for (auto const &cP : cPieces) {
-          pieces.insert(cP);
-        }
-        grids.push_back(*grid);
-      }
-    };
-    Detect(s.boardDirection, sqrt(s.squareArea * s.aspectRatio) / 2, s.vgrids);
-    Detect(s.boardDirection + pi * 0.5, sqrt(s.squareArea / s.aspectRatio) / 2, s.hgrids);
-    s.squares.clear();
-    for (auto const &square : squares) {
-      s.squares.push_back(square);
-    }
-    s.pieces.clear();
-    for (auto const &piece : pieces) {
-      s.pieces.push_back(piece);
-    }
-  }
-#endif
-
-#if 0
-  {
-    // squares と pieces を -1 * boardDirection 回転した状態で矩形を検出する.
-    vector<cv::Point2d> centers;
-    for (auto const &square : s.squares) {
-      auto center = Rotate(square->mean(), -s.boardDirection);
-      centers.push_back(center);
-    }
-    for (auto const &piece : s.pieces) {
-      auto center = Rotate(piece->center(), -s.boardDirection);
-      centers.push_back(center);
-    }
-    if (!centers.empty()) {
-      cv::Point2f top = centers[0];
-      cv::Point2f bottom = top;
-      cv::Point2f left = top;
-      cv::Point2f right = top;
-      for (auto const &center : centers) {
-        if (center.y < top.y) {
-          top = center;
-        }
-        if (center.y > bottom.y) {
-          bottom = center;
-        }
-        if (center.x < left.x) {
-          left = center;
-        }
-        if (center.x > right.x) {
-          right = center;
-        }
-      }
-      cv::Point2f lt(left.x, top.y);
-      cv::Point2f rt(right.x, top.y);
-      cv::Point2f rb(right.x, bottom.y);
-      cv::Point2f lb(left.x, bottom.y);
-      s.outline.points = {
-          Rotate(lt, s.boardDirection),
-          Rotate(rt, s.boardDirection),
-          Rotate(rb, s.boardDirection),
-          Rotate(lb, s.boardDirection),
-      };
-      s.outline.area = fabs(cv::contourArea(cv::Mat(s.outline.points)));
-      s.bx = left.x;
-      s.by = top.y;
-      s.bwidth = right.x - left.x;
-      s.bheight = bottom.y - top.y;
-    }
-  }
-#endif
 }
-
-// [x, y] の升目の中心位置を返す.
-// [0, 0] が 9一, [8, 8] が 1九. 戻り値の座標は入力画像での座標系.
-// cv::Point2f PieceCenter(Status const &s, int x, int y) {
-//  float fx = s.bx + x * s.bwidth / 8;
-//  float fy = s.by + y * s.bheight / 8;
-//  return Rotate(cv::Point2f(fx, fy), s.boardDirection);
-//}
-
-// void FindPieces(cv::Mat const &frame, Status &s) {
-//   using namespace std;
-//   {
-//     set<pair<bool, int>> attached; // first => s.square なら true, s.pieces なら false, second => s.squares または s.pieces のインデックス.
-//     float const squareSize = sqrtf(s.squareArea);
-//     for (int y = 0; y < 9; y++) {
-//       for (int x = 0; x < 9; x++) {
-//         cv::Point2f center = PieceCenter(s, x, y);
-//         // center に最も中心が近い Contour を s.pieces か s.squares の中から探す.
-//         // 距離は駒サイズのスケール sqrt(squareArea) / 2 より離れていると対象外にする.
-//         optional<pair<bool, int>> index;
-//         float nearest = numeric_limits<float>::max();
-//         for (int i = 0; i < s.pieces.size(); i++) {
-//           pair<bool, int> key = make_pair(false, i);
-//           if (attached.find(key) != attached.end()) {
-//             continue;
-//           }
-//           cv::Point2f m = s.pieces[i]->center();
-//           float distance = cv::norm(m - center);
-//           if (distance > squareSize * 0.5) {
-//             continue;
-//           }
-//           if (distance < nearest) {
-//             nearest = distance;
-//             index = key;
-//           }
-//         }
-//         if (!index) {
-//           // 駒の方を優先で探す. 既に見つかっているならそちらを優先.
-//           for (int i = 0; i < s.squares.size(); i++) {
-//             pair<bool, int> key = make_pair(true, i);
-//             if (attached.find(key) != attached.end()) {
-//               continue;
-//             }
-//             cv::Point2f m = s.squares[i]->mean();
-//             float distance = cv::norm(m - center);
-//             if (distance > squareSize * 0.5) {
-//               continue;
-//             }
-//             if (distance < nearest) {
-//               nearest = distance;
-//               index = key;
-//             }
-//           }
-//         }
-//         if (!index) {
-//           continue;
-//         }
-//         attached.insert(*index);
-//         if (index->first) {
-//           s.detected[x][y] = s.squares[index->second];
-//         } else {
-//           s.detected[x][y] = make_shared<Contour>(s.pieces[index->second]->toContour());
-//         }
-//       }
-//     }
-//   }
-//
-//   {
-//     // 検出した駒・升を元に, より正確な盤面の矩形を検出する.
-//     // 先手から見て盤面の上辺
-//     optional<cv::Vec4f> top;
-//     {
-//       vector<cv::Point2f> points;
-//       for (int x = 0; x < 9; x++) {
-//         if (s.detected[x][0]) {
-//           points.push_back(s.detected[x][0]->mean());
-//         }
-//       }
-//       if (points.size() > 1) {
-//         cv::Vec4f v;
-//         cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
-//         top = v;
-//       }
-//     }
-//     optional<cv::Vec4f> bottom;
-//     {
-//       vector<cv::Point2f> points;
-//       for (int x = 0; x < 9; x++) {
-//         if (s.detected[x][8]) {
-//           points.push_back(s.detected[x][8]->mean());
-//         }
-//       }
-//       if (points.size() > 1) {
-//         cv::Vec4f v;
-//         cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
-//         bottom = v;
-//       }
-//     }
-//     optional<cv::Vec4f> left;
-//     {
-//       vector<cv::Point2f> points;
-//       for (int y = 0; y < 9; y++) {
-//         if (s.detected[0][y]) {
-//           points.push_back(s.detected[0][y]->mean());
-//         }
-//       }
-//       if (points.size() > 1) {
-//         cv::Vec4f v;
-//         cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
-//         left = v;
-//       }
-//     }
-//     optional<cv::Vec4f> right;
-//     {
-//       vector<cv::Point2f> points;
-//       for (int y = 0; y < 9; y++) {
-//         if (s.detected[8][y]) {
-//           points.push_back(s.detected[8][y]->mean());
-//         }
-//       }
-//       if (points.size() > 1) {
-//         cv::Vec4f v;
-//         cv::fitLine(cv::Mat(points), v, cv::DIST_L2, 0, 0.01, 0.01);
-//         right = v;
-//       }
-//     }
-//     if (top && bottom && left && right) {
-//       auto tl = Intersection(*top, *left);
-//       auto tr = Intersection(*top, *right);
-//       auto br = Intersection(*bottom, *right);
-//       auto bl = Intersection(*bottom, *left);
-//       if (tl && tr && br && bl) {
-//         // tl, tr, br, bl は駒中心を元に計算しているので 8x8 の範囲しか無い. 半マス分増やす
-//         cv::Point2d topLeft = (*tl) + (((*tl) - (*tr)) / 16) + (((*tl) - (*bl)) / 16);
-//         cv::Point2d topRight = (*tr) + (((*tr) - (*tl)) / 16) + (((*tr) - (*br)) / 16);
-//         cv::Point2d bottomRight = (*br) + (((*br) - (*bl)) / 16) + (((*br) - (*tr)) / 16);
-//         cv::Point2d bottomLeft = (*bl) + (((*bl) - (*br)) / 16) + (((*bl) - (*tl)) / 16);
-//
-//         Contour preciseOutline;
-//         preciseOutline.points = {topLeft, topRight, bottomRight, bottomLeft};
-//         preciseOutline.area = fabs(cv::contourArea(preciseOutline.points));
-//         s.preciseOutline = preciseOutline;
-//       }
-//     }
-//   }
-// }
 
 void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) {
   using namespace std;
