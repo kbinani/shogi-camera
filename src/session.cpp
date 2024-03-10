@@ -251,6 +251,8 @@ void FindBoard(cv::Mat const &frame, Status &s) {
   }
 
 #if 1
+  // 同じ点と判定するための閾値. この距離より近ければ同じ点と見做す.
+  float const distanceTh = sqrt(s.squareArea) * 0.3;
   {
     for (auto const &square : s.squares) {
       bool found = false;
@@ -305,8 +307,6 @@ void FindBoard(cv::Mat const &frame, Status &s) {
       }
     }
     cout << "total = " << (s.squares.size() + s.pieces.size()) << ", lattices.size() = " << s.lattices.size() << endl;
-    // 同じ点と判定するための閾値. この距離より近ければ同じ点と見做す.
-    float distanceTh = sqrt(s.squareArea) * 0.3;
     float w = sqrt(s.squareArea * s.aspectRatio);
     float h = sqrt(s.squareArea / s.aspectRatio);
     for (auto const &lattice : s.lattices) {
@@ -480,6 +480,68 @@ void FindBoard(cv::Mat const &frame, Status &s) {
         reindexed[make_pair(x - minX, y - minY)] = it.second;
       }
       s.clusters.push_back(reindexed);
+    }
+  }
+  if (s.clusters.size() > 1) {
+    // s.clusters の 2 番目以降について, s.clusters[0] にマージできないか調べる.
+    deque<map<pair<int, int>, set<shared_ptr<Lattice>>>> clusters = s.clusters;
+    s.clusters.clear();
+    s.clusters.push_back(clusters[0]);
+    auto &largest = s.clusters[0];
+    for (int k = 1; k < clusters.size(); k++) {
+      auto const &cluster = clusters[k];
+      bool all = true;
+      optional<int> dx;
+      optional<int> dy;
+      for (auto const &i : cluster) {
+        auto [x, y] = i.first;
+        for (auto const &j : i.second) {
+          cv::Point2f center = CenterFromLatticeContent(*j->content);
+          optional<pair<int, int>> found;
+          for (auto const &t : largest) {
+            for (auto const &u : t.second) {
+              cv::Point2f c = CenterFromLatticeContent(*u->content);
+              if (cv::norm(c - center) <= distanceTh) {
+                found = t.first;
+                break;
+              }
+            }
+            if (found) {
+              break;
+            }
+          }
+          if (found) {
+            int tdx = x - found->first;
+            int tdy = y - found->second;
+            if (dx && dy) {
+              if (*dx != tdx || *dy != tdy) {
+                all = false;
+                break;
+              }
+            } else {
+              dx = tdx;
+              dy = tdy;
+            }
+          } else {
+            all = false;
+            break;
+          }
+        }
+        if (!all) {
+          break;
+        }
+      }
+      if (all && dx && dy) {
+        // cluster 内の lattice が全て largest 内の lattice のいずれかと中心が一致し, かつ, largest との grid の格子位置のズレが一定だった場合, cluster は largest にマージできる.
+        for (auto const &i : cluster) {
+          auto [x, y] = i.first;
+          for (auto const &j : i.second) {
+            largest[make_pair(x + *dx, y + *dy)].insert(j);
+          }
+        }
+      } else {
+        s.clusters.push_back(cluster);
+      }
     }
 #if 1
     static int cnt = 0;
