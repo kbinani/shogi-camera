@@ -85,10 +85,10 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   // 成り駒用の PieceBook::Entry を使って, 移動後の駒画像との類似度を調べる.
   optional<float> meanPromoteAfter;
   optional<float> stddevPromoteAfter;
-  if (auto const &entry = book.store[static_cast<PieceUnderlyingType>(Promote(RemoveColorFromPiece(mv.piece)))]; !entry.images.empty()) {
+  if (auto entry = book.store.find(static_cast<PieceUnderlyingType>(Promote(RemoveColorFromPiece(mv.piece)))); entry != book.store.end() && !entry->second.images.empty()) {
     vector<float> simPromoteAfter;
     double maxSimPromoteAfter = 0;
-    entry.each(mv.color, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
+    entry->second.each(mv.color, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
       auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool, cacheA);
       simPromoteAfter.push_back(sa);
     });
