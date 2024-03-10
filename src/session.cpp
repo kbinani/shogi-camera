@@ -941,31 +941,35 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
     }
   }
   if (!stat.outlineTL.empty() && !stat.outlineTR.empty() && !stat.outlineBR.empty() && !stat.outlineBL.empty()) {
-    cv::Point2f sumTL(0, 0);
-    cv::Point2f sumTR(0, 0);
-    cv::Point2f sumBR(0, 0);
-    cv::Point2f sumBL(0, 0);
+    cv::Point2f topLeft(0, 0);
+    cv::Point2f topRight(0, 0);
+    cv::Point2f bottomRight(0, 0);
+    cv::Point2f bottomLeft(0, 0);
     for (auto const &p : stat.outlineTL) {
-      sumTL += p;
+      topLeft += p;
     }
-    sumTL = sumTL / float(stat.outlineTL.size());
+    topLeft = topLeft / float(stat.outlineTL.size());
     for (auto const &p : stat.outlineTR) {
-      sumTR += p;
+      topRight += p;
     }
-    sumTR = sumTR / float(stat.outlineTR.size());
+    topRight = topRight / float(stat.outlineTR.size());
     for (auto const &p : stat.outlineBR) {
-      sumBR += p;
+      bottomRight += p;
     }
-    sumBR = sumBR / float(stat.outlineBR.size());
+    bottomRight = bottomRight / float(stat.outlineBR.size());
     for (auto const &p : stat.outlineBL) {
-      sumBL += p;
+      bottomLeft += p;
     }
-    sumBL = sumBL / float(stat.outlineBL.size());
+    bottomLeft = bottomLeft / float(stat.outlineBL.size());
 
     Contour preciseOutline;
-    preciseOutline.points = {sumTL, sumTR, sumBR, sumBL};
+    preciseOutline.points = {topLeft, topRight, bottomRight, bottomLeft};
     preciseOutline.area = fabs(cv::contourArea(preciseOutline.points));
-    s.preciseOutline = preciseOutline;
+    s.preciseOutline = stat.preciseOutline = preciseOutline;
+
+    cv::Point2f midBottom = (bottomRight + bottomLeft) * 0.5f;
+    cv::Point2f midTop = (topRight + topLeft) * 0.5f;
+    s.boardDirection = Angle(midBottom - midTop);
   }
 #elif 1
   {
@@ -1421,10 +1425,10 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
   int width = (int)round(sqrt(area * (*stat.aspectRatio)));
   int height = (int)round(sqrt(area / (*stat.aspectRatio)));
   vector<cv::Point2f> dst({
+      cv::Point2f(0, 0),
       cv::Point2f(width, 0),
       cv::Point2f(width, height),
       cv::Point2f(0, height),
-      cv::Point2f(0, 0),
   });
   cv::Mat mtx = cv::getPerspectiveTransform(stat.preciseOutline->points, dst);
   s.perspectiveTransform = mtx;
