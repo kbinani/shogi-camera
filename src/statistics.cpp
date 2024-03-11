@@ -4,6 +4,7 @@
 
 #include "base64.hpp"
 #include <iostream>
+#include <numbers>
 
 namespace sci {
 
@@ -489,21 +490,60 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
       // 相手の駒がいるマス全てについて, 直前のマス画像との類似度を調べる. 類似度が最も低かったマスを, 取られた駒の居たマスとする.
       double minSim = numeric_limits<double>::max();
       optional<Square> minSquare;
-      for (int y = 0; y < 9; y++) {
-        for (int x = 0; x < 9; x++) {
-          auto piece = position.pieces[x][y];
-          if (piece == 0 || ColorFromPiece(piece) == color) {
-            continue;
+      // まず駒の向きが自分と同じ向きになっているものだけを対象に調べる. 見つからなければ駒の向きは無視して調べる.
+      for (bool directionAware : {true, false}) {
+        for (int y = 0; y < 9; y++) {
+          for (int x = 0; x < 9; x++) {
+            auto piece = position.pieces[x][y];
+            if (piece == 0 || ColorFromPiece(piece) == color) {
+              continue;
+            }
+            if (!Move::CanMove(position, MakeSquare(ch.x, ch.y), MakeSquare(x, y))) {
+              continue;
+            }
+            if (directionAware) {
+              cv::Rect rect = Img::PieceROIRect(after.size(), x, y);
+              cv::Point2f center(rect.x + rect.width * 0.5f, rect.y + rect.height * 0.5f);
+              bool found = false;
+              for (auto const &piece : s.pieces) {
+                auto wPiece = PerspectiveTransform(piece, s.perspectiveTransform, s.rotate, after.size().width, after.size().height);
+                if (!wPiece) {
+                  continue;
+                }
+                if (cv::pointPolygonTest(wPiece->points, center, false) < 0) {
+                  continue;
+                }
+                cv::Point2f dir = wPiece->direction;
+                double angle = atan2(dir.y, dir.x) * 180 / numbers::pi;
+                while (angle < 0) {
+                  angle += 360;
+                }
+                if (color == Color::Black) {
+                  if (180 < angle && angle < 360) {
+                    found = true;
+                    break;
+                  }
+                } else {
+                  if (0 < angle && angle < 180) {
+                    found = true;
+                    break;
+                  }
+                }
+              }
+              if (!found) {
+                continue;
+              }
+            }
+            double sim = Img::Similarity(before, after, x, y);
+            cout << (char const *)StringFromSquare(MakeSquare(x, y)).c_str() << ":" << sim << endl;
+            if (minSim > sim) {
+              minSim = sim;
+              minSquare = MakeSquare(x, y);
+            }
           }
-          if (!Move::CanMove(position, MakeSquare(ch.x, ch.y), MakeSquare(x, y))) {
-            continue;
-          }
-          double sim = Img::Similarity(before, after, x, y);
-          cout << (char const *)StringFromSquare(MakeSquare(x, y)).c_str() << ":" << sim << endl;
-          if (minSim > sim) {
-            minSim = sim;
-            minSquare = MakeSquare(x, y);
-          }
+        }
+        if (minSquare) {
+          break;
         }
       }
       if (minSquare) {
