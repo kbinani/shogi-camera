@@ -27,9 +27,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="px"
-     inkscape:zoom="0.24850667"
-     inkscape:cx="-164.98551"
-     inkscape:cy="802.79535"
+     inkscape:zoom="0.3514415"
+     inkscape:cx="-418.27729"
+     inkscape:cy="815.2139"
      inkscape:current-layer="layer4"
      showgrid="false" />
   <defs
@@ -112,7 +112,7 @@
        id="path9" />
     <path
        style="fill:none;stroke:#373737;stroke-width:2.64583;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
-       d="m -31.070988,52.154563 512.325478,0.04787"
+       d="M -72.562676,51.219039 481.25449,52.202433"
        id="path10"
        sodipodi:nodetypes="cc" />
   </g>
@@ -123,7 +123,7 @@
      style="display:inline">
     <path
        style="display:inline;fill:none;stroke:#b20000;stroke-width:7.9375;stroke-linecap:butt;stroke-linejoin:bevel;stroke-dasharray:none;stroke-opacity:1"
-       d="m 124.84039,52.178497 61.85513,-0.0036 -1.67076,75.984593 -82.836,-1.23362 z"
+       d="m 124.62965,51.569187 62.07677,0.110227 -1.68166,76.480076 -82.836,-1.23362 z"
        id="path11"
        sodipodi:nodetypes="ccccc" />
     <path
@@ -142,31 +142,27 @@
      inkscape:groupmode="layer"
      id="layer1"
      sodipodi:insensitive="true">
-    <g
-       id="g10"
-       style="fill:#ffffff;fill-opacity:1">
-      <text
-         xml:space="preserve"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:100.542px;line-height:1.25;font-family:'ニコカv2';-inkscape-font-specification:'ニコカv2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:100.542px;line-height:1.25;font-family:'ニコカv2';-inkscape-font-specification:'ニコカv2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
+       x="35.808334"
+       y="113.34107"
+       id="text1"><tspan
+         sodipodi:role="line"
+         id="tspan1"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:100.542px;font-family:'ニコカv2';-inkscape-font-specification:'ニコカv2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
          x="35.808334"
-         y="123.3952"
-         id="text1"><tspan
-           sodipodi:role="line"
-           id="tspan1"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:100.542px;font-family:'ニコカv2';-inkscape-font-specification:'ニコカv2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
-           x="35.808334"
-           y="123.3952">将棋</tspan></text>
-      <text
-         xml:space="preserve"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:113.771px;line-height:1.25;font-family:'ニコカv2';-inkscape-font-specification:'ニコカv2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
+         y="113.34107">将棋</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:113.771px;line-height:1.25;font-family:'ニコカv2';-inkscape-font-specification:'ニコカv2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
+       x="1.9435061"
+       y="218.91382"
+       id="text1-4"><tspan
+         sodipodi:role="line"
+         id="tspan1-5"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:113.771px;font-family:'ニコカv2';-inkscape-font-specification:'ニコカv2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
          x="1.9435061"
-         y="216.26802"
-         id="text1-4"><tspan
-           sodipodi:role="line"
-           id="tspan1-5"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:113.771px;font-family:'ニコカv2';-inkscape-font-specification:'ニコカv2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
-           x="1.9435061"
-           y="216.26802">カメラ</tspan></text>
-    </g>
+         y="218.91382">カメラ</tspan></text>
   </g>
 </svg>
