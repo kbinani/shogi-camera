@@ -4,6 +4,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include <iostream>
+#include <limits>
 #include <numbers>
 
 namespace sci {
@@ -647,7 +648,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
       }
       // フィッティングした直線の傾きを平滑化する
       static auto Equalize = [](map<int, Line> &lines) {
-        // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの平滑化ができなくなるので, 180 度付近できるよう, まず平均を求める.
+        // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの平滑化ができなくなるので, 45 度付近できるよう, まず平均を求める.
         RadianAverage ra;
         vector<cv::Point2f> angles;
         for (auto const &it : lines) {
@@ -666,10 +667,11 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           angles.push_back(cv::Point2f(v, angle));
         }
         float mean = ra.get();
+        float offset = pi / 8 - mean;
         float minAngle = numeric_limits<float>::max();
         float maxAngle = numeric_limits<float>::lowest();
         for (size_t i = 0; i < angles.size(); i++) {
-          float angle = angles[i].y - mean + pi;
+          float angle = angles[i].y + offset;
           while (angle < 0) {
             angle += pi * 2;
           }
@@ -685,7 +687,6 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         }
         auto fit = FitLine(angles);
         if (!fit) {
-          cout << 1 << endl;
           return;
         }
         map<int, Line> result;
@@ -695,24 +696,24 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           auto angle = YFromX(*fit, v);
           if (!angle) {
             result[it.first] = line;
-            cout << 2 << endl;
             continue;
           }
-          float rad = *angle + mean - pi;
           // line.line の傾きを tan(angle) に変更して, 切片を最小二乗法で最適化する.
-          float m = tan(rad);
+          // offset 回転させているので, *angle はだいたい 45 度付近になっている.
+          float m = tan(*angle);
           if (!(m == 0 || isnormal(m))) {
             result[it.first] = line;
-            cout << 3 << endl;
             continue;
           }
           float sum = 0;
           for (auto const &p : line.points) {
-            sum += p.y - m * p.x;
+            float x = cos(offset) * p.x - sin(offset) * p.y;
+            float y = sin(offset) * p.x + cos(offset) * p.y;
+            sum += y - m * x;
           }
           float b = sum / line.points.size();
           Line cp = line;
-          cp.line = cv::Vec4f(cos(rad), sin(rad), 0, b);
+          cp.line = cv::Vec4f(cos(*angle - offset), sin(*angle - offset), -sin(-offset) * b, cos(-offset) * b);
           result[it.first] = cp;
         }
         result.swap(lines);
