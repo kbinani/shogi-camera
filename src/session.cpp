@@ -127,8 +127,8 @@ std::optional<cv::Point2f> PerpendicularFoot(cv::Vec4f const &line, cv::Point2f 
 
 std::optional<float> YFromX(cv::Vec4f const &line, float x) {
   // p = b + t * a
-  cv::Point2f b(line[0], line[1]);
-  cv::Point2f a(line[2], line[3]);
+  cv::Point2f a(line[0], line[1]);
+  cv::Point2f b(line[2], line[3]);
   // px = bx + t * ax
   // t = (px - bx) / ax
   float t = (x - b.x) / a.x;
@@ -645,6 +645,116 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           hlines[y] = l;
         }
       }
+      // フィッティングした直線の傾きを平滑化する
+      static auto Equalize = [](map<int, Line> &lines) {
+        // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの平滑化ができなくなるので, 180 度付近できるよう, まず平均を求める.
+        RadianAverage ra;
+        vector<cv::Point2f> angles;
+        for (auto const &it : lines) {
+          float v = it.first;
+          float angle = atan2(it.second.line[1], it.second.line[0]);
+          while (angle < 0) {
+            angle += pi * 2;
+          }
+          while (angle > pi * 2) {
+            angle -= pi * 2;
+          }
+          if (angle > pi) {
+            angle -= pi;
+          }
+          ra.push(angle);
+          angles.push_back(cv::Point2f(v, angle));
+        }
+        float mean = ra.get();
+        float minAngle = numeric_limits<float>::max();
+        float maxAngle = numeric_limits<float>::lowest();
+        for (size_t i = 0; i < angles.size(); i++) {
+          float angle = angles[i].y - mean + pi;
+          while (angle < 0) {
+            angle += pi * 2;
+          }
+          while (angle > pi * 2) {
+            angle -= pi * 2;
+          }
+          minAngle = std::min(minAngle, float(angle * 180 / pi));
+          maxAngle = std::max(maxAngle, float(angle * 180 / pi));
+          angles[i].y = angle;
+        }
+        if (maxAngle - minAngle >= 30) {
+          return;
+        }
+        auto fit = FitLine(angles);
+        if (!fit) {
+          cout << 1 << endl;
+          return;
+        }
+        map<int, Line> result;
+        for (auto const &it : lines) {
+          float v = it.first;
+          Line line = it.second;
+          auto angle = YFromX(*fit, v);
+          if (!angle) {
+            result[it.first] = line;
+            cout << 2 << endl;
+            continue;
+          }
+          float rad = *angle + mean - pi;
+          // line.line の傾きを tan(angle) に変更して, 切片を最小二乗法で最適化する.
+          float m = tan(rad);
+          if (!(m == 0 || isnormal(m))) {
+            result[it.first] = line;
+            cout << 3 << endl;
+            continue;
+          }
+          float sum = 0;
+          for (auto const &p : line.points) {
+            sum += p.y - m * p.x;
+          }
+          float b = sum / line.points.size();
+          Line cp = line;
+          cp.line = cv::Vec4f(cos(rad), sin(rad), 0, b);
+          result[it.first] = cp;
+        }
+        result.swap(lines);
+      };
+      Equalize(hlines);
+      Equalize(vlines);
+#if 0
+      {
+        cout << "==" << endl;
+        for (int y = 0; y < 9; y++) {
+          auto hline = hlines.find(y);
+          if (hline == hlines.end()) {
+            continue;
+          }
+          cout << "y(0) = " << y << " : " << (atan2(hline->second.line[1], hline->second.line[0]) * 180 / numbers::pi) << endl;
+        }
+        Equalize(hlines);
+        for (int y = 0; y < 9; y++) {
+          auto hline = hlines.find(y);
+          if (hline == hlines.end()) {
+            continue;
+          }
+          cout << "y(1) = " << y << " : " << (atan2(hline->second.line[1], hline->second.line[0]) * 180 / numbers::pi) << endl;
+        }
+        cout << "--" << endl;
+        for (int x = 0; x < 9; x++) {
+          auto vline = vlines.find(x);
+          if (vline == vlines.end()) {
+            continue;
+          }
+          cout << "x(0) = " << x << " : " << (atan2(vline->second.line[1], vline->second.line[0]) * 180 / numbers::pi) << endl;
+        }
+        Equalize(vlines);
+        for (int x = 0; x < 9; x++) {
+          auto vline = vlines.find(x);
+          if (vline == vlines.end()) {
+            continue;
+          }
+          cout << "x(1) = " << x << " : " << (atan2(vline->second.line[1], vline->second.line[0]) * 180 / numbers::pi) << endl;
+        }
+      }
+#endif
       // フィッティングした直線を元に, まず補完によって largest の内側の足りていない点を補う
       // 縦から
       for (int x = minX; x <= maxX; x++) {
