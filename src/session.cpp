@@ -496,10 +496,6 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
   }
   struct Line {
     cv::Vec4f line;
-    int min;
-    cv::Point2f minCenter;
-    int max;
-    cv::Point2f maxCenter;
     vector<cv::Point2f> points;
   };
   map<int, Line> vlines;
@@ -585,10 +581,6 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           } else {
             l.line = *line;
           }
-          l.min = top->first;
-          l.minCenter = top->second;
-          l.max = bottom->first;
-          l.maxCenter = bottom->second;
           l.points.swap(points);
           vlines[x] = l;
         }
@@ -638,20 +630,20 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           } else {
             l.line = *line;
           }
-          l.min = left->first;
-          l.minCenter = left->second;
-          l.max = right->first;
-          l.maxCenter = right->second;
           l.points.swap(points);
           hlines[y] = l;
         }
       }
       // フィッティングした直線の傾きを平滑化する
-      static auto Equalize = [](map<int, Line> &lines) {
+      static auto Equalize = [](map<int, Line> &lines, int extra) {
         // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの平滑化ができなくなるので, 45 度付近できるよう, まず平均を求める.
         RadianAverage ra;
         vector<cv::Point2f> angles;
+        int vmin = numeric_limits<int>::max();
+        int vmax = numeric_limits<int>::min();
         for (auto const &it : lines) {
+          vmin = std::min(vmin, it.first);
+          vmax = std::max(vmax, it.first);
           float v = it.first;
           float angle = atan2(it.second.line[1], it.second.line[0]);
           while (angle < 0) {
@@ -732,57 +724,32 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           line.line = cv::Vec4f(cos(angle - offset), sin(angle - offset), -sin(-offset) * b, cos(-offset) * b);
           result[v] = line;
         }
+        for (int v = vmin - extra; v <= vmax + extra; v++) {
+          if (result.find(v) != result.end()) {
+            continue;
+          }
+          auto angle = YFromX(*fit, v);
+          if (!angle) {
+            continue;
+          }
+          Line line;
+          float b = B * v + A;
+          line.line = cv::Vec4f(cos(*angle - offset), sin(*angle - offset), -sin(-offset) * b, cos(-offset) * b);
+          result[v] = line;
+        }
         result.swap(lines);
       };
-      Equalize(hlines);
-      Equalize(vlines);
-#if 0
-      {
-        cout << "==" << endl;
-        for (int y = 0; y < 9; y++) {
-          auto hline = hlines.find(y);
-          if (hline == hlines.end()) {
-            continue;
-          }
-          cout << "y(0) = " << y << " : " << (atan2(hline->second.line[1], hline->second.line[0]) * 180 / numbers::pi) << endl;
-        }
-        Equalize(hlines);
-        for (int y = 0; y < 9; y++) {
-          auto hline = hlines.find(y);
-          if (hline == hlines.end()) {
-            continue;
-          }
-          cout << "y(1) = " << y << " : " << (atan2(hline->second.line[1], hline->second.line[0]) * 180 / numbers::pi) << endl;
-        }
-        cout << "--" << endl;
-        for (int x = 0; x < 9; x++) {
-          auto vline = vlines.find(x);
-          if (vline == vlines.end()) {
-            continue;
-          }
-          cout << "x(0) = " << x << " : " << (atan2(vline->second.line[1], vline->second.line[0]) * 180 / numbers::pi) << endl;
-        }
-        Equalize(vlines);
-        for (int x = 0; x < 9; x++) {
-          auto vline = vlines.find(x);
-          if (vline == vlines.end()) {
-            continue;
-          }
-          cout << "x(1) = " << x << " : " << (atan2(vline->second.line[1], vline->second.line[0]) * 180 / numbers::pi) << endl;
-        }
-      }
-#endif
-      // フィッティングした直線を元に, まず補完によって largest の内側の足りていない点を補う
-      // 縦から
-      for (int x = minX; x <= maxX; x++) {
+      Equalize(hlines, dy);
+      Equalize(vlines, dx);
+      // フィッティングした直線を元に足りていない点を交点を計算することで補う
+      for (int x = minX - dx; x <= maxX + dx; x++) {
         auto found = vlines.find(x);
         if (found == vlines.end()) {
           continue;
         }
         Line vline = found->second;
-        for (int y = minY; y <= maxY; y++) {
+        for (int y = minY - dy; y <= maxY + dy; y++) {
           if (grids.find(make_pair(x, y)) != grids.end()) {
-            // 補間の必要無い.
             continue;
           }
           auto hline = hlines.find(y);
@@ -794,29 +761,8 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           }
         }
       }
-      // 横も
-      for (int y = minY; y <= maxY; y++) {
-        auto found = hlines.find(y);
-        if (found == hlines.end()) {
-          continue;
-        }
-        Line hline = found->second;
-        for (int x = minX; x <= maxX; x++) {
-          if (grids.find(make_pair(x, y)) != grids.end()) {
-            // 補間の必要無い.
-            continue;
-          }
-          auto vline = vlines.find(x);
-          if (vline == vlines.end()) {
-            continue;
-          }
-          if (auto cross = Intersection(hline.line, vline->second.line); cross) {
-            grids[make_pair(x, y)] = *cross;
-          }
-        }
-      }
 
-#if 0
+#if 1
       static int cnt = 0;
       cnt++;
       int index = 0;
