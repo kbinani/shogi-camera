@@ -690,6 +690,14 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           return;
         }
         map<int, Line> result;
+        // 切片 b を b = B * v + A の形にして等間隔となるようにしたとき, B と A を最小二乗法により最適化する.
+        // https://gyazo.com/20b68981f72fe75250d1e6f0534e57a1
+        vector<tuple<int, float, Line>> k;
+        float alpha = 0;
+        float beta = 0;
+        float gamma = 0;
+        float f = 0;
+        float e = 0;
         for (auto const &it : lines) {
           float v = it.first;
           Line line = it.second;
@@ -698,23 +706,31 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
             result[it.first] = line;
             continue;
           }
-          // line.line の傾きを tan(angle) に変更して, 切片を最小二乗法で最適化する.
           // offset 回転させているので, *angle はだいたい 45 度付近になっている.
           float m = tan(*angle);
           if (!(m == 0 || isnormal(m))) {
             result[it.first] = line;
             continue;
           }
-          float sum = 0;
+          float n = line.points.size();
           for (auto const &p : line.points) {
             float x = cos(offset) * p.x - sin(offset) * p.y;
             float y = sin(offset) * p.x + cos(offset) * p.y;
-            sum += y - m * x;
+            gamma += y - m * x;
+            f += (y - m * x) * v;
           }
-          float b = sum / line.points.size();
-          Line cp = line;
-          cp.line = cv::Vec4f(cos(*angle - offset), sin(*angle - offset), -sin(-offset) * b, cos(-offset) * b);
-          result[it.first] = cp;
+          alpha += n;
+          beta += n * v;
+          e += n * v * v;
+          k.push_back(make_tuple(it.first, *angle, line));
+        }
+        float B = (f - beta * gamma / alpha) / (e - beta * beta / alpha);
+        float A = (gamma - beta * B) / alpha;
+        for (auto const &it : k) {
+          auto [v, angle, line] = it;
+          float b = B * v + A;
+          line.line = cv::Vec4f(cos(angle - offset), sin(angle - offset), -sin(-offset) * b, cos(-offset) * b);
+          result[v] = line;
         }
         result.swap(lines);
       };
@@ -828,7 +844,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         cv::circle(img, cv::Point2f(it.second.x * 2, it.second.y * 2), distanceTh * 2 / 2, cv::Scalar(0, 0, 255));
       }
       for (auto const &it : vlines) {
-        cv::Point2f center = it.second.minCenter;
+        cv::Point2f center(it.second.line[2], it.second.line[3]);
         cv::Point2f dir(it.second.line[0], it.second.line[1]);
         dir = dir / cv::norm(dir);
         cv::Point2f from = center + s.height * 2 * dir;
@@ -839,7 +855,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         cv::polylines(img, points, false, cv::Scalar(255, 0, 0));
       }
       for (auto const &it : hlines) {
-        cv::Point2f center = it.second.minCenter;
+        cv::Point2f center(it.second.line[2], it.second.line[3]);
         cv::Point2f dir(it.second.line[0], it.second.line[1]);
         dir = dir / cv::norm(dir);
         cv::Point2f from = center + s.width * 2 * dir;
@@ -1157,7 +1173,6 @@ void Session::run() {
     s->height = frame.size().height;
     Img::FindContours(frame, s->contours, s->squares, s->pieces);
     FindBoard(frame, *s, stat);
-    //    FindPieces(frame, *s);
     stat.update(*s);
     s->book = stat.book;
     CreateWarpedBoard(frame, *s, stat);
