@@ -3,6 +3,7 @@
 #include "base64.hpp"
 #include <opencv2/imgproc.hpp>
 
+#include <format>
 #include <iostream>
 #include <limits>
 #include <numbers>
@@ -762,7 +763,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         }
       }
 
-#if 1
+#if 0
       static int cnt = 0;
       cnt++;
       int index = 0;
@@ -811,7 +812,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         points.push_back(to * 2);
         cv::polylines(img, points, false, cv::Scalar(0, 255, 0));
       }
-      cout << "b64png(grids_" << cnt << "):" << base64::to_base64(Img::EncodeToPng(img)) << endl;
+      cout << "b64png(grids_" << format("{:%04d}", cnt) << "):" << base64::to_base64(Img::EncodeToPng(img)) << endl;
 #endif
 
       // 以上の計算を largest に対して最初に 1 回だけ行っても良いかもしれないが, k = 2 以降でマージした結果を流用したいので毎回の k で計算する.
@@ -880,6 +881,32 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         s.clusters.push_back(cluster);
       }
     }
+    if (!s.clusters.empty() && !vlines.empty()) {
+      deque<map<pair<int, int>, set<shared_ptr<Lattice>>>> clusters;
+      s.clusters.swap(clusters);
+      // clusters[0] の y 方向の向きが s.boardDirection と一致しているか調べる. 一致していなければ y 方向を反転させる
+      double angle = atan2(vlines[0].line[1], vlines[0].line[0]);
+      if (cos(angle - s.boardDirection) < 0) {
+        for (auto const &cluster : clusters) {
+          int minX, maxX, minY, maxY;
+          minX = minY = numeric_limits<int>::max();
+          maxX = maxY = numeric_limits<int>::min();
+          for (auto const &i : cluster) {
+            auto [x, y] = i.first;
+            minX = std::min(minX, x);
+            maxX = std::max(maxX, x);
+            minY = std::min(minY, y);
+            maxY = std::max(maxY, y);
+          }
+          map<pair<int, int>, set<shared_ptr<Lattice>>> c;
+          for (auto const &i : cluster) {
+            auto [x, y] = i.first;
+            c[make_pair(maxX + minX - x, maxY + minY - y)] = i.second;
+          }
+          s.clusters.push_back(c);
+        }
+      }
+    }
 #if 0
     static int cnt = 0;
     cnt++;
@@ -914,7 +941,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           break;
         }
       }
-      cout << "b64png(sample_" << cnt << "_" << index << "):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
+      cout << "b64png(sample_" << format("{:%04d}", cnt) << "_" << index << "):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
     }
 #endif
   }
