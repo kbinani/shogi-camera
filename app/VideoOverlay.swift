@@ -153,10 +153,10 @@ class VideoOverlay: CALayer {
     ctx.setStrokeColor(UIColor.white.cgColor)
     ctx.strokePath()
 
-    let angle: CGFloat = 30
     let cap: CGFloat = 12
-    let a0 = (180 - angle) / 180 * CGFloat.pi
-    let a1 = (180 + angle) / 180 * CGFloat.pi
+    let angle: CGFloat = 30
+    let a0 = CGFloat(status.boardDirection) + CGFloat.pi + angle / 180 * CGFloat.pi
+    let a1 = CGFloat(status.boardDirection) + CGFloat.pi - angle / 180 * CGFloat.pi
     ctx.move(to: .init(x: p1.x + cap * cos(a0), y: p1.y + cap * sin(a0)))
     ctx.addLine(to: p1)
     ctx.addLine(to: .init(x: p1.x + cap * cos(a1), y: p1.y + cap * sin(a1)))
