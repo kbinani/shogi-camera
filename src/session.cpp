@@ -637,7 +637,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         }
       }
       // フィッティングした直線の傾きを平滑化する
-      static auto Equalize_ = [](map<int, Line> &lines, int extra) {
+      static auto Equalize = [](map<int, Line> &lines, int extra) {
         // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの平滑化ができなくなるので, 45 度付近できるよう, まず平均を求める.
         RadianAverage ra;
         vector<cv::Point2f> angles;
@@ -741,7 +741,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         }
         result.swap(lines);
       };
-      static auto Equalize = [](map<int, Line> &lines, int extra) {
+      static auto Equalize_ = [](map<int, Line> &lines, int extra) {
         // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの平滑化ができなくなるので, まず平滑化の前に平均を求める.
         RadianAverage ra;
         vector<cv::Point2f> angles;
@@ -967,7 +967,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           first = false;
         }
       }
-#if 1
+#if 0
       static int cnt = 0;
       cnt++;
       int index = 0;
