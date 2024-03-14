@@ -501,7 +501,8 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
   };
   map<int, Line> vlines;
   map<int, Line> hlines;
-  if (s.clusters.size() > 1) {
+  map<pair<int, int>, cv::Point2f> grids;
+  if (!s.clusters.empty()) {
     // s.clusters の 2 番目以降について, s.clusters[0] にマージできないか調べる.
     deque<map<pair<int, int>, set<shared_ptr<Lattice>>>> clusters = s.clusters;
     s.clusters.clear();
@@ -523,7 +524,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
       int const dy = std::max(9 - (maxY - minY + 1), 1);
 
       // cluster[k] との比較用に, 各格子の中心座標を計算する.
-      map<pair<int, int>, cv::Point2f> grids;
+      grids.clear();
       // まずは既に content が存在している lattice の座標を埋める.
       for (auto const &i : largest) {
         auto [x, y] = i.first;
@@ -636,7 +637,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         }
       }
       // フィッティングした直線の傾きを平滑化する
-      static auto Equalize = [](map<int, Line> &lines, int extra) {
+      static auto Equalize_ = [](map<int, Line> &lines, int extra) {
         // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの平滑化ができなくなるので, 45 度付近できるよう, まず平均を求める.
         RadianAverage ra;
         vector<cv::Point2f> angles;
@@ -740,6 +741,108 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         }
         result.swap(lines);
       };
+      static auto Equalize = [](map<int, Line> &lines, int extra) {
+        // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの平滑化ができなくなるので, まず平滑化の前に平均を求める.
+        RadianAverage ra;
+        vector<cv::Point2f> angles;
+        int vmin = numeric_limits<int>::max();
+        int vmax = numeric_limits<int>::min();
+        for (auto const &it : lines) {
+          vmin = std::min(vmin, it.first);
+          vmax = std::max(vmax, it.first);
+          float v = it.first;
+          float angle = atan2(it.second.line[1], it.second.line[0]);
+          while (angle < 0) {
+            angle += pi * 2;
+          }
+          while (angle > pi * 2) {
+            angle -= pi * 2;
+          }
+          if (angle > pi) {
+            angle -= pi;
+          }
+          ra.push(angle);
+          angles.push_back(cv::Point2f(v, angle));
+        }
+        float mean = ra.get();
+        float offset = pi - mean;
+        float minAngle = numeric_limits<float>::max();
+        float maxAngle = numeric_limits<float>::lowest();
+        for (size_t i = 0; i < angles.size(); i++) {
+          float angle = angles[i].y + offset;
+          while (angle < 0) {
+            angle += pi * 2;
+          }
+          while (angle > pi * 2) {
+            angle -= pi * 2;
+          }
+          minAngle = std::min(minAngle, float(angle * 180 / pi));
+          maxAngle = std::max(maxAngle, float(angle * 180 / pi));
+          angles[i].y = angle;
+        }
+        if (maxAngle - minAngle >= 30) {
+          return;
+        }
+        auto fit = FitLine(angles);
+        if (!fit) {
+          return;
+        }
+        map<int, Line> result;
+        vector<tuple<int, float, Line>> k;
+        // 消失点をフィッティング対象にする.
+        // https://gyazo.com/ea4c192304cfdca85e0168cadc4c7827
+        float r = 0;
+        float s = 0;
+        float u = 0;
+        float w = 0;
+        float q = 0;
+        for (auto const &it : lines) {
+          float v = it.first;
+          Line line = it.second;
+          auto angle = YFromX(*fit, it.first);
+          if (!angle) {
+            result[it.first] = line;
+            continue;
+          }
+          // offset 回転させているので, *angle はだいたい 180 度付近になっている.
+          float m = tan(*angle);
+          if (!(m == 0 || isnormal(m))) {
+            result[it.first] = line;
+            continue;
+          }
+          float n = line.points.size();
+          for (auto const &p : line.points) {
+            float x = cos(offset) * p.x - sin(offset) * p.y;
+            float y = sin(offset) * p.x + cos(offset) * p.y;
+            u += y - m * x;
+            w += (y - m * x) * m;
+          }
+          q += m * m * n;
+          r += n;
+          s += m * n;
+          k.push_back(make_tuple(it.first, *angle, line));
+        }
+        float ax = (s * u / r - w) / (q - s * s / r);
+        float ay = (u + s * ax) / r;
+        for (auto const &it : k) {
+          auto [v, angle, line] = it;
+          line.line = cv::Vec4f(cos(angle - offset), sin(angle - offset), cos(-offset) * ax - sin(-offset) * ay, sin(-offset) * ax + cos(-offset) * ay);
+          result[v] = line;
+        }
+        for (int v = vmin - extra; v <= vmax + extra; v++) {
+          if (result.find(v) != result.end()) {
+            continue;
+          }
+          auto angle = YFromX(*fit, v);
+          if (!angle) {
+            continue;
+          }
+          Line line;
+          line.line = cv::Vec4f(cos(*angle - offset), sin(*angle - offset), cos(-offset) * ax - sin(-offset) * ay, sin(-offset) * ax + cos(-offset) * ay);
+          result[v] = line;
+        }
+        result.swap(lines);
+      };
       Equalize(hlines, dy);
       Equalize(vlines, dx);
       // フィッティングした直線を元に足りていない点を交点を計算することで補う
@@ -762,58 +865,6 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           }
         }
       }
-
-#if 0
-      static int cnt = 0;
-      cnt++;
-      int index = 0;
-      cv::Mat img(s.height * 2, s.width * 2, CV_8UC3, cv::Scalar::all(255));
-      for (auto const &it : largest) {
-        for (auto const &c : it.second) {
-          if (c->content->index() == 0) {
-            auto sq = get<0>(*c->content);
-            vector<cv::Point> points;
-            for (auto p : sq->points) {
-              points.push_back(cv::Point(p.x * 2, p.y * 2));
-            }
-            cv::polylines(img, points, true, cv::Scalar(0, 0, 255));
-          } else {
-            auto piece = get<1>(*c->content);
-            vector<cv::Point> points;
-            for (auto p : piece->points) {
-              points.push_back(cv::Point(p.x * 2, p.y * 2));
-            }
-            cv::polylines(img, points, true, cv::Scalar(255, 0, 0));
-          }
-        }
-      }
-      for (auto const &it : grids) {
-        cv::circle(img, cv::Point2f(it.second.x * 2, it.second.y * 2), distanceTh * 2 / 2, cv::Scalar(0, 0, 255));
-      }
-      for (auto const &it : vlines) {
-        cv::Point2f center(it.second.line[2], it.second.line[3]);
-        cv::Point2f dir(it.second.line[0], it.second.line[1]);
-        dir = dir / cv::norm(dir);
-        cv::Point2f from = center + s.height * 2 * dir;
-        cv::Point2f to = center - s.height * 2 * dir;
-        vector<cv::Point> points;
-        points.push_back(from * 2);
-        points.push_back(to * 2);
-        cv::polylines(img, points, false, cv::Scalar(255, 0, 0));
-      }
-      for (auto const &it : hlines) {
-        cv::Point2f center(it.second.line[2], it.second.line[3]);
-        cv::Point2f dir(it.second.line[0], it.second.line[1]);
-        dir = dir / cv::norm(dir);
-        cv::Point2f from = center + s.width * 2 * dir;
-        cv::Point2f to = center - s.width * 2 * dir;
-        vector<cv::Point> points;
-        points.push_back(from * 2);
-        points.push_back(to * 2);
-        cv::polylines(img, points, false, cv::Scalar(0, 255, 0));
-      }
-      cout << "b64png(grids_" << format("{:%04d}", cnt) << "):" << base64::to_base64(Img::EncodeToPng(img)) << endl;
-#endif
 
       // 以上の計算を largest に対して最初に 1 回だけ行っても良いかもしれないが, k = 2 以降でマージした結果を流用したいので毎回の k で計算する.
 
@@ -883,10 +934,13 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
     }
     if (!s.clusters.empty() && !vlines.empty()) {
       deque<map<pair<int, int>, set<shared_ptr<Lattice>>>> clusters;
+      map<pair<int, int>, cv::Point2f> tmpGrids;
       s.clusters.swap(clusters);
+      grids.swap(tmpGrids);
       // clusters[0] の y 方向の向きが s.boardDirection と一致しているか調べる. 一致していなければ y 方向を反転させる
       double angle = atan2(vlines[0].line[1], vlines[0].line[0]);
       if (cos(angle - s.boardDirection) < 0) {
+        bool first = true;
         for (auto const &cluster : clusters) {
           int minX, maxX, minY, maxY;
           minX = minY = numeric_limits<int>::max();
@@ -904,8 +958,74 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
             c[make_pair(maxX + minX - x, maxY + minY - y)] = i.second;
           }
           s.clusters.push_back(c);
+          if (first) {
+            for (auto const &it : tmpGrids) {
+              auto [x, y] = it.first;
+              grids[make_pair(maxX + minX - x, maxY + minY - y)] = it.second;
+            }
+          }
+          first = false;
         }
       }
+#if 1
+      static int cnt = 0;
+      cnt++;
+      int index = 0;
+      cv::Mat img(s.height * 2, s.width * 2, CV_8UC3, cv::Scalar::all(255));
+      for (auto const &it : largest) {
+        for (auto const &c : it.second) {
+          if (c->content->index() == 0) {
+            auto sq = get<0>(*c->content);
+            vector<cv::Point> points;
+            for (auto p : sq->points) {
+              points.push_back(cv::Point(p.x * 2, p.y * 2));
+            }
+            cv::polylines(img, points, true, cv::Scalar(0, 0, 255));
+          } else {
+            auto piece = get<1>(*c->content);
+            vector<cv::Point> points;
+            for (auto p : piece->points) {
+              points.push_back(cv::Point(p.x * 2, p.y * 2));
+            }
+            cv::polylines(img, points, true, cv::Scalar(255, 0, 0));
+          }
+        }
+      }
+      for (auto const &it : grids) {
+        cv::circle(img, cv::Point2f(it.second.x * 2, it.second.y * 2), distanceTh * 2 / 2, cv::Scalar(0, 0, 255));
+      }
+      for (auto const &it : vlines) {
+        auto y = YFromX(it.second.line, s.width / 2);
+        if (!y) {
+          continue;
+        }
+        cv::Point2f center(s.width / 2, *y);
+        cv::Point2f dir(it.second.line[0], it.second.line[1]);
+        dir = dir / cv::norm(dir);
+        cv::Point2f from = center + s.height * 10 * dir;
+        cv::Point2f to = center - s.height * 10 * dir;
+        vector<cv::Point> points;
+        points.push_back(from * 2);
+        points.push_back(to * 2);
+        cv::polylines(img, points, false, cv::Scalar(255, 0, 0));
+      }
+      for (auto const &it : hlines) {
+        auto y = YFromX(it.second.line, s.width / 2);
+        if (!y) {
+          continue;
+        }
+        cv::Point2f center(s.width / 2, *y);
+        cv::Point2f dir(it.second.line[0], it.second.line[1]);
+        dir = dir / cv::norm(dir);
+        cv::Point2f from = center + s.width * 10 * dir;
+        cv::Point2f to = center - s.width * 10 * dir;
+        vector<cv::Point> points;
+        points.push_back(from * 2);
+        points.push_back(to * 2);
+        cv::polylines(img, points, false, cv::Scalar(0, 255, 0));
+      }
+      cout << "b64png(grids_" << cv::format("%04d", cnt) << "):" << base64::to_base64(Img::EncodeToPng(img)) << endl;
+#endif
     }
 #if 0
     static int cnt = 0;
@@ -941,7 +1061,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           break;
         }
       }
-      cout << "b64png(sample_" << format("{:%04d}", cnt) << "_" << index << "):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
+      cout << "b64png(sample_" << cv::format("%04d", cnt) << "_" << index << "):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
     }
 #endif
   }
