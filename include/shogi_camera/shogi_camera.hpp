@@ -784,13 +784,13 @@ struct Game {
   void generate(std::deque<Move> &moves) const;
 };
 
-class AI {
+class Player {
 public:
-  virtual ~AI() {}
+  virtual ~Player() {}
   virtual std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) = 0;
 };
 
-class RandomAI : public AI {
+class RandomAI : public Player {
 public:
   RandomAI();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
@@ -799,13 +799,24 @@ private:
   std::unique_ptr<std::mt19937_64> engine;
 };
 
-class Sunfish3AI : public AI {
+class Sunfish3AI : public Player {
 public:
   Sunfish3AI();
   ~Sunfish3AI();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
 
   static void RunTests();
+
+private:
+  struct Impl;
+  std::unique_ptr<Impl> impl;
+};
+
+class CsaAdapter : public Player {
+public:
+  CsaAdapter(std::string const &server, int port, std::string const &username, std::string const &password);
+  ~CsaAdapter();
+  std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
 
 private:
   struct Impl;
@@ -974,8 +985,8 @@ struct Statistics {
 };
 
 struct Players {
-  std::shared_ptr<AI> black;
-  std::shared_ptr<AI> white;
+  std::shared_ptr<Player> black;
+  std::shared_ptr<Player> white;
 };
 
 class Session {
@@ -983,7 +994,7 @@ public:
   Session();
   ~Session();
   void push(cv::Mat const &frame);
-  void setPlayers(std::shared_ptr<AI> black, std::shared_ptr<AI> white) {
+  void setPlayers(std::shared_ptr<Player> black, std::shared_ptr<Player> white) {
     if (!game.moves.empty() || players) {
       return;
     }

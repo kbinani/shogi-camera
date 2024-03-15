@@ -78,16 +78,16 @@ SessionWrapper::SessionWrapper() : ptr(std::make_shared<Session>()) {
 }
 
 void SessionWrapper::startGame(Color userColor, int aiLevel) {
-  std::shared_ptr<AI> ai;
+  std::shared_ptr<Player> player;
   if (aiLevel == 0) {
-    ai = std::make_shared<RandomAI>();
+    player = std::make_shared<RandomAI>();
   } else {
-    ai = std::make_shared<Sunfish3AI>();
+    player = std::make_shared<Sunfish3AI>();
   }
   if (userColor == Color::White) {
-    ptr->setPlayers(ai, nullptr);
+    ptr->setPlayers(player, nullptr);
   } else {
-    ptr->setPlayers(nullptr, ai);
+    ptr->setPlayers(nullptr, player);
   }
 }
 
