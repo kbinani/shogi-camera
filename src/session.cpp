@@ -1363,4 +1363,13 @@ void Session::startGame(GameStartParameter p) {
   }
 }
 
+void Session::csaAdapterDidProvidePosition(Game const &g) {
+  game = g;
+  s->game = g;
+}
+
+void Session::csaAdapterDidGetError(std::u8string const &what) {
+  // TODO:
+}
+
 } // namespace sci

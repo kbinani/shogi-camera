@@ -32,7 +32,7 @@ void StringValueFromPossible(string const &msg, string const &key, optional<stri
   }
 }
 
-optional<PieceUnderlyingType> PieceTypeFromString(string const &p) {
+optional<PieceUnderlyingType> PieceTypeFromCsaString(string const &p) {
   if (p == "FU") {
     return static_cast<PieceUnderlyingType>(PieceType::Pawn);
   } else if (p == "KY") {
@@ -64,6 +64,53 @@ optional<PieceUnderlyingType> PieceTypeFromString(string const &p) {
   } else {
     return nullopt;
   }
+}
+
+optional<string> CsaStringFromPiece(Piece p, int promote) {
+  bool promoted = IsPromotedPiece(p);
+  auto type = PieceTypeFromPiece(p);
+  if (type == PieceType::Pawn) {
+    if (promoted || promote == 1) {
+      return "TO";
+    } else {
+      return "FU";
+    }
+  } else if (type == PieceType::Lance) {
+    if (promoted || promote == 1) {
+      return "NY";
+    } else {
+      return "KY";
+    }
+  } else if (type == PieceType::Knight) {
+    if (promoted || promote == 1) {
+      return "NK";
+    } else {
+      return "KE";
+    }
+  } else if (type == PieceType::Silver) {
+    if (promoted || promote == 1) {
+      return "NG";
+    } else {
+      return "GI";
+    }
+  } else if (type == PieceType::Gold) {
+    return "KI";
+  } else if (type == PieceType::Bishop) {
+    if (promoted || promote == 1) {
+      return "UM";
+    } else {
+      return "KA";
+    }
+  } else if (type == PieceType::Rook) {
+    if (promoted || promote == 1) {
+      return "RY";
+    } else {
+      return "HI";
+    }
+  } else if (type == PieceType::King) {
+    return "OU";
+  }
+  return nullopt;
 }
 } // namespace
 
@@ -113,7 +160,13 @@ void CsaAdapter::onmessage(string const &msg) {
         }
       }
     } else if (type == "Position") {
-      init = positionReceiver.validate();
+      if (auto init = positionReceiver.validate(); init) {
+        this->init = init;
+        game = init->first;
+        if (delegate) {
+          delegate->csaAdapterDidProvidePosition(init->first);
+        }
+      }
       // TODO: 途中局面から開始の場合
     }
     stack.pop_back();
@@ -186,7 +239,7 @@ void CsaAdapter::onmessage(string const &msg) {
           positionReceiver.error = true;
           break;
         }
-        auto type = PieceTypeFromString(m.substr(2));
+        auto type = PieceTypeFromCsaString(m.substr(2));
         if (!type) {
           positionReceiver.error = true;
           break;
@@ -201,16 +254,125 @@ void CsaAdapter::onmessage(string const &msg) {
         positionReceiver.error = true;
       }
     }
+  } else if (current.empty()) {
+    if (auto start = Take(msg, "START"); start) {
+      started = true;
+    } else if (auto reject = Take(msg, "REJECT"); reject) {
+      rejected = true;
+    } else if (started) {
+      if ((msg.starts_with("+") || msg.starts_with("-")) && msg.size() >= 7) {
+        Color color = Color::Black;
+        if (msg.starts_with("-")) {
+          color = Color::White;
+        }
+        auto fromFile = atoi(msg.substr(1, 1).c_str());
+        auto fromRank = atoi(msg.substr(2, 1).c_str());
+        auto toFile = atoi(msg.substr(3, 1).c_str());
+        auto toRank = atoi(msg.substr(4, 1).c_str());
+        auto piece = PieceTypeFromCsaString(msg.substr(5, 2));
+        if (!piece) {
+          error(u8"指し手を読み取れませんでした");
+          return;
+        }
+        if (!msg.substr(1).starts_with(to_string(fromFile) + to_string(fromRank) + to_string(toFile) + to_string(toRank))) {
+          error(u8"指し手を読み取れませんでした");
+          return;
+        }
+        if (fromFile < 0 || 9 < fromFile || fromRank < 0 || 9 < fromRank || toFile < 1 || 9 < toFile || toRank < 1 || 9 < toRank) {
+          error(u8"指し手を読み取れませんでした");
+          return;
+        }
+        if ((fromFile == 0 && fromRank != 0) || (fromFile != 0 && fromRank == 0)) {
+          error(u8"指し手を読み取れませんでした");
+          return;
+        }
+        Move mv;
+        mv.color = color;
+        mv.piece = *piece | static_cast<PieceUnderlyingType>(color);
+        mv.to = MakeSquare(9 - toFile, toRank - 1);
+        if (fromFile != 0 && fromRank != 0) {
+          Square from = MakeSquare(9 - fromFile, fromRank - 1);
+          Piece existing = game.position.pieces[from.file][from.rank];
+          if (existing == 0) {
+            error(u8"盤上にない駒の移動が指定されました");
+            return;
+          }
+          if (existing == mv.piece) {
+            if (!IsPromotedPiece(mv.piece) && IsPromotableMove(from, mv.to, color)) {
+              mv.promote = -1;
+            }
+          } else {
+            if (Promote(existing) == mv.piece) {
+              mv.promote = 1;
+            } else {
+              error(u8"不正な指し手が指定されました");
+              return;
+            }
+          }
+          mv.from = from;
+        }
+        Piece captured = game.position.pieces[mv.to.file][mv.to.rank];
+        if (captured != 0) {
+          mv.captured = RemoveColorFromPiece(captured);
+        }
+        mv.decideSuffix(game.position);
+
+        lock_guard<mutex> lock(mut);
+        game.apply(mv);
+        moves.push_back(mv);
+        cv.notify_all();
+      }
+    }
   }
 }
 
-std::optional<CsaGameSummary> CsaGameSummary::Receiver::validate() const {
+optional<Move> CsaAdapter::next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+  for (size_t i = this->moves.size(); i < moves.size(); i++) {
+    Move m = moves[i];
+    if (m.color == OpponentColor(color)) {
+      string line;
+      if (m.color == Color::Black) {
+        line += "+";
+      } else {
+        line += "-";
+      }
+      if (m.from) {
+        line += to_string(9 - m.from->file) + to_string(m.from->rank + 1);
+      } else {
+        line += "00";
+      }
+      line += to_string(9 - m.to.file) + to_string(m.to.rank + 1);
+      auto p = CsaStringFromPiece(m.piece, m.promote);
+      if (!p) {
+        error(u8"指し手をcsa形式に変換できませんでした");
+        return nullopt;
+      }
+      line += *p;
+      send(line);
+    }
+  }
+  unique_lock<mutex> lock(mut);
+  cv.wait(lock, [&]() {
+    return this->moves.size() == moves.size() + 1;
+  });
+  Move mv = this->moves.back();
+  lock.unlock();
+  return mv;
+}
+
+void CsaAdapter::error(std::u8string const &what) {
+  if (delegate) {
+    delegate->csaAdapterDidGetError(what);
+  }
+}
+
+optional<CsaGameSummary> CsaGameSummary::Receiver::validate() const {
   CsaGameSummary r;
   if (!protocolVersion) {
-    return std::nullopt;
+    return nullopt;
   }
   if (!format) {
-    return std::nullopt;
+    return nullopt;
   }
   r.format = *format;
   r.protocolVersion = *protocolVersion;
@@ -218,20 +380,20 @@ std::optional<CsaGameSummary> CsaGameSummary::Receiver::validate() const {
   r.declaration = declaration;
   r.gameId = gameId;
   if (!playerNameBlack) {
-    return std::nullopt;
+    return nullopt;
   }
   r.playerNameBlack = *playerNameBlack;
   if (!playerNameWhite) {
-    return std::nullopt;
+    return nullopt;
   }
   r.playerNameWhite = *playerNameWhite;
   if (!yourTurn) {
-    return std::nullopt;
+    return nullopt;
   }
   r.yourTurn = *yourTurn;
   r.rematchOnDraw = rematchOnDraw;
   if (!toMove) {
-    return std::nullopt;
+    return nullopt;
   }
   r.toMove = *toMove;
   r.maxMoves = maxMoves;
@@ -328,7 +490,7 @@ optional<pair<Game, Color>> CsaPositionReceiver::validate() const {
       } else {
         return nullopt;
       }
-      auto type = PieceTypeFromString(item.substr(1));
+      auto type = PieceTypeFromCsaString(item.substr(1));
       if (!type) {
         return nullopt;
       }

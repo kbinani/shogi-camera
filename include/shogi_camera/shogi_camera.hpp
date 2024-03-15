@@ -42,6 +42,14 @@ enum class Color : PieceUnderlyingType {
   White = 0b100000, // 後手
 };
 
+inline Color OpponentColor(Color color) {
+  if (color == Color::Black) {
+    return Color::White;
+  } else {
+    return Color::Black;
+  }
+}
+
 // 0 を先手の最初の手として, i 番目の手がどちらの手番か.
 inline Color ColorFromIndex(size_t i) {
   return i % 2 == 0 ? Color::Black : Color::White;
@@ -861,6 +869,12 @@ struct CsaServerParameter {
 
 class CsaAdapter : public Player {
 public:
+  struct Delegate {
+    virtual ~Delegate() {}
+    virtual void csaAdapterDidProvidePosition(Game const &g) = 0;
+    virtual void csaAdapterDidGetError(std::u8string const &what) = 0;
+  };
+
   CsaAdapter(Color color, CsaServerParameter parameter);
   ~CsaAdapter();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
@@ -868,9 +882,22 @@ public:
   void send(std::string const &);
 
 private:
+  void error(std::u8string const &what);
+
+public:
+  std::shared_ptr<Delegate> delegate;
+
+private:
   std::deque<std::string> stack;
   std::string current;
   Color color;
+  bool started = false;
+  bool rejected = false;
+
+  std::condition_variable cv;
+  std::mutex mut;
+  std::deque<Move> moves;
+  Game game;
 
   CsaPositionReceiver positionReceiver;
   CsaGameSummary::Receiver summaryReceiver;
@@ -1054,7 +1081,7 @@ struct GameStartParameter {
   std::variant<int, CsaServerParameter> parameter;
 };
 
-class Session {
+class Session : public CsaAdapter::Delegate {
 public:
   Session();
   ~Session();
@@ -1068,15 +1095,15 @@ public:
     pp->white = white;
     prePlayers = pp;
   }
-
   Status status() {
     std::shared_ptr<Status> cp = s;
     return *cp;
   }
-
   void startGame(GameStartParameter parameter);
-
   void resign(Color color);
+
+  void csaAdapterDidProvidePosition(Game const &g) override;
+  void csaAdapterDidGetError(std::u8string const &what) override;
 
 private:
   void run();

@@ -161,10 +161,6 @@ struct CsaAdapter::Impl {
     impl = nil;
   }
 
-  optional<Move> next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
-    return nullopt;
-  }
-
   void send(string const &msg) {
     [impl send:msg];
   }
@@ -177,10 +173,6 @@ CsaAdapter::CsaAdapter(Color color, CsaServerParameter parameter) : color(color)
 }
 
 CsaAdapter::~CsaAdapter() {
-}
-
-optional<Move> CsaAdapter::next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
-  return impl->next(p, moves, hand, handEnemy);
 }
 
 void CsaAdapter::send(std::string const &msg) {
