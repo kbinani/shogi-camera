@@ -826,39 +826,7 @@ struct CsaGameSummary {
     std::optional<Color> toMove;
     std::optional<int> maxMoves;
 
-    std::optional<CsaGameSummary> validate() const {
-      CsaGameSummary r;
-      if (!protocolVersion) {
-        return std::nullopt;
-      }
-      if (!format) {
-        return std::nullopt;
-      }
-      r.format = *format;
-      r.protocolVersion = *protocolVersion;
-      r.protocolMode = protocolMode;
-      r.declaration = declaration;
-      r.gameId = gameId;
-      if (!playerNameBlack) {
-        return std::nullopt;
-      }
-      r.playerNameBlack = *playerNameBlack;
-      if (!playerNameWhite) {
-        return std::nullopt;
-      }
-      r.playerNameWhite = *playerNameWhite;
-      if (!yourTurn) {
-        return std::nullopt;
-      }
-      r.yourTurn = *yourTurn;
-      r.rematchOnDraw = rematchOnDraw;
-      if (!toMove) {
-        return std::nullopt;
-      }
-      r.toMove = *toMove;
-      r.maxMoves = maxMoves;
-      return r;
-    }
+    std::optional<CsaGameSummary> validate() const;
   };
 
   std::string protocolVersion;
@@ -874,6 +842,16 @@ struct CsaGameSummary {
   std::optional<int> maxMoves;
 };
 
+struct CsaPositionReceiver {
+  std::optional<std::string> i;
+  std::map<int, std::string> ranks;
+  std::map<std::tuple<Color, int, int>, PieceUnderlyingType> pieces;
+  std::optional<Color> next;
+  bool error = false;
+
+  std::optional<Game> validate() const;
+};
+
 class CsaAdapter : public Player {
 public:
   CsaAdapter(std::string const &server, uint32_t port, std::string const &username, std::string const &password);
@@ -886,8 +864,10 @@ private:
   std::deque<std::string> stack;
   std::string current;
 
+  CsaPositionReceiver positionReceiver;
   CsaGameSummary::Receiver summaryReceiver;
   std::optional<CsaGameSummary> summary;
+  std::optional<Game> init;
   struct Impl;
   std::unique_ptr<Impl> impl;
 };
