@@ -7,22 +7,26 @@
 using namespace std;
 
 @interface CsaAdapterImpl : NSObject <NSStreamDelegate> {
+  sci::CsaAdapter *owner;
   NSInputStream *inputStream;
   NSOutputStream *outputStream;
-  u8string username;
-  u8string password;
+  string username;
+  string password;
   string received;
   int ready;
+  deque<string> stack;
+  string current;
 }
 @end
 
 @implementation CsaAdapterImpl
 
-- (id)initWithServer:(u8string)server port:(uint32_t)port username:(u8string)username password:(u8string)password {
+- (id)initWithOwner:(sci::CsaAdapter *)owner server:(string)server port:(uint32_t)port username:(string)username password:(string)password {
   if (self = [super init]) {
     self->username = username;
     self->password = password;
     self->ready = 0;
+    self->owner = owner;
 
     CFStringRef cfServer = CFStringCreateWithCString(kCFAllocatorDefault, (char const *)server.c_str(), kCFStringEncodingUTF8);
     CFReadStreamRef readStream;
@@ -42,13 +46,14 @@ using namespace std;
   return self;
 }
 
-- (void)send:(u8string)message {
-  message += u8"\x0a";
+- (void)send:(string)message {
+  message += "\x0a";
   [outputStream write:(uint8_t const *)message.c_str() maxLength:message.size()];
 }
 
 - (void)onMessage:(string)msg {
   NSLog(@"csa:message:%s", msg.c_str());
+  owner->onmessage(msg);
 }
 
 - (void)deinit {
@@ -71,7 +76,6 @@ using namespace std;
     break;
   }
   case NSStreamEventHasBytesAvailable: {
-    NSLog(@"NSStreamEventHasBytesAvailable");
     if (strm == inputStream) {
       string buffer(1024, 0);
       while ([inputStream hasBytesAvailable]) {
@@ -80,22 +84,13 @@ using namespace std;
           received.append(buffer.data(), read);
         }
       }
-      size_t offset = 0;
-      for (size_t i = 0; i < received.length(); i++) {
-        if (received[i] == '\x0a') {
-          string line = received.substr(offset, i - offset);
-          offset = i + 1;
-          [self onMessage:line];
-        }
-      }
-      received = received.substr(offset);
+      [self flush];
     }
     break;
   }
   case NSStreamEventHasSpaceAvailable: {
-    NSLog(@"NSStreamEventHasSpaceAvailable");
     if (ready == 2) {
-      [self send:u8"LOGIN " + username + u8" " + password];
+      [self send:"LOGIN " + username + " " + password];
       ready++;
     }
     break;
@@ -105,15 +100,30 @@ using namespace std;
     break;
   }
   case NSStreamEventEndEncountered: {
-    NSLog(@"NSStreamEventEndEncountered");
     [strm close];
     [strm removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+    [self flush];
+    if (!received.empty()) {
+      [self onMessage:received];
+    }
     break;
   }
   default:
-    NSLog(@"Unknown event:%d", event);
+    NSLog(@"Unknown event:%lu", event);
     break;
   }
+}
+
+- (void)flush {
+  size_t offset = 0;
+  for (size_t i = 0; i < received.length(); i++) {
+    if (received[i] == '\x0a') {
+      string line = received.substr(offset, i - offset);
+      offset = i + 1;
+      [self onMessage:line];
+    }
+  }
+  received = received.substr(offset);
 }
 @end
 
@@ -136,8 +146,8 @@ void *Utility::UIImageFromMat(cv::Mat const &m) {
 }
 
 struct CsaAdapter::Impl {
-  Impl(u8string const &server, uint32_t port, u8string const &username, u8string const &password) {
-    impl = [[CsaAdapterImpl alloc] initWithServer:server port:port username:username password:password];
+  Impl(CsaAdapter *owner, string const &server, uint32_t port, string const &username, string const &password) : owner(owner) {
+    impl = [[CsaAdapterImpl alloc] initWithOwner:owner server:server port:port username:username password:password];
   }
 
   ~Impl() {
@@ -148,10 +158,15 @@ struct CsaAdapter::Impl {
     return nullopt;
   }
 
+  void send(string const &msg) {
+    [impl send:msg];
+  }
+
+  CsaAdapter *const owner;
   CsaAdapterImpl *impl;
 };
 
-CsaAdapter::CsaAdapter(u8string const &server, uint32_t port, u8string const &username, u8string const &password) : impl(make_unique<Impl>(server, port, username, password)) {
+CsaAdapter::CsaAdapter(string const &server, uint32_t port, string const &username, string const &password) : impl(make_unique<Impl>(this, server, port, username, password)) {
 }
 
 CsaAdapter::~CsaAdapter() {
@@ -159,6 +174,10 @@ CsaAdapter::~CsaAdapter() {
 
 optional<Move> CsaAdapter::next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
   return impl->next(p, moves, hand, handEnemy);
+}
+
+void CsaAdapter::send(std::string const &msg) {
+  impl->send(msg);
 }
 
 } // namespace sci

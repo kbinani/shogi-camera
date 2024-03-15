@@ -74,17 +74,17 @@ std::optional<cv::Point2f> Contour::direction(float length) const {
 Status::Status() {
 }
 
-//TODO:debug
+// TODO:debug
 static std::shared_ptr<CsaAdapter> sA;
 
 SessionWrapper::SessionWrapper() : ptr(std::make_shared<Session>()) {
-  sA = std::make_shared<CsaAdapter>(u8"192.168.1.33", 4081, u8"ShogiCameraApp", u8"bar");//TODO:debug
+  sA = std::make_shared<CsaAdapter>("192.168.1.33", 4081, "ShogiCameraApp", "bar"); // TODO:debug
 }
 
 void SessionWrapper::startGame(Color userColor, int aiLevel) {
   std::shared_ptr<Player> player;
   if (aiLevel == 0) {
-    player = std::make_shared<CsaAdapter>(u8"192.168.1.33", 4081, u8"ShogiCameraApp", u8"bar");
+    player = std::make_shared<CsaAdapter>("192.168.1.33", 4081, "ShogiCameraApp", "bar");
   } else {
     player = std::make_shared<Sunfish3AI>();
   }

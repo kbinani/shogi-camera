@@ -812,13 +812,82 @@ private:
   std::unique_ptr<Impl> impl;
 };
 
+struct CsaGameSummary {
+  struct Receiver {
+    std::optional<std::string> protocolVersion;
+    std::optional<std::string> protocolMode;
+    std::optional<std::string> format;
+    std::optional<std::string> declaration;
+    std::optional<std::string> gameId;
+    std::optional<std::string> playerNameBlack;
+    std::optional<std::string> playerNameWhite;
+    std::optional<Color> yourTurn;
+    std::optional<bool> rematchOnDraw;
+    std::optional<Color> toMove;
+    std::optional<int> maxMoves;
+
+    std::optional<CsaGameSummary> validate() const {
+      CsaGameSummary r;
+      if (!protocolVersion) {
+        return std::nullopt;
+      }
+      if (!format) {
+        return std::nullopt;
+      }
+      r.format = *format;
+      r.protocolVersion = *protocolVersion;
+      r.protocolMode = protocolMode;
+      r.declaration = declaration;
+      r.gameId = gameId;
+      if (!playerNameBlack) {
+        return std::nullopt;
+      }
+      r.playerNameBlack = *playerNameBlack;
+      if (!playerNameWhite) {
+        return std::nullopt;
+      }
+      r.playerNameWhite = *playerNameWhite;
+      if (!yourTurn) {
+        return std::nullopt;
+      }
+      r.yourTurn = *yourTurn;
+      r.rematchOnDraw = rematchOnDraw;
+      if (!toMove) {
+        return std::nullopt;
+      }
+      r.toMove = *toMove;
+      r.maxMoves = maxMoves;
+      return r;
+    }
+  };
+
+  std::string protocolVersion;
+  std::optional<std::string> protocolMode;
+  std::string format;
+  std::optional<std::string> declaration;
+  std::optional<std::string> gameId;
+  std::string playerNameBlack;
+  std::string playerNameWhite;
+  Color yourTurn;
+  std::optional<bool> rematchOnDraw;
+  Color toMove;
+  std::optional<int> maxMoves;
+};
+
 class CsaAdapter : public Player {
 public:
-  CsaAdapter(std::u8string const &server, uint32_t port, std::u8string const &username, std::u8string const &password);
+  CsaAdapter(std::string const &server, uint32_t port, std::string const &username, std::string const &password);
   ~CsaAdapter();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+  void onmessage(std::string const &);
+  void send(std::string const &);
 
 private:
+  std::deque<std::string> stack;
+  std::string current;
+
+  CsaGameSummary::Receiver summaryReceiver;
+  std::optional<CsaGameSummary> summary;
   struct Impl;
   std::unique_ptr<Impl> impl;
 };
