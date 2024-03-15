@@ -69,11 +69,11 @@ optional<PieceUnderlyingType> PieceTypeFromString(string const &p) {
 
 #if !defined(__APPLE__)
 struct CsaAdapter::Impl {
-  Impl(string const &server, uint32_t port, string const &username, string const &password) {
+  Impl(Color color, string const &server, uint32_t port, string const &username, string const &password) {
   }
 };
 
-CsaAdapter::CsaAdapter(string const &server, uint32_t port, string const &username, string const &password) : impl(make_unique<Impl>(server, port, username, password)) {
+CsaAdapter::CsaAdapter(Color color, string const &server, uint32_t port, string const &username, string const &password) : color(color), impl(make_unique<Impl>(color, server, port, username, password)) {
 }
 
 CsaAdapter::~CsaAdapter() {
@@ -99,9 +99,22 @@ void CsaAdapter::onmessage(string const &msg) {
       return;
     }
     if (type == "Game_Summary") {
-      summary = summaryReceiver.validate();
+      if (auto summary = summaryReceiver.validate(); summary) {
+        Color expected = color == Color::Black ? Color::White : Color::Black;
+        string gameId;
+        if (summary->gameId) {
+          gameId = " " + *summary->gameId;
+        }
+        if (summary->yourTurn != expected) {
+          send("REJECT" + gameId);
+        } else {
+          this->summary = summary;
+          send("AGREE" + gameId);
+        }
+      }
     } else if (type == "Position") {
       init = positionReceiver.validate();
+      // TODO: 途中局面から開始の場合
     }
     stack.pop_back();
     if (stack.empty()) {
@@ -225,11 +238,14 @@ std::optional<CsaGameSummary> CsaGameSummary::Receiver::validate() const {
   return r;
 }
 
-std::optional<Game> CsaPositionReceiver::validate() const {
+optional<pair<Game, Color>> CsaPositionReceiver::validate() const {
   if (error) {
     return nullopt;
   }
   if (i != nullopt && !ranks.empty()) {
+    return nullopt;
+  }
+  if (!next) {
     return nullopt;
   }
   Game g;
@@ -385,7 +401,7 @@ std::optional<Game> CsaPositionReceiver::validate() const {
       }
     }
   }
-  return g;
+  return make_pair(g, *next);
 }
 
 } // namespace sci

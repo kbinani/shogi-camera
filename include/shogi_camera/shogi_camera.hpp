@@ -849,12 +849,12 @@ struct CsaPositionReceiver {
   std::optional<Color> next;
   bool error = false;
 
-  std::optional<Game> validate() const;
+  std::optional<std::pair<Game, Color>> validate() const;
 };
 
 class CsaAdapter : public Player {
 public:
-  CsaAdapter(std::string const &server, uint32_t port, std::string const &username, std::string const &password);
+  CsaAdapter(Color color, std::string const &server, uint32_t port, std::string const &username, std::string const &password);
   ~CsaAdapter();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   void onmessage(std::string const &);
@@ -863,11 +863,13 @@ public:
 private:
   std::deque<std::string> stack;
   std::string current;
+  Color color;
 
   CsaPositionReceiver positionReceiver;
   CsaGameSummary::Receiver summaryReceiver;
   std::optional<CsaGameSummary> summary;
-  std::optional<Game> init;
+  // 初期局面と手番
+  std::optional<std::pair<Game, Color>> init;
   struct Impl;
   std::unique_ptr<Impl> impl;
 };
