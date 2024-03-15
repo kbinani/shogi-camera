@@ -1372,4 +1372,18 @@ void Session::csaAdapterDidGetError(std::u8string const &what) {
   // TODO:
 }
 
+void Session::csaAdapterDidFinishGame(CsaAdapter::GameResult result) {
+  switch (result) {
+  case CsaAdapter::GameResult::BlackWin:
+    resign(Color::White);
+    break;
+  case CsaAdapter::GameResult::WhiteWin:
+    resign(Color::Black);
+    break;
+  case CsaAdapter::GameResult::Abort:
+    stop = true;
+    break;
+  }
+}
+
 } // namespace sci

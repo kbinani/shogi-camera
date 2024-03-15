@@ -869,10 +869,17 @@ struct CsaServerParameter {
 
 class CsaAdapter : public Player {
 public:
+  enum class GameResult {
+    BlackWin,
+    WhiteWin,
+    Abort,
+  };
+
   struct Delegate {
     virtual ~Delegate() {}
     virtual void csaAdapterDidProvidePosition(Game const &g) = 0;
     virtual void csaAdapterDidGetError(std::u8string const &what) = 0;
+    virtual void csaAdapterDidFinishGame(GameResult) = 0;
   };
 
   CsaAdapter(Color color, CsaServerParameter parameter);
@@ -1104,6 +1111,7 @@ public:
 
   void csaAdapterDidProvidePosition(Game const &g) override;
   void csaAdapterDidGetError(std::u8string const &what) override;
+  void csaAdapterDidFinishGame(CsaAdapter::GameResult) override;
 
 private:
   void run();

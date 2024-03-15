@@ -321,6 +321,26 @@ void CsaAdapter::onmessage(string const &msg) {
         game.apply(mv);
         moves.push_back(mv);
         cv.notify_all();
+      } else if (msg.starts_with("#WIN")) {
+        if (delegate) {
+          if (color == Color::Black) {
+            delegate->csaAdapterDidFinishGame(GameResult::BlackWin);
+          } else {
+            delegate->csaAdapterDidFinishGame(GameResult::WhiteWin);
+          }
+        }
+      } else if (msg.starts_with("#LOSE")) {
+        if (delegate) {
+          if (color == Color::Black) {
+            delegate->csaAdapterDidFinishGame(GameResult::WhiteWin);
+          } else {
+            delegate->csaAdapterDidFinishGame(GameResult::BlackWin);
+          }
+        }
+      } else if (msg.starts_with("#CHUDAN")) {
+        if (delegate) {
+          delegate->csaAdapterDidFinishGame(GameResult::Abort);
+        }
       }
     }
   }
