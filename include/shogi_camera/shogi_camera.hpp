@@ -814,7 +814,7 @@ private:
 
 class CsaAdapter : public Player {
 public:
-  CsaAdapter(std::string const &server, int port, std::string const &username, std::string const &password);
+  CsaAdapter(std::u8string const &server, uint32_t port, std::u8string const &username, std::u8string const &password);
   ~CsaAdapter();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
 
