@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# add_definitions(-DSHOGI_CAMERA_DISABLE_HINT=1)
+
 add_subdirectory(deps/sunfish3/src/core EXCLUDE_FROM_ALL)
 target_include_directories(sunfish_core PRIVATE deps/sunfish3/src)
 add_subdirectory(deps/sunfish3/src/searcher EXCLUDE_FROM_ALL)
