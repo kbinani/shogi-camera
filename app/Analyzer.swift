@@ -11,7 +11,7 @@ class Analyzer {
   weak var delegate: AnalyzerDelegate?
 
   private(set) var userColor: sci.Color?
-  private(set) var aiLevel: Int?
+  private(set) var opponentPlayer: String?
   private let queue: DispatchQueue
 
   private var session: sci.SessionWrapper
@@ -88,7 +88,11 @@ class Analyzer {
 
   func startGame(userColor: sci.Color, aiLevel: Int) {
     self.userColor = userColor
-    self.aiLevel = aiLevel
+    if aiLevel == 0 {
+      self.opponentPlayer = "random"
+    } else {
+      self.opponentPlayer = "sunfish3(maxDepth=\(aiLevel))"
+    }
     self.session.startGame(userColor, Int32(aiLevel))
   }
 
@@ -106,7 +110,7 @@ class Analyzer {
     self.session = .init()
     self.status = .init()
     self.userColor = nil
-    self.aiLevel = nil
+    self.opponentPlayer = nil
     self.captureDelegate.reset()
   }
 }

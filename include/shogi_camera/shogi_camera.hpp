@@ -852,9 +852,16 @@ struct CsaPositionReceiver {
   std::optional<std::pair<Game, Color>> validate() const;
 };
 
+struct CsaServerParameter {
+  std::string server;
+  int port;
+  std::string username;
+  std::string password;
+};
+
 class CsaAdapter : public Player {
 public:
-  CsaAdapter(Color color, std::string const &server, uint32_t port, std::string const &username, std::string const &password);
+  CsaAdapter(Color color, CsaServerParameter parameter);
   ~CsaAdapter();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   void onmessage(std::string const &);
@@ -1040,6 +1047,13 @@ struct Players {
   std::shared_ptr<Player> white;
 };
 
+struct GameStartParameter {
+  Color userColor;
+  // 0: random
+  // 1~: sunfish
+  std::variant<int, CsaServerParameter> parameter;
+};
+
 class Session {
 public:
   Session();
@@ -1059,6 +1073,8 @@ public:
     std::shared_ptr<Status> cp = s;
     return *cp;
   }
+
+  void startGame(GameStartParameter parameter);
 
   void resign(Color color);
 
@@ -1132,7 +1148,19 @@ public:
     return ptr->status();
   }
 
-  void startGame(Color userColor, int aiLevel);
+  void startGame(Color userColor, int aiLevel) {
+    GameStartParameter p;
+    p.userColor = userColor;
+    p.parameter = aiLevel;
+    ptr->startGame(p);
+  }
+
+  void startGame(Color userColor, CsaServerParameter parameter) {
+    GameStartParameter p;
+    p.userColor = userColor;
+    p.parameter = parameter;
+    ptr->startGame(p);
+  }
 
   void resign(Color color) {
     ptr->resign(color);

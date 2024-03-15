@@ -69,11 +69,11 @@ optional<PieceUnderlyingType> PieceTypeFromString(string const &p) {
 
 #if !defined(__APPLE__)
 struct CsaAdapter::Impl {
-  Impl(Color color, string const &server, uint32_t port, string const &username, string const &password) {
+  Impl(Color color, CsaServerParameter parameter) {
   }
 };
 
-CsaAdapter::CsaAdapter(Color color, string const &server, uint32_t port, string const &username, string const &password) : color(color), impl(make_unique<Impl>(color, server, port, username, password)) {
+CsaAdapter::CsaAdapter(Color color, CsaServerParameter parameter) : color(color), impl(make_unique<Impl>(color, parameter)) {
 }
 
 CsaAdapter::~CsaAdapter() {

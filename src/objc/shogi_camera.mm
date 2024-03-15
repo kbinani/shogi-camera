@@ -148,8 +148,13 @@ void *Utility::UIImageFromMat(cv::Mat const &m) {
 }
 
 struct CsaAdapter::Impl {
-  Impl(CsaAdapter *owner, Color color, string const &server, uint32_t port, string const &username, string const &password) : owner(owner) {
-    impl = [[CsaAdapterImpl alloc] initWithOwner:owner color:color server:server port:port username:username password:password];
+  Impl(CsaAdapter *owner, Color color, CsaServerParameter parameter) : owner(owner) {
+    impl = [[CsaAdapterImpl alloc] initWithOwner:owner
+                                           color:color
+                                          server:parameter.server
+                                            port:parameter.port
+                                        username:parameter.username
+                                        password:parameter.password];
   }
 
   ~Impl() {
@@ -168,7 +173,7 @@ struct CsaAdapter::Impl {
   CsaAdapterImpl *impl;
 };
 
-CsaAdapter::CsaAdapter(Color color, string const &server, uint32_t port, string const &username, string const &password) : color(color), impl(make_unique<Impl>(this, color, server, port, username, password)) {
+CsaAdapter::CsaAdapter(Color color, CsaServerParameter parameter) : color(color), impl(make_unique<Impl>(this, color, parameter)) {
 }
 
 CsaAdapter::~CsaAdapter() {

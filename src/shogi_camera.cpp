@@ -77,18 +77,4 @@ Status::Status() {
 SessionWrapper::SessionWrapper() : ptr(std::make_shared<Session>()) {
 }
 
-void SessionWrapper::startGame(Color userColor, int aiLevel) {
-  std::shared_ptr<Player> player;
-  if (aiLevel == 0) {
-    player = std::make_shared<CsaAdapter>(userColor == Color::Black ? Color::White : Color::Black, "192.168.1.33", 4081, "ShogiCameraApp", "bar");
-  } else {
-    player = std::make_shared<Sunfish3AI>();
-  }
-  if (userColor == Color::White) {
-    ptr->setPlayers(player, nullptr);
-  } else {
-    ptr->setPlayers(nullptr, player);
-  }
-}
-
 } // namespace sci
