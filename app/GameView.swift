@@ -336,15 +336,16 @@ class GameView: UIView {
   }
 
   @objc private func exportKifButtonDidTouchUpInside(_ sender: UIButton) {
-    guard let status, let startDateString = dateTimeString(from: startDate), let endDate,
-      let endDateString = dateTimeString(from: endDate), let userColor = analyzer.userColor,
+    guard let status, let startDateString = dateTimeString(from: startDate), let userColor = analyzer.userColor,
       let opponentPlayer = analyzer.opponentPlayer
     else {
       return
     }
     var lines: [String] = []
     lines.append("開始日時：" + startDateString)
-    lines.append("終了日時：" + endDateString)
+    if let endDate, let endDateString = dateTimeString(from: endDate) {
+      lines.append("終了日時：" + endDateString)
+    }
     lines.append("手合割：平手")
     if userColor == sci.Color.Black {
       lines.append("先手：プレイヤー")
