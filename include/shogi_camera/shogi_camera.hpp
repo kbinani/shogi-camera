@@ -792,6 +792,12 @@ struct Game {
   void generate(std::deque<Move> &moves) const;
 };
 
+enum class GameResult {
+  BlackWin,
+  WhiteWin,
+  Abort,
+};
+
 class Player {
 public:
   virtual ~Player() {}
@@ -869,12 +875,6 @@ struct CsaServerParameter {
 
 class CsaAdapter : public Player {
 public:
-  enum class GameResult {
-    BlackWin,
-    WhiteWin,
-    Abort,
-  };
-
   struct Delegate {
     virtual ~Delegate() {}
     virtual void csaAdapterDidProvidePosition(Game const &g) = 0;
@@ -887,12 +887,13 @@ public:
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   void onmessage(std::string const &);
   void send(std::string const &);
+  void resign(Color color);
 
 private:
   void error(std::u8string const &what);
 
 public:
-  std::shared_ptr<Delegate> delegate;
+  std::weak_ptr<Delegate> delegate;
 
 private:
   std::deque<std::string> stack;
@@ -900,6 +901,7 @@ private:
   Color color;
   bool started = false;
   bool rejected = false;
+  std::map<Color, bool> resignSent;
 
   std::condition_variable cv;
   std::mutex mut;
@@ -1088,7 +1090,7 @@ struct GameStartParameter {
   std::variant<int, CsaServerParameter> parameter;
 };
 
-class Session : public CsaAdapter::Delegate {
+class Session : public CsaAdapter::Delegate, public std::enable_shared_from_this<Session> {
 public:
   Session();
   ~Session();
@@ -1111,7 +1113,7 @@ public:
 
   void csaAdapterDidProvidePosition(Game const &g) override;
   void csaAdapterDidGetError(std::u8string const &what) override;
-  void csaAdapterDidFinishGame(CsaAdapter::GameResult) override;
+  void csaAdapterDidFinishGame(GameResult) override;
 
 private:
   void run();

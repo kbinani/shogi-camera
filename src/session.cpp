@@ -1341,13 +1341,24 @@ void Session::resign(Color color) {
     s->whiteResign = true;
     std::cout << "後手番が投了" << std::endl;
   }
+  if (players->black) {
+    if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->black); csa) {
+      csa->resign(color);
+    }
+  } else if (players->white) {
+    if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->white); csa) {
+      csa->resign(color);
+    }
+  }
 }
 
 void Session::startGame(GameStartParameter p) {
   std::shared_ptr<Player> player1, player2;
   if (p.parameter.index() == 1) {
-    auto csa = std::get<1>(p.parameter);
-    player1 = std::make_shared<CsaAdapter>(p.userColor == Color::Black ? Color::White : Color::Black, csa);
+    auto param = std::get<1>(p.parameter);
+    auto csa = std::make_shared<CsaAdapter>(p.userColor == Color::Black ? Color::White : Color::Black, param);
+    csa->delegate = weak_from_this();
+    player1 = csa;
   } else if (p.parameter.index() == 0) {
     int aiLevel = std::get<0>(p.parameter);
     if (aiLevel == 0) {
@@ -1372,16 +1383,17 @@ void Session::csaAdapterDidGetError(std::u8string const &what) {
   // TODO:
 }
 
-void Session::csaAdapterDidFinishGame(CsaAdapter::GameResult result) {
+void Session::csaAdapterDidFinishGame(GameResult result) {
   switch (result) {
-  case CsaAdapter::GameResult::BlackWin:
+  case GameResult::BlackWin:
     resign(Color::White);
     break;
-  case CsaAdapter::GameResult::WhiteWin:
+  case GameResult::WhiteWin:
     resign(Color::Black);
     break;
-  case CsaAdapter::GameResult::Abort:
+  case GameResult::Abort:
     stop = true;
+    cv.notify_all();
     break;
   }
 }

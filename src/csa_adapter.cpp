@@ -163,8 +163,8 @@ void CsaAdapter::onmessage(string const &msg) {
       if (auto init = positionReceiver.validate(); init) {
         this->init = init;
         game = init->first;
-        if (delegate) {
-          delegate->csaAdapterDidProvidePosition(init->first);
+        if (auto d = delegate.lock(); d) {
+          d->csaAdapterDidProvidePosition(init->first);
         }
       }
       // TODO: 途中局面から開始の場合
@@ -322,24 +322,24 @@ void CsaAdapter::onmessage(string const &msg) {
         moves.push_back(mv);
         cv.notify_all();
       } else if (msg.starts_with("#WIN")) {
-        if (delegate) {
+        if (auto d = delegate.lock(); d) {
           if (color == Color::Black) {
-            delegate->csaAdapterDidFinishGame(GameResult::BlackWin);
+            d->csaAdapterDidFinishGame(GameResult::WhiteWin);
           } else {
-            delegate->csaAdapterDidFinishGame(GameResult::WhiteWin);
+            d->csaAdapterDidFinishGame(GameResult::BlackWin);
           }
         }
       } else if (msg.starts_with("#LOSE")) {
-        if (delegate) {
+        if (auto d = delegate.lock(); d) {
           if (color == Color::Black) {
-            delegate->csaAdapterDidFinishGame(GameResult::WhiteWin);
+            d->csaAdapterDidFinishGame(GameResult::BlackWin);
           } else {
-            delegate->csaAdapterDidFinishGame(GameResult::BlackWin);
+            d->csaAdapterDidFinishGame(GameResult::WhiteWin);
           }
         }
       } else if (msg.starts_with("#CHUDAN")) {
-        if (delegate) {
-          delegate->csaAdapterDidFinishGame(GameResult::Abort);
+        if (auto d = delegate.lock(); d) {
+          d->csaAdapterDidFinishGame(GameResult::Abort);
         }
       }
     }
@@ -381,8 +381,19 @@ optional<Move> CsaAdapter::next(Position const &p, vector<Move> const &moves, de
 }
 
 void CsaAdapter::error(std::u8string const &what) {
-  if (delegate) {
-    delegate->csaAdapterDidGetError(what);
+  if (auto d = delegate.lock(); d) {
+    d->csaAdapterDidGetError(what);
+  }
+}
+
+void CsaAdapter::resign(Color color) {
+  auto found = resignSent.find(color);
+  if (color != OpponentColor(this->color)) {
+    return;
+  }
+  if (found == resignSent.end() || !found->second) {
+    send("%TORYO");
+    resignSent[color] = true;
   }
 }
 
