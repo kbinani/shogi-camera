@@ -62,8 +62,12 @@ class VideoOverlay: CALayer {
       ctx.addPath(p.pointee.cgPath)
       ctx.fillPath()
     }
-    lattice.adjacent.forEach { adj in
-      Draw(ctx: ctx, lattice: adj.pointee, visited: &visited)
+    lattice.adjacent.store.forEach { adj in
+      let p = adj.lock()
+      guard p.__convertToBool() else {
+        return
+      }
+      Draw(ctx: ctx, lattice: p.pointee, visited: &visited)
     }
   }
 

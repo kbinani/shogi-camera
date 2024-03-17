@@ -734,11 +734,88 @@ inline cv::Point2f CenterFromLatticeContent(LatticeContent lc) {
   }
 }
 
+template <class T>
+struct WeakSet {
+  using ConstIterator = std::deque<std::weak_ptr<T>>::const_iterator;
+  using Iterator = std::deque<std::weak_ptr<T>>::iterator;
+
+  bool contains(std::shared_ptr<T> const &v) const {
+    for (auto const &it : store) {
+      auto lk = it.lock();
+      if (!lk) {
+        continue;
+      }
+      if (lk == v) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool contains(std::weak_ptr<T> const &v) const {
+    auto s = v.lock();
+    if (!s) {
+      return false;
+    }
+    return contains(s);
+  }
+
+  Iterator erase(Iterator it) {
+    return store.erase(it);
+  }
+
+  void insert(std::shared_ptr<T> const &v) {
+    if (contains(v)) {
+      return;
+    }
+    std::weak_ptr<T> wk = v;
+    store.push_back(wk);
+  }
+
+  void insert(std::weak_ptr<T> const &v) {
+    if (contains(v)) {
+      return;
+    }
+    store.push_back(v);
+  }
+
+  ConstIterator begin() const {
+    return store.begin();
+  }
+
+  ConstIterator end() const {
+    return store.end();
+  }
+
+  Iterator begin() {
+    return store.begin();
+  }
+
+  Iterator end() {
+    return store.end();
+  }
+
+  std::deque<std::weak_ptr<T>> store;
+};
+
 struct Lattice {
+  Lattice() {
+    Counter().fetch_add(1);
+  }
+
+  ~Lattice() {
+    Counter().fetch_add(-1);
+  }
+
+  static std::atomic<int> &Counter() {
+    static std::atomic<int> i = 0;
+    return i;
+  }
+
   std::shared_ptr<LatticeContent> content;
   // content と位置が重なっている物.
   std::set<std::shared_ptr<LatticeContent>> center;
-  std::set<std::shared_ptr<Lattice>> adjacent;
+  WeakSet<Lattice> adjacent;
 
   cv::Point2f meanCenter() const {
     cv::Point2f sum = CenterFromLatticeContent(*content);

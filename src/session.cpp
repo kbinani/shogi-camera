@@ -330,12 +330,12 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
     }
     float w = sqrt(s.squareArea * s.aspectRatio);
     float h = sqrt(s.squareArea / s.aspectRatio);
-    for (auto const &lattice : lattices) {
-      for (auto const &other : lattices) {
+    for (shared_ptr<Lattice> const &lattice : lattices) {
+      for (shared_ptr<Lattice> const &other : lattices) {
         if (lattice == other) {
           continue;
         }
-        if (lattice->adjacent.find(other) != lattice->adjacent.end()) {
+        if (lattice->adjacent.contains(other)) {
           continue;
         }
         if (IsAdj(*lattice->content, *other->content, w, h, distanceTh)) {
@@ -374,7 +374,12 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
       while (changed) {
         changed = false;
         for (auto const &l : cluster) {
-          for (auto const &adj : l->adjacent) {
+          for (auto it = l->adjacent.begin(); it != l->adjacent.end(); it++) {
+            auto adj = it->lock();
+            if (!adj) {
+              it = l->adjacent.erase(it);
+              continue;
+            }
             if (cluster.find(adj) != cluster.end()) {
               continue;
             }
@@ -438,7 +443,12 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           map<pair<int, int>, set<shared_ptr<Lattice>>> update;
           for (auto const &lattice : it.second) {
             cv::Point2f p0 = lattice->meanCenter();
-            for (auto const &adj : lattice->adjacent) {
+            for (auto k = lattice->adjacent.begin(); k != lattice->adjacent.end(); k++) {
+              auto adj = k->lock();
+              if (!adj) {
+                k = lattice->adjacent.erase(k);
+                continue;
+              }
               if (done.find(adj) != done.end()) {
                 continue;
               }
