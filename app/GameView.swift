@@ -337,7 +337,7 @@ class GameView: UIView {
 
   @objc private func exportKifButtonDidTouchUpInside(_ sender: UIButton) {
     guard let status, let startDateString = dateTimeString(from: startDate), let userColor = analyzer.userColor,
-      let opponentPlayer = analyzer.opponentPlayer
+      let opponentPlayer = analyzer.opponentPlayerName
     else {
       return
     }

@@ -1381,6 +1381,22 @@ void Session::startGame(GameStartParameter p) {
   }
 }
 
+std::optional<std::u8string> Session::name(Color color) {
+  if (!players) {
+    return std::nullopt;
+  }
+  if (color == Color::Black) {
+    if (players->black) {
+      return players->black->name();
+    }
+  } else {
+    if (players->white) {
+      return players->white->name();
+    }
+  }
+  return std::nullopt;
+}
+
 void Session::csaAdapterDidProvidePosition(Game const &g) {
   game = g;
   s->game = g;

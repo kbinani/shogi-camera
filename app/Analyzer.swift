@@ -11,7 +11,7 @@ class Analyzer {
   weak var delegate: AnalyzerDelegate?
 
   private(set) var userColor: sci.Color?
-  private(set) var opponentPlayer: String?
+  private var _opponentPlayer: String?
   private let queue: DispatchQueue
 
   private var session: sci.SessionWrapper
@@ -89,9 +89,9 @@ class Analyzer {
   func startGame(userColor: sci.Color, aiLevel: Int) {
     self.userColor = userColor
     if aiLevel == 0 {
-      self.opponentPlayer = "random"
+      self._opponentPlayer = "random"
     } else {
-      self.opponentPlayer = "sunfish3(maxDepth=\(aiLevel))"
+      self._opponentPlayer = "sunfish3(maxDepth=\(aiLevel))"
     }
     self.session.startGame(userColor, Int32(aiLevel))
   }
@@ -109,7 +109,19 @@ class Analyzer {
     p.password = password.withCString { ptr in
       std.string(ptr)
     }
+    self._opponentPlayer = "(CSA)"
     self.session.startGame(userColor, p)
+  }
+
+  var opponentPlayerName: String? {
+    guard let userColor else {
+      return nil
+    }
+    let color = sci.OpponentColor(userColor)
+    guard let name = self.session.name(color).value else {
+      return nil
+    }
+    return sci.Utility.CFStringFromU8String(name).takeRetainedValue() as String
   }
 
   func resign() {
@@ -126,7 +138,6 @@ class Analyzer {
     self.session = .init()
     self.status = .init()
     self.userColor = nil
-    self.opponentPlayer = nil
     self.captureDelegate.reset()
   }
 }

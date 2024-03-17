@@ -879,6 +879,9 @@ class Player {
 public:
   virtual ~Player() {}
   virtual std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) = 0;
+  virtual std::optional<std::u8string> name() {
+    return std::nullopt;
+  }
 };
 
 class RandomAI : public Player {
@@ -962,6 +965,8 @@ public:
   CsaAdapter(Color color, CsaServerParameter parameter);
   ~CsaAdapter();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+  std::optional<std::u8string> name() override;
+
   void onmessage(std::string const &);
   void send(std::string const &);
   void resign(Color color);
@@ -1187,6 +1192,7 @@ public:
   }
   void startGame(GameStartParameter parameter);
   void resign(Color color);
+  std::optional<std::u8string> name(Color color);
 
   void csaAdapterDidProvidePosition(Game const &g) override;
   void csaAdapterDidGetError(std::u8string const &what) override;
@@ -1278,6 +1284,10 @@ public:
 
   void resign(Color color) {
     ptr->resign(color);
+  }
+
+  std::optional<std::u8string> name(Color color) {
+    return ptr->name(color);
   }
 
 private:

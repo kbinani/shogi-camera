@@ -134,6 +134,17 @@ void CsaAdapter::send(std::string const &) {
 }
 #endif
 
+std::optional<std::u8string> CsaAdapter::name() {
+  if (!summary) {
+    return std::nullopt;
+  }
+  if (color == Color::White) {
+    return std::u8string((char8_t const *)summary->playerNameWhite.c_str());
+  } else {
+    return std::u8string((char8_t const *)summary->playerNameBlack.c_str());
+  }
+}
+
 void CsaAdapter::onmessage(string const &msg) {
   if (msg.starts_with("BEGIN ")) {
     string type = msg.substr(6);
