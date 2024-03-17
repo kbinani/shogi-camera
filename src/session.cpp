@@ -1304,7 +1304,7 @@ void Session::run() {
             game.moves.push_back(*move);
           } else {
             s->blackResign = true;
-            cout << "先手番AIが投了" << endl;
+            resign(Color::Black);
           }
         }
       } else {
@@ -1320,7 +1320,7 @@ void Session::run() {
             game.moves.push_back(*move);
           } else {
             s->whiteResign = true;
-            cout << "後手番AIが投了" << endl;
+            resign(Color::White);
           }
         }
       }
@@ -1351,14 +1351,11 @@ void Session::resign(Color color) {
     s->whiteResign = true;
     std::cout << "後手番が投了" << std::endl;
   }
-  if (players->black) {
-    if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->black); csa) {
-      csa->resign(color);
-    }
-  } else if (players->white) {
-    if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->white); csa) {
-      csa->resign(color);
-    }
+  if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->black); csa) {
+    csa->resign(color);
+  }
+  if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->white); csa) {
+    csa->resign(color);
   }
 }
 
