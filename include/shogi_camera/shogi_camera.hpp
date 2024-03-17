@@ -1157,7 +1157,7 @@ struct Statistics {
   std::deque<cv::Point2f> outlineBL;
   static int constexpr kOutlineMaxCount = 32;
 
-  static int constexpr kStableBoardCounterThreshold = 10;
+  static int constexpr kStableBoardCounterThreshold = 5;
 };
 
 struct Players {

@@ -310,12 +310,13 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
       changeset.push_back(changes);
     }
   }
-  if (changeset.empty() || minChange != maxChange) {
+  if (changeset.empty() || minChange != maxChange || minChange > 2) {
     // 有効な変化が発見できなかった
-    if ((minChange > 2 || maxChange > 4) && stableBoardHistory.size() == 1 && detected.empty()) {
+    if ((minChange > 2 || maxChange > 2) && stableBoardHistory.size() == 1 && detected.empty() && g.moves.empty()) {
       // まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
       stableBoardInitialResetCounter++;
       stableBoardInitialReadyCounter = 0;
+      s.boardReady = false;
       if (stableBoardInitialResetCounter > kStableBoardCounterThreshold) {
         stableBoardHistory.pop_back();
         stableBoardHistory.push_back(history);
