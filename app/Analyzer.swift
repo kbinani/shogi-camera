@@ -113,6 +113,11 @@ class Analyzer {
     self.session.startGame(userColor, p)
   }
 
+  func stopGame() {
+    session.stopGame()
+    reset()
+  }
+
   var opponentPlayerName: String? {
     guard let userColor else {
       return nil

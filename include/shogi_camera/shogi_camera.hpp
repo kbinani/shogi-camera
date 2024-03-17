@@ -1191,6 +1191,7 @@ public:
     return *cp;
   }
   void startGame(GameStartParameter parameter);
+  void stopGame();
   void resign(Color color);
   std::optional<std::u8string> name(Color color);
 
@@ -1280,6 +1281,10 @@ public:
     p.userColor = userColor;
     p.parameter = parameter;
     ptr->startGame(p);
+  }
+
+  void stopGame() {
+    ptr->stopGame();
   }
 
   void resign(Color color) {

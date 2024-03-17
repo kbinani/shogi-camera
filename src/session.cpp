@@ -1246,8 +1246,8 @@ Session::Session() {
 
 Session::~Session() {
   stop = true;
-  cv.notify_one();
-  th.join();
+  cv.notify_all();
+  th.detach();
 }
 
 void Session::run() {
@@ -1378,6 +1378,17 @@ void Session::startGame(GameStartParameter p) {
     setPlayers(player1, player2);
   } else {
     setPlayers(player2, player1);
+  }
+}
+
+void Session::stopGame() {
+  if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->black); csa) {
+    csa->send("%CHUDAN");
+    csa->send("LOGOUT");
+  }
+  if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->white); csa) {
+    csa->send("%CHUDAN");
+    csa->send("LOGOUT");
   }
 }
 
