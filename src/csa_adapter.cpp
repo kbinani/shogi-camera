@@ -298,7 +298,7 @@ void CsaAdapter::onmessage(string const &msg) {
             return;
           }
           if (existing == mv.piece) {
-            if (!IsPromotedPiece(mv.piece) && IsPromotableMove(from, mv.to, color)) {
+            if (CanPromote(mv.piece) && IsPromotableMove(from, mv.to, color)) {
               mv.promote = -1;
             }
           } else {
