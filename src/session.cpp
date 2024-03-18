@@ -647,7 +647,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         }
       }
       // フィッティングした直線の傾きを平滑化する
-      static auto Equalize = [](map<int, Line> &lines, int extra) {
+      static auto Equalize_ = [](map<int, Line> &lines, int extra) {
         // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの平滑化ができなくなるので, 45 度付近できるよう, まず平均を求める.
         RadianAverage ra;
         vector<cv::Point2f> angles;
@@ -751,8 +751,8 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         }
         result.swap(lines);
       };
-      static auto Equalize_ = [](map<int, Line> &lines, int extra) {
-        // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの平滑化ができなくなるので, まず平滑化の前に平均を求める.
+      static auto Equalize = [](map<int, Line> &lines, int extra) {
+        // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの平滑化ができなくなるので, 45 度付近できるよう, まず平均を求める.
         RadianAverage ra;
         vector<cv::Point2f> angles;
         int vmin = numeric_limits<int>::max();
@@ -775,7 +775,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           angles.push_back(cv::Point2f(v, angle));
         }
         float mean = ra.get();
-        float offset = pi - mean;
+        float offset = pi / 8 - mean;
         float minAngle = numeric_limits<float>::max();
         float maxAngle = numeric_limits<float>::lowest();
         for (size_t i = 0; i < angles.size(); i++) {
@@ -798,45 +798,49 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           return;
         }
         map<int, Line> result;
+        // 切片 b を b = B * v + A の形にして等間隔となるようにしたとき, B と A を最小二乗法により最適化する.
+        // https://gyazo.com/e5841fbf59652da39d2e19760e450461
         vector<tuple<int, float, Line>> k;
-        // 消失点をフィッティング対象にする.
-        // https://gyazo.com/ea4c192304cfdca85e0168cadc4c7827
-        float r = 0;
-        float s = 0;
-        float u = 0;
-        float w = 0;
-        float q = 0;
+        float beta = 0;
+        float gamma = 0;
+        float f = 0;
+        float e = 0;
+        int N = (int)lines.size();
         for (auto const &it : lines) {
           float v = it.first;
           Line line = it.second;
-          auto angle = YFromX(*fit, it.first);
+          auto angle = YFromX(*fit, v);
           if (!angle) {
             result[it.first] = line;
             continue;
           }
-          // offset 回転させているので, *angle はだいたい 180 度付近になっている.
+          // offset 回転させているので, *angle はだいたい 45 度付近になっている.
           float m = tan(*angle);
           if (!(m == 0 || isnormal(m))) {
             result[it.first] = line;
             continue;
           }
+          float gamma_v = 0;
+          float f_v = 0;
           float n = line.points.size();
           for (auto const &p : line.points) {
             float x = cos(offset) * p.x - sin(offset) * p.y;
             float y = sin(offset) * p.x + cos(offset) * p.y;
-            u += y - m * x;
-            w += (y - m * x) * m;
+            gamma_v += y - m * x;
+            f_v += (y - m * x) * v;
           }
-          q += m * m * n;
-          r += n;
-          s += m * n;
+          gamma += gamma_v / n;
+          f += f_v / n;
+          beta += v;
+          e += v * v;
           k.push_back(make_tuple(it.first, *angle, line));
         }
-        float ax = (s * u / r - w) / (q - s * s / r);
-        float ay = (u + s * ax) / r;
+        float B = (f - beta * gamma / N) / (e - beta * beta / N);
+        float A = (gamma - beta * B) / N;
         for (auto const &it : k) {
           auto [v, angle, line] = it;
-          line.line = cv::Vec4f(cos(angle - offset), sin(angle - offset), cos(-offset) * ax - sin(-offset) * ay, sin(-offset) * ax + cos(-offset) * ay);
+          float b = B * v + A;
+          line.line = cv::Vec4f(cos(angle - offset), sin(angle - offset), -sin(-offset) * b, cos(-offset) * b);
           result[v] = line;
         }
         for (int v = vmin - extra; v <= vmax + extra; v++) {
@@ -848,7 +852,8 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
             continue;
           }
           Line line;
-          line.line = cv::Vec4f(cos(*angle - offset), sin(*angle - offset), cos(-offset) * ax - sin(-offset) * ay, sin(-offset) * ax + cos(-offset) * ay);
+          float b = B * v + A;
+          line.line = cv::Vec4f(cos(*angle - offset), sin(*angle - offset), -sin(-offset) * b, cos(-offset) * b);
           result[v] = line;
         }
         result.swap(lines);
