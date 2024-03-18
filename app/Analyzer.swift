@@ -11,7 +11,6 @@ class Analyzer {
   weak var delegate: AnalyzerDelegate?
 
   private(set) var userColor: sci.Color?
-  private var _opponentPlayer: String?
   private let queue: DispatchQueue
 
   private var session: sci.SessionWrapper
@@ -88,11 +87,6 @@ class Analyzer {
 
   func startGame(userColor: sci.Color, aiLevel: Int) {
     self.userColor = userColor
-    if aiLevel == 0 {
-      self._opponentPlayer = "random"
-    } else {
-      self._opponentPlayer = "sunfish3(maxDepth=\(aiLevel))"
-    }
     self.session.startGame(userColor, Int32(aiLevel))
   }
 
@@ -109,7 +103,6 @@ class Analyzer {
     p.password = password.withCString { ptr in
       std.string(ptr)
     }
-    self._opponentPlayer = "(CSA)"
     self.session.startGame(userColor, p)
   }
 
