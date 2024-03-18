@@ -976,6 +976,14 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           }
           first = false;
         }
+        for (auto &vline : vlines) {
+          vline.second.line[0] = -vline.second.line[0];
+          vline.second.line[1] = -vline.second.line[1];
+        }
+        for (auto &hline : hlines) {
+          hline.second.line[0] = -hline.second.line[0];
+          hline.second.line[1] = -hline.second.line[1];
+        }
       } else {
         s.clusters.swap(clusters);
       }
