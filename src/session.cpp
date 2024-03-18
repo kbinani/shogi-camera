@@ -976,6 +976,8 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           }
           first = false;
         }
+      } else {
+        s.clusters.swap(clusters);
       }
 #if 0
       static int cnt = 0;
