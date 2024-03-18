@@ -1015,33 +1015,31 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         cv::circle(img, cv::Point2f(it.second.x * 2, it.second.y * 2), distanceTh * 2 / 2, cv::Scalar(0, 0, 255));
       }
       for (auto const &it : vlines) {
-        auto y = YFromX(it.second.line, s.width / 2);
-        if (!y) {
+        auto y0 = YFromX(it.second.line, 0);
+        if (!y0) {
           continue;
         }
-        cv::Point2f center(s.width / 2, *y);
-        cv::Point2f dir(it.second.line[0], it.second.line[1]);
-        dir = dir / cv::norm(dir);
-        cv::Point2f from = center + s.height * 10 * dir;
-        cv::Point2f to = center - s.height * 10 * dir;
+        auto y1 = YFromX(it.second.line, s.width);
+        if (!y1) {
+          continue;
+        }
         vector<cv::Point> points;
-        points.push_back(from * 2);
-        points.push_back(to * 2);
+        points.push_back(cv::Point2f(0, (*y0) * 2));
+        points.push_back(cv::Point2f(s.width * 2, (*y1) * 2));
         cv::polylines(img, points, false, cv::Scalar(255, 0, 0));
       }
       for (auto const &it : hlines) {
-        auto y = YFromX(it.second.line, s.width / 2);
-        if (!y) {
-          continue;
-        }
-        cv::Point2f center(s.width / 2, *y);
-        cv::Point2f dir(it.second.line[0], it.second.line[1]);
-        dir = dir / cv::norm(dir);
-        cv::Point2f from = center + s.width * 10 * dir;
-        cv::Point2f to = center - s.width * 10 * dir;
+          auto y0 = YFromX(it.second.line, 0);
+          if (!y0) {
+            continue;
+          }
+          auto y1 = YFromX(it.second.line, s.width);
+          if (!y1) {
+            continue;
+          }
         vector<cv::Point> points;
-        points.push_back(from * 2);
-        points.push_back(to * 2);
+          points.push_back(cv::Point2f(0, (*y0) * 2));
+          points.push_back(cv::Point2f(s.width * 2, (*y1) * 2));
         cv::polylines(img, points, false, cv::Scalar(0, 255, 0));
       }
       cout << "b64png(grids_" << cv::format("%04d", cnt) << "):" << base64::to_base64(Img::EncodeToPng(img)) << endl;
