@@ -879,15 +879,16 @@ class Player {
 public:
   virtual ~Player() {}
   virtual std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) = 0;
-  virtual std::optional<std::u8string> name() {
-    return std::nullopt;
-  }
+  virtual std::optional<std::u8string> name() = 0;
 };
 
 class RandomAI : public Player {
 public:
   RandomAI();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+  std::optional<std::u8string> name() override {
+    return u8"random";
+  }
 
 private:
   std::unique_ptr<std::mt19937_64> engine;
@@ -898,6 +899,9 @@ public:
   Sunfish3AI();
   ~Sunfish3AI();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+  std::optional<std::u8string> name() override {
+    return u8"sunfish3";
+  }
 
   static void RunTests();
 
