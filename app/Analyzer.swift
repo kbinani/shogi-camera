@@ -115,7 +115,6 @@ class Analyzer {
 
   func stopGame() {
     session.stopGame()
-    reset()
   }
 
   var opponentPlayerName: String? {
