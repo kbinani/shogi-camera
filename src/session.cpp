@@ -1155,6 +1155,14 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           cv::Point2f topRight = (*tr) + (((*tr) - (*tl)) / 16) + (((*tr) - (*br)) / 16);
           cv::Point2f bottomRight = (*br) + (((*br) - (*bl)) / 16) + (((*br) - (*tr)) / 16);
           cv::Point2f bottomLeft = (*bl) + (((*bl) - (*br)) / 16) + (((*bl) - (*tl)) / 16);
+          cv::Point2f midBottom = (bottomRight + bottomLeft) * 0.5f;
+          cv::Point2f midTop = (topRight + topLeft) * 0.5f;
+          double direction = Angle(midBottom - midTop);
+          if (cos(direction - s.boardDirection) < 0) {
+            // 前回の boardDirection から 90 度以上違っていたら反転させる
+            swap(topLeft, bottomRight);
+            swap(topRight, bottomLeft);
+          }
 
           stat.outlineTL.push_back(topLeft);
           stat.outlineTR.push_back(topRight);
@@ -1282,6 +1290,7 @@ void Session::run() {
     s->whiteResign = this->s->whiteResign;
     s->boardReady = this->s->boardReady;
     s->wrongMove = this->s->wrongMove;
+    s->boardDirection = this->s->boardDirection;
     s->width = frame.size().width;
     s->height = frame.size().height;
     Img::FindContours(frame, s->contours, s->squares, s->pieces);
