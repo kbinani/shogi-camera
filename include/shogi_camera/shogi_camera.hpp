@@ -1137,6 +1137,7 @@ struct Status {
   bool wrongMove = false;
   std::shared_ptr<PieceBook> book;
   std::deque<std::map<std::pair<int, int>, std::set<std::shared_ptr<Lattice>>>> clusters;
+  std::optional<Color> yourTurn;
 };
 
 // 盤面画像.

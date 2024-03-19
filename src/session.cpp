@@ -1328,6 +1328,7 @@ void Session::run() {
           }
           players = p;
           playerConfig = nullptr;
+          s->yourTurn = OpponentColor(*remote.csa->color_);
         }
       }
     }

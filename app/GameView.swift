@@ -27,6 +27,7 @@ class GameView: UIView {
   private var videoOverlay: VideoOverlay?
   private var stableBoardLayer: StableBoardLayer?
   private var pieceBookView: UIImageView?
+  private var readYourTurn = false
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
@@ -227,6 +228,10 @@ class GameView: UIView {
   private func updateReader(_ oldValue: sci.Status?) {
     guard let status else {
       return
+    }
+    if let yourTurn = status.yourTurn.value, !readYourTurn {
+      self.reader?.playYourTurn(yourTurn)
+      readYourTurn = true
     }
     if !status.game.moves.empty() {
       if let moveIndex {
