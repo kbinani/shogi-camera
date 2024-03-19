@@ -118,7 +118,7 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
     cout << "tScoreBeforeUnpromote=" << tScoreBeforeUnpromote << ", tScoreAfterUnpromote=" << tScoreAfterUnpromote << ", (tScoreBeforeUnpromote - tScoreAfterUnpromote)=" << (tScoreBeforeUnpromote - tScoreAfterUnpromote) << endl;
     cout << "tScoreAfterPromote=" << tScoreAfterPromote << ", tScoreAfterUnpromote=" << tScoreAfterUnpromote << ", (tScoreAfterPromote - tScoreAfterUnpromote)=" << (tScoreAfterPromote - tScoreAfterUnpromote) << endl;
 
-    if (tScoreBeforeUnpromote - tScoreAfterUnpromote > 20 || tScoreAfterPromote - tScoreAfterUnpromote > 20) {
+    if (tScoreBeforeUnpromote - tScoreAfterUnpromote > 40 || tScoreAfterPromote - tScoreAfterUnpromote > 20) {
       if (!hint || hint->promote == 1) {
         promote = 1;
       } else if (hint && promote != hint->promote) {
