@@ -1018,7 +1018,7 @@ public:
     virtual void csaAdapterDidFinishGame(GameResult) = 0;
   };
 
-  CsaAdapter(Color color, CsaServerParameter parameter);
+  explicit CsaAdapter(CsaServerParameter parameter);
   ~CsaAdapter();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   std::optional<std::u8string> name() override;
@@ -1032,11 +1032,11 @@ private:
 
 public:
   std::weak_ptr<Delegate> delegate;
+  std::optional<Color> color_;
 
 private:
   std::deque<std::string> stack;
   std::string current;
-  Color color;
   bool started = false;
   bool rejected = false;
   std::map<Color, bool> resignSent;
@@ -1216,6 +1216,18 @@ struct Statistics {
   static int constexpr kStableBoardCounterThreshold = 5;
 };
 
+struct PlayerConfig {
+  struct Remote {
+    std::shared_ptr<CsaAdapter> csa;
+    std::shared_ptr<Player> local;
+  };
+  struct Local {
+    std::shared_ptr<Player> black;
+    std::shared_ptr<Player> white;
+  };
+  std::variant<Local, Remote> players;
+};
+
 struct Players {
   std::shared_ptr<Player> black;
   std::shared_ptr<Player> white;
@@ -1233,14 +1245,11 @@ public:
   Session();
   ~Session();
   void push(cv::Mat const &frame);
-  void setPlayers(std::shared_ptr<Player> black, std::shared_ptr<Player> white) {
-    if (!game.moves.empty() || players) {
+  void setPlayerConfig(std::shared_ptr<PlayerConfig> config) {
+    if (!game.moves.empty() || this->players) {
       return;
     }
-    auto pp = std::make_shared<Players>();
-    pp->black = black;
-    pp->white = white;
-    prePlayers = pp;
+    playerConfig = config;
   }
   Status status() {
     std::shared_ptr<Status> cp = s;
@@ -1268,7 +1277,7 @@ private:
   Statistics stat;
   Game game;
   std::vector<Move> detected;
-  std::shared_ptr<Players> prePlayers;
+  std::shared_ptr<PlayerConfig> playerConfig;
   std::shared_ptr<Players> players;
 };
 

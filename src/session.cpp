@@ -1301,15 +1301,35 @@ void Session::run() {
     stat.update(*s);
     s->book = stat.book;
     CreateWarpedBoard(frame, *s, stat);
-    if (auto prePlayers = this->prePlayers; !players && prePlayers) {
-      if (prePlayers->black) {
-        if (auto move = prePlayers->black->next(game.position, game.moves, game.handBlack, game.handWhite); move) {
-          move->decideSuffix(game.position);
-          game.moves.push_back(*move);
+    if (playerConfig) {
+      if (playerConfig->players.index() == 0) {
+        PlayerConfig::Local local = get<0>(playerConfig->players);
+        if (local.black) {
+          if (auto move = local.black->next(game.position, game.moves, game.handBlack, game.handWhite); move) {
+            move->decideSuffix(game.position);
+            game.moves.push_back(*move);
+          }
+        }
+        auto p = make_shared<Players>();
+        p->black = local.black;
+        p->white = local.white;
+        players = p;
+        playerConfig = nullptr;
+      } else {
+        PlayerConfig::Remote remote = get<1>(playerConfig->players);
+        if (remote.csa->color_) {
+          auto p = make_shared<Players>();
+          if (*remote.csa->color_ == Color::Black) {
+            p->black = remote.csa;
+            p->white = remote.local;
+          } else {
+            p->black = remote.local;
+            p->white = remote.csa;
+          }
+          players = p;
+          playerConfig = nullptr;
         }
       }
-      players = prePlayers;
-      this->prePlayers = nullptr;
     }
     stat.push(s->boardWarped, *s, game, detected, players != nullptr);
     if (players && detected.size() == game.moves.size()) {
@@ -1382,25 +1402,32 @@ void Session::resign(Color color) {
 }
 
 void Session::startGame(GameStartParameter p) {
-  std::shared_ptr<Player> player1, player2;
+  auto config = std::make_shared<PlayerConfig>();
+
   if (p.parameter.index() == 1) {
     auto param = std::get<1>(p.parameter);
-    auto csa = std::make_shared<CsaAdapter>(p.userColor == Color::Black ? Color::White : Color::Black, param);
+    auto csa = std::make_shared<CsaAdapter>(param);
     csa->delegate = weak_from_this();
-    player1 = csa;
+    PlayerConfig::Remote remote;
+    remote.csa = csa;
+    config->players = remote;
   } else if (p.parameter.index() == 0) {
+    PlayerConfig::Local local;
+    std::shared_ptr<Player> ai;
     int aiLevel = std::get<0>(p.parameter);
     if (aiLevel == 0) {
-      player1 = std::make_shared<RandomAI>();
+      ai = std::make_shared<RandomAI>();
     } else {
-      player1 = std::make_shared<Sunfish3AI>();
+      ai = std::make_shared<Sunfish3AI>();
     }
+    if (p.userColor == Color::White) {
+      local.black = ai;
+    } else {
+      local.white = ai;
+    }
+    config->players = local;
   }
-  if (p.userColor == Color::White) {
-    setPlayers(player1, player2);
-  } else {
-    setPlayers(player2, player1);
-  }
+  setPlayerConfig(config);
 }
 
 void Session::stopGame() {

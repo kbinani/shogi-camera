@@ -116,11 +116,11 @@ optional<string> CsaStringFromPiece(Piece p, int promote) {
 
 #if !defined(__APPLE__)
 struct CsaAdapter::Impl {
-  Impl(Color color, CsaServerParameter parameter) {
+  Impl(CsaServerParameter parameter) {
   }
 };
 
-CsaAdapter::CsaAdapter(Color color, CsaServerParameter parameter) : color(color), impl(make_unique<Impl>(color, parameter)) {
+CsaAdapter::CsaAdapter(CsaServerParameter parameter) : color(color), impl(make_unique<Impl>(parameter)) {
 }
 
 CsaAdapter::~CsaAdapter() {
@@ -138,7 +138,10 @@ std::optional<std::u8string> CsaAdapter::name() {
   if (!summary) {
     return std::nullopt;
   }
-  if (color == Color::White) {
+  if (!color_) {
+    return std::nullopt;
+  }
+  if (*color_ == Color::White) {
     return std::u8string((char8_t const *)summary->playerNameWhite.c_str());
   } else {
     return std::u8string((char8_t const *)summary->playerNameBlack.c_str());
@@ -158,17 +161,13 @@ void CsaAdapter::onmessage(string const &msg) {
     }
     if (type == "Game_Summary") {
       if (auto summary = summaryReceiver.validate(); summary) {
-        Color expected = color == Color::Black ? Color::White : Color::Black;
         string gameId;
         if (summary->gameId) {
           gameId = " " + *summary->gameId;
         }
-        if (summary->yourTurn != expected) {
-          send("REJECT" + gameId);
-        } else {
-          this->summary = summary;
-          send("AGREE" + gameId);
-        }
+        color_ = OpponentColor(summary->yourTurn);
+        this->summary = summary;
+        send("AGREE" + gameId);
       }
     } else if (type == "Position") {
       if (auto init = positionReceiver.validate(); init) {
@@ -333,16 +332,16 @@ void CsaAdapter::onmessage(string const &msg) {
         moves.push_back(mv);
         cv.notify_all();
       } else if (msg.starts_with("#WIN")) {
-        if (auto d = delegate.lock(); d) {
-          if (color == Color::Black) {
+        if (auto d = delegate.lock(); d && color_) {
+          if (*color_ == Color::Black) {
             d->csaAdapterDidFinishGame(GameResult::WhiteWin);
           } else {
             d->csaAdapterDidFinishGame(GameResult::BlackWin);
           }
         }
       } else if (msg.starts_with("#LOSE")) {
-        if (auto d = delegate.lock(); d) {
-          if (color == Color::Black) {
+        if (auto d = delegate.lock(); d && color_) {
+          if (*color_ == Color::Black) {
             d->csaAdapterDidFinishGame(GameResult::BlackWin);
           } else {
             d->csaAdapterDidFinishGame(GameResult::WhiteWin);
@@ -358,9 +357,12 @@ void CsaAdapter::onmessage(string const &msg) {
 }
 
 optional<Move> CsaAdapter::next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+  if (!color_) {
+    return nullopt;
+  }
   for (size_t i = this->moves.size(); i < moves.size(); i++) {
     Move m = moves[i];
-    if (m.color == OpponentColor(color)) {
+    if (m.color == OpponentColor(*color_)) {
       string line;
       if (m.color == Color::Black) {
         line += "+";
@@ -399,7 +401,10 @@ void CsaAdapter::error(std::u8string const &what) {
 
 void CsaAdapter::resign(Color color) {
   auto found = resignSent.find(color);
-  if (color != OpponentColor(this->color)) {
+  if (!this->color_) {
+    return;
+  }
+  if (color != OpponentColor(*this->color_)) {
     return;
   }
   if (found == resignSent.end() || !found->second) {

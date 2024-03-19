@@ -16,19 +16,17 @@ using namespace std;
   int ready;
   deque<string> stack;
   string current;
-  sci::Color color;
 }
 @end
 
 @implementation CsaAdapterImpl
 
-- (id)initWithOwner:(sci::CsaAdapter *)owner color:(sci::Color)color server:(string)server port:(uint32_t)port username:(string)username password:(string)password {
+- (id)initWithOwner:(sci::CsaAdapter *)owner server:(string)server port:(uint32_t)port username:(string)username password:(string)password {
   if (self = [super init]) {
     self->username = username;
     self->password = password;
     self->ready = 0;
     self->owner = owner;
-    self->color = color;
 
     CFStringRef cfServer = CFStringCreateWithCString(kCFAllocatorDefault, (char const *)server.c_str(), kCFStringEncodingUTF8);
     CFReadStreamRef readStream;
@@ -148,9 +146,8 @@ void *Utility::UIImageFromMat(cv::Mat const &m) {
 }
 
 struct CsaAdapter::Impl {
-  Impl(CsaAdapter *owner, Color color, CsaServerParameter parameter) : owner(owner) {
+  Impl(CsaAdapter *owner, CsaServerParameter parameter) : owner(owner) {
     impl = [[CsaAdapterImpl alloc] initWithOwner:owner
-                                           color:color
                                           server:parameter.server
                                             port:parameter.port
                                         username:parameter.username
@@ -169,7 +166,7 @@ struct CsaAdapter::Impl {
   CsaAdapterImpl *impl;
 };
 
-CsaAdapter::CsaAdapter(Color color, CsaServerParameter parameter) : color(color), impl(make_unique<Impl>(this, color, parameter)) {
+CsaAdapter::CsaAdapter(CsaServerParameter parameter) : impl(make_unique<Impl>(this, parameter)) {
 }
 
 CsaAdapter::~CsaAdapter() {
