@@ -1171,16 +1171,17 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           stat.outlineTR.push_back(topRight);
           stat.outlineBR.push_back(bottomRight);
           stat.outlineBL.push_back(bottomLeft);
-          if (stat.outlineTL.size() > Statistics::kOutlineMaxCount) {
+          int maxCount = s.game.moves.empty() ? Statistics::kOutlineMaxCount_ : Statistics::kOutlineMaxCountDuringGame;
+          if (stat.outlineTL.size() > maxCount) {
             stat.outlineTL.pop_front();
           }
-          if (stat.outlineTR.size() > Statistics::kOutlineMaxCount) {
+          if (stat.outlineTR.size() > maxCount) {
             stat.outlineTR.pop_front();
           }
-          if (stat.outlineBR.size() > Statistics::kOutlineMaxCount) {
+          if (stat.outlineBR.size() > maxCount) {
             stat.outlineBR.pop_front();
           }
-          if (stat.outlineBL.size() > Statistics::kOutlineMaxCount) {
+          if (stat.outlineBL.size() > maxCount) {
             stat.outlineBL.pop_front();
           }
         }
