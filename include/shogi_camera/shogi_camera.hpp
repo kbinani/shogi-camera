@@ -493,6 +493,58 @@ inline bool MustPromote(PieceType type, Square from, Square to, Color color) {
   }
 }
 
+inline bool CanDrop(Position const &p, Piece piece, Square sq) {
+  if (IsPromotedPiece(piece)) {
+    return false;
+  }
+  if (p.pieces[sq.file][sq.rank] != 0) {
+    return false;
+  }
+  auto type = PieceTypeFromPiece(piece);
+  auto color = ColorFromPiece(piece);
+  Rank minRank = Rank1;
+  Rank maxRank = Rank9;
+  if (type == PieceType::Pawn) {
+    if (color == Color::Black) {
+      minRank = Rank2;
+    } else {
+      maxRank = Rank8;
+    }
+  } else if (type == PieceType::Lance) {
+    if (color == Color::Black) {
+      minRank = Rank2;
+    } else {
+      maxRank = Rank8;
+    }
+  } else if (type == PieceType::Knight) {
+    if (color == Color::Black) {
+      minRank = Rank3;
+    } else {
+      maxRank = Rank7;
+    }
+  } else if (type == PieceType::King) {
+    return false;
+  }
+  if (sq.rank < minRank || maxRank < sq.rank) {
+    return false;
+  }
+  if (type == PieceType::Pawn) {
+    for (int y = 0; y < 9; y++) {
+      Piece pc = p.pieces[sq.file][y];
+      if (pc == 0) {
+        continue;
+      }
+      if (ColorFromPiece(pc) != color) {
+        continue;
+      }
+      if (PieceTypeFromPiece(pc) == PieceType::Pawn) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 using SuffixUnderlyingType = uint32_t;
 
 // 符号を読み上げるのに必要な追加情報.

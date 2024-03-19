@@ -456,13 +456,12 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
         move = mv;
       } else {
         double maxSim = 0;
-        std::optional<Piece> maxSimPiece;
         cv::Mat roi = Img::PieceROI(boardAfter, ch.x, ch.y);
-        map<PieceType, double> maxSimStat;
+        std::optional<Piece> maxSimPiece;
+        map<PieceType, pair<double, cv::Mat>> maxSimStat;
         Img::ComparePieceCache cache;
         book.each(color, [&](Piece piece, cv::Mat const &pi, optional<PieceShape> shape) {
-          if (IsPromotedPiece(piece)) {
-            // 成り駒は打てない.
+          if (!CanDrop(position, piece, MakeSquare(ch.x, ch.y))) {
             return;
           }
           PieceType pt = PieceTypeFromPiece(piece);
@@ -470,19 +469,31 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             // 持ち駒に無い.
             return;
           }
-          auto [sim, _] = Img::ComparePiece(boardAfter, ch.x, ch.y, pi, color, shape, pool, cache);
-          if (maxSimStat[pt] < sim) {
-            maxSimStat[pt] = sim;
+          auto [sim, img] = Img::ComparePiece(boardAfter, ch.x, ch.y, pi, color, shape, pool, cache);
+          auto found = maxSimStat.find(pt);
+          if (found == maxSimStat.end()) {
+            maxSimStat[pt] = make_pair(sim, img);
+          } else if (found->second.first < sim) {
+            maxSimStat[pt] = make_pair(sim, img);
           }
           if (sim > maxSim) {
             maxSim = sim;
             maxSimPiece = piece;
           }
         });
+        static int cnt = 0;
+        cnt++;
         cout << "--" << endl;
         for (auto const &it : maxSimStat) {
-          cout << (char const *)ShortStringFromPieceTypeAndStatus(static_cast<PieceUnderlyingType>(it.first)).c_str() << ":" << it.second << endl;
+          cout << (char const *)ShortStringFromPieceTypeAndStatus(static_cast<PieceUnderlyingType>(it.first)).c_str() << ":" << it.second.first << endl;
         }
+#if 1
+        int i = 0;
+        for (auto const &it : maxSimStat) {
+          i++;
+          cout << "b64png(drop_" << cnt << "_" << i << "_" << (char const *)ShortStringFromPieceTypeAndStatus(static_cast<PieceUnderlyingType>(it.first)).c_str() << "):" << base64::to_base64(Img::EncodeToPng(it.second.second)) << endl;
+        }
+#endif
         if (maxSimPiece) {
           Move mv;
           mv.color = color;
