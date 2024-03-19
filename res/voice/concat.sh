@@ -7,6 +7,8 @@ voices=(
   "m_Ready"
   "m_WrongMoveWarningLeading"
   "m_WrongMoveWarningTrailing"
+  "m_YourTurnBlack"
+  "m_YourTurnWhite"
 
   "sq_1_1"
   "sq_1_2"
