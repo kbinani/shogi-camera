@@ -531,13 +531,7 @@ inline bool CanDrop(Position const &p, Piece piece, Square sq) {
   if (type == PieceType::Pawn) {
     for (int y = 0; y < 9; y++) {
       Piece pc = p.pieces[sq.file][y];
-      if (pc == 0) {
-        continue;
-      }
-      if (ColorFromPiece(pc) != color) {
-        continue;
-      }
-      if (PieceTypeFromPiece(pc) == PieceType::Pawn) {
+      if (pc == MakePiece(color, PieceType::Pawn)) {
         return false;
       }
     }
