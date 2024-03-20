@@ -524,9 +524,13 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat, size_t moves) 
       }
     }
     void rotate(int xOffset) {
-      for (auto &it : lines) {
+      map<int, Line> backup;
+      backup.swap(lines);
+      for (auto &it : backup) {
+        int x = xOffset - it.first;
         it.second.line[0] = -it.second.line[0];
         it.second.line[1] = -it.second.line[1];
+        lines[x] = it.second;
       }
       if (fit) {
         fit->xOffset = xOffset;
@@ -948,7 +952,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat, size_t moves) 
               grids[make_pair(maxX + minX - x, maxY + minY - y)] = it.second;
             }
             vlines.rotate(maxX + minX);
-            hlines.rotate(maxX + minX);
+            hlines.rotate(maxY + minY);
           }
           first = false;
         }
