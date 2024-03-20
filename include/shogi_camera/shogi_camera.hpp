@@ -686,8 +686,12 @@ struct RadianAverage {
     count++;
   }
 
-  double get() const {
-    return atan2(y, x);
+  std::optional<double> get() const {
+    if (count == 0) {
+      return std::nullopt;
+    } else {
+      return atan2(y, x);
+    }
   }
 
   double x = 0;

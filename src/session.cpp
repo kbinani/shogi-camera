@@ -31,7 +31,7 @@ float Normalize90To90(float a) {
   return a;
 }
 
-float MeanAngle(std::initializer_list<float> values) {
+std::optional<float> MeanAngle(std::initializer_list<float> values) {
   RadianAverage ra;
   for (float v : values) {
     ra.push(v);
@@ -556,20 +556,24 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         vmax = std::max(vmax, it.first);
         float v = it.first;
         float angle = atan2(it.second.line[1], it.second.line[0]);
+        auto m = ra.get();
+        if (m && cos(*m - angle) < 0) {
+          angle -= pi;
+        }
         while (angle < 0) {
           angle += pi * 2;
         }
         while (angle > pi * 2) {
           angle -= pi * 2;
         }
-        if (angle > pi) {
-          angle -= pi;
-        }
         ra.push(angle);
         angles.push_back(cv::Point2f(v, angle));
       }
-      float mean = ra.get();
-      float offset = pi - mean;
+      auto mean = ra.get();
+      if (!mean) {
+        return;
+      }
+      float offset = pi - *mean;
       float minAngle = numeric_limits<float>::max();
       float maxAngle = numeric_limits<float>::lowest();
       for (size_t i = 0; i < angles.size(); i++) {
