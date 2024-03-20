@@ -523,18 +523,22 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         return nullopt;
       }
     }
-    void rotate() {
+    void rotate(int xOffset) {
       for (auto &it : lines) {
         it.second.line[0] = -it.second.line[0];
         it.second.line[1] = -it.second.line[1];
+      }
+      if (fit) {
+        fit->xOffset = xOffset;
       }
     }
     bool empty() const {
       return lines.empty();
     }
     double direction() {
-      // TODO: index out of range
-      return atan2(lines[0].line[1], lines[0].line[0]);
+      assert(!lines.empty());
+      Line l = lines.begin()->second;
+      return atan2(l.line[1], l.line[0]);
     }
     void each(function<void(int k, Line const &line)> cb) const {
       for (auto const &it : lines) {
@@ -627,6 +631,12 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
       }
       float B = (f - beta * gamma / N) / (e - beta * beta / N);
       float A = (gamma - beta * B) / N;
+      Fit info;
+      info.slope = *fit;
+      info.slopeOffset = offset;
+      info.A = A;
+      info.B = B;
+      this->fit = info;
       for (auto const &it : k) {
         auto [v, angle, line] = it;
         float b = B * v + A;
@@ -637,19 +647,43 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         if (result.find(v) != result.end()) {
           continue;
         }
-        auto angle = YFromX(*fit, v);
-        if (!angle) {
+        auto l = fitted(v);
+        if (!l) {
           continue;
         }
         Line line;
-        float b = B * v + A;
-        line.line = cv::Vec4f(cos(*angle - offset), sin(*angle - offset), -sin(-offset) * b, cos(-offset) * b);
+        line.line = *l;
         result[v] = line;
       }
       result.swap(lines);
     }
+    optional<cv::Vec4f> fitted(float k) const {
+      if (!fit) {
+        return nullopt;
+      }
+      float v;
+      if (fit->xOffset) {
+        v = *fit->xOffset - k;
+      } else {
+        v = k;
+      }
+      auto angle = YFromX(fit->slope, v);
+      if (!angle) {
+        return nullopt;
+      }
+      float b = fit->B * v + fit->A;
+      return cv::Vec4f(cos(*angle - fit->slopeOffset), sin(*angle - fit->slopeOffset), -sin(-fit->slopeOffset) * b, cos(-fit->slopeOffset) * b);
+    }
 
   private:
+    struct Fit {
+      cv::Vec4f slope;
+      double slopeOffset;
+      float B;
+      float A;
+      optional<int> xOffset;
+    };
+    optional<Fit> fit;
     map<int, Line> lines;
   };
   Lines vlines;
@@ -909,11 +943,11 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
               auto [x, y] = it.first;
               grids[make_pair(maxX + minX - x, maxY + minY - y)] = it.second;
             }
+            vlines.rotate(maxX + minX);
+            hlines.rotate(maxX + minX);
           }
           first = false;
         }
-        vlines.rotate();
-        hlines.rotate();
       } else {
         s.clusters.swap(clusters);
       }
@@ -1068,23 +1102,18 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           s.detected[file][rank] = square;
         }
       }
-      auto top = hlines.find(0);
-      auto bottom = hlines.find(8);
-      auto left = vlines.find(0);
-      auto right = vlines.find(8);
+      auto top = hlines.fitted(-0.5f);
+      auto bottom = hlines.fitted(8.5f);
+      auto left = vlines.fitted(-0.5f);
+      auto right = vlines.fitted(8.5f);
       if (top && bottom && left && right) {
-        auto tl = Intersection(top->line, left->line);
-        auto tr = Intersection(top->line, right->line);
-        auto br = Intersection(bottom->line, right->line);
-        auto bl = Intersection(bottom->line, left->line);
-        if (tl && tr && br && bl) {
-          // tl, tr, br, bl は駒中心を元に計算しているので 8x8 の範囲しか無い. 半マス分増やす
-          cv::Point2f topLeft = (*tl) + (((*tl) - (*tr)) / 16) + (((*tl) - (*bl)) / 16);
-          cv::Point2f topRight = (*tr) + (((*tr) - (*tl)) / 16) + (((*tr) - (*br)) / 16);
-          cv::Point2f bottomRight = (*br) + (((*br) - (*bl)) / 16) + (((*br) - (*tr)) / 16);
-          cv::Point2f bottomLeft = (*bl) + (((*bl) - (*br)) / 16) + (((*bl) - (*tl)) / 16);
-          cv::Point2f midBottom = (bottomRight + bottomLeft) * 0.5f;
-          cv::Point2f midTop = (topRight + topLeft) * 0.5f;
+        auto topLeft = Intersection(*top, *left);
+        auto topRight = Intersection(*top, *right);
+        auto bottomRight = Intersection(*bottom, *right);
+        auto bottomLeft = Intersection(*bottom, *left);
+        if (topLeft && topRight && bottomRight && bottomLeft) {
+          cv::Point2f midBottom = (*bottomRight + *bottomLeft) * 0.5f;
+          cv::Point2f midTop = (*topRight + *topLeft) * 0.5f;
           double direction = Angle(midBottom - midTop);
           if (cos(direction - s.boardDirection) < 0) {
             // 前回の boardDirection から 90 度以上違っていたら反転させる
@@ -1092,10 +1121,10 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
             swap(topRight, bottomLeft);
           }
 
-          stat.outlineTL.push_back(topLeft);
-          stat.outlineTR.push_back(topRight);
-          stat.outlineBR.push_back(bottomRight);
-          stat.outlineBL.push_back(bottomLeft);
+          stat.outlineTL.push_back(*topLeft);
+          stat.outlineTR.push_back(*topRight);
+          stat.outlineBR.push_back(*bottomRight);
+          stat.outlineBL.push_back(*bottomLeft);
           int maxCount = s.game.moves.empty() ? Statistics::kOutlineMaxCount_ : Statistics::kOutlineMaxCountDuringGame;
           if (stat.outlineTL.size() > maxCount) {
             stat.outlineTL.pop_front();
