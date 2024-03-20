@@ -752,7 +752,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         result.swap(lines);
       };
       static auto Equalize = [](map<int, Line> &lines, int extra) {
-        // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの平滑化ができなくなるので, 45 度付近できるよう, まず平均を求める.
+        // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの角度を直線近似できなくなるので, 180 度付近で近似したい. そのためにまず平均を求める.
         RadianAverage ra;
         vector<cv::Point2f> angles;
         int vmin = numeric_limits<int>::max();
@@ -775,7 +775,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           angles.push_back(cv::Point2f(v, angle));
         }
         float mean = ra.get();
-        float offset = pi / 8 - mean;
+        float offset = pi - mean;
         float minAngle = numeric_limits<float>::max();
         float maxAngle = numeric_limits<float>::lowest();
         for (size_t i = 0; i < angles.size(); i++) {
@@ -814,7 +814,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
             result[it.first] = line;
             continue;
           }
-          // offset 回転させているので, *angle はだいたい 45 度付近になっている.
+          // offset 回転させているので, *angle はだいたい 180 度付近になっている.
           float m = tan(*angle);
           if (!(m == 0 || isnormal(m))) {
             result[it.first] = line;
