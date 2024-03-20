@@ -47,18 +47,36 @@ using namespace std;
 }
 
 - (void)send:(string)message {
+  if (!outputStream) {
+    return;
+  }
   message += "\x0a";
   [outputStream write:(uint8_t const *)message.c_str() maxLength:message.size()];
 }
 
 - (void)onMessage:(string)msg {
   NSLog(@"csa:message:%s", msg.c_str());
-  owner->onmessage(msg);
+  if (owner) {
+    owner->onmessage(msg);
+  }
+}
+
+- (void)close {
+  owner = nil;
+  if (inputStream) {
+    [inputStream setDelegate:nil];
+    [inputStream close];
+    inputStream = nil;
+  }
+  if (outputStream) {
+    [outputStream setDelegate:nil];
+    [outputStream close];
+    outputStream = nil;
+  }
 }
 
 - (void)deinit {
-  [inputStream close];
-  [outputStream close];
+  [self close];
 }
 
 - (void)stream:(NSStream *)strm handleEvent:(NSStreamEvent)event {
@@ -155,11 +173,15 @@ struct CsaAdapter::Impl {
   }
 
   ~Impl() {
-    impl = nil;
+    if (impl) {
+      [impl close];
+    }
   }
 
   void send(string const &msg) {
-    [impl send:msg];
+    if (impl) {
+      [impl send:msg];
+    }
   }
 
   CsaAdapter *const owner;

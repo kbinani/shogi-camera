@@ -1391,6 +1391,9 @@ void Session::startGame(GameStartParameter p) {
 }
 
 void Session::stopGame() {
+  if (!players) {
+    return;
+  }
   if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->black); csa) {
     csa->send("%CHUDAN");
     csa->send("LOGOUT");
