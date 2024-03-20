@@ -1278,7 +1278,7 @@ void Session::run() {
         p->white = local.white;
         players = p;
         playerConfig = nullptr;
-      } else {
+      } else if (playerConfig->players.index() == 1) {
         PlayerConfig::Remote remote = get<1>(playerConfig->players);
         if (remote.csa->color_) {
           auto p = make_shared<Players>();
