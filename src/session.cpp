@@ -509,8 +509,151 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
     cv::Vec4f line;
     vector<cv::Point2f> points;
   };
-  map<int, Line> vlines;
-  map<int, Line> hlines;
+  struct Lines {
+    void clear() {
+      lines.clear();
+    }
+    void insert(int k, Line line) {
+      lines[k] = line;
+    }
+    optional<Line> find(int k) const {
+      if (auto found = lines.find(k); found != lines.end()) {
+        return found->second;
+      } else {
+        return nullopt;
+      }
+    }
+    void rotate() {
+      for (auto &it : lines) {
+        it.second.line[0] = -it.second.line[0];
+        it.second.line[1] = -it.second.line[1];
+      }
+    }
+    bool empty() const {
+      return lines.empty();
+    }
+    double direction() {
+      // TODO: index out of range
+      return atan2(lines[0].line[1], lines[0].line[0]);
+    }
+    void each(function<void(int k, Line const &line)> cb) const {
+      for (auto const &it : lines) {
+        cb(it.first, it.second);
+      }
+    }
+    void equalize(int extra) {
+      // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの角度を直線近似できなくなるので, 180 度付近で近似したい. そのためにまず平均を求める.
+      RadianAverage ra;
+      vector<cv::Point2f> angles;
+      int vmin = numeric_limits<int>::max();
+      int vmax = numeric_limits<int>::min();
+      for (auto const &it : lines) {
+        vmin = std::min(vmin, it.first);
+        vmax = std::max(vmax, it.first);
+        float v = it.first;
+        float angle = atan2(it.second.line[1], it.second.line[0]);
+        while (angle < 0) {
+          angle += pi * 2;
+        }
+        while (angle > pi * 2) {
+          angle -= pi * 2;
+        }
+        if (angle > pi) {
+          angle -= pi;
+        }
+        ra.push(angle);
+        angles.push_back(cv::Point2f(v, angle));
+      }
+      float mean = ra.get();
+      float offset = pi - mean;
+      float minAngle = numeric_limits<float>::max();
+      float maxAngle = numeric_limits<float>::lowest();
+      for (size_t i = 0; i < angles.size(); i++) {
+        float angle = angles[i].y + offset;
+        while (angle < 0) {
+          angle += pi * 2;
+        }
+        while (angle > pi * 2) {
+          angle -= pi * 2;
+        }
+        minAngle = std::min(minAngle, float(angle * 180 / pi));
+        maxAngle = std::max(maxAngle, float(angle * 180 / pi));
+        angles[i].y = angle;
+      }
+      if (maxAngle - minAngle >= 30) {
+        return;
+      }
+      auto fit = FitLine(angles);
+      if (!fit) {
+        return;
+      }
+      map<int, Line> result;
+      // 切片 b を b = B * v + A の形にして等間隔となるようにしたとき, B と A を最小二乗法により最適化する.
+      // https://gyazo.com/e5841fbf59652da39d2e19760e450461
+      vector<tuple<int, float, Line>> k;
+      float beta = 0;
+      float gamma = 0;
+      float f = 0;
+      float e = 0;
+      int N = (int)lines.size();
+      for (auto const &it : lines) {
+        float v = it.first;
+        Line line = it.second;
+        auto angle = YFromX(*fit, v);
+        if (!angle) {
+          result[it.first] = line;
+          continue;
+        }
+        // offset 回転させているので, *angle はだいたい 180 度付近になっている.
+        float m = tan(*angle);
+        if (!(m == 0 || isnormal(m))) {
+          result[it.first] = line;
+          continue;
+        }
+        float gamma_v = 0;
+        float f_v = 0;
+        float n = line.points.size();
+        for (auto const &p : line.points) {
+          float x = cos(offset) * p.x - sin(offset) * p.y;
+          float y = sin(offset) * p.x + cos(offset) * p.y;
+          gamma_v += y - m * x;
+          f_v += (y - m * x) * v;
+        }
+        gamma += gamma_v / n;
+        f += f_v / n;
+        beta += v;
+        e += v * v;
+        k.push_back(make_tuple(it.first, *angle, line));
+      }
+      float B = (f - beta * gamma / N) / (e - beta * beta / N);
+      float A = (gamma - beta * B) / N;
+      for (auto const &it : k) {
+        auto [v, angle, line] = it;
+        float b = B * v + A;
+        line.line = cv::Vec4f(cos(angle - offset), sin(angle - offset), -sin(-offset) * b, cos(-offset) * b);
+        result[v] = line;
+      }
+      for (int v = vmin - extra; v <= vmax + extra; v++) {
+        if (result.find(v) != result.end()) {
+          continue;
+        }
+        auto angle = YFromX(*fit, v);
+        if (!angle) {
+          continue;
+        }
+        Line line;
+        float b = B * v + A;
+        line.line = cv::Vec4f(cos(*angle - offset), sin(*angle - offset), -sin(-offset) * b, cos(-offset) * b);
+        result[v] = line;
+      }
+      result.swap(lines);
+    }
+
+  private:
+    map<int, Line> lines;
+  };
+  Lines vlines;
+  Lines hlines;
   map<pair<int, int>, cv::Point2f> grids;
   if (!s.clusters.empty()) {
     // s.clusters の 2 番目以降について, s.clusters[0] にマージできないか調べる.
@@ -594,7 +737,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
             l.line = *line;
           }
           l.points.swap(points);
-          vlines[x] = l;
+          vlines.insert(x, l);
         }
       }
       // 横方向の既知の格子毎に, 直線をフィッティングする.
@@ -643,135 +786,27 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
             l.line = *line;
           }
           l.points.swap(points);
-          hlines[y] = l;
+          hlines.insert(y, l);
         }
       }
       // フィッティングした直線の傾きを平滑化する
-      static auto Equalize = [](map<int, Line> &lines, int extra) {
-        // まず角度の平均値を求める. 角度が 0 度をまたぐと傾きの角度を直線近似できなくなるので, 180 度付近で近似したい. そのためにまず平均を求める.
-        RadianAverage ra;
-        vector<cv::Point2f> angles;
-        int vmin = numeric_limits<int>::max();
-        int vmax = numeric_limits<int>::min();
-        for (auto const &it : lines) {
-          vmin = std::min(vmin, it.first);
-          vmax = std::max(vmax, it.first);
-          float v = it.first;
-          float angle = atan2(it.second.line[1], it.second.line[0]);
-          while (angle < 0) {
-            angle += pi * 2;
-          }
-          while (angle > pi * 2) {
-            angle -= pi * 2;
-          }
-          if (angle > pi) {
-            angle -= pi;
-          }
-          ra.push(angle);
-          angles.push_back(cv::Point2f(v, angle));
-        }
-        float mean = ra.get();
-        float offset = pi - mean;
-        float minAngle = numeric_limits<float>::max();
-        float maxAngle = numeric_limits<float>::lowest();
-        for (size_t i = 0; i < angles.size(); i++) {
-          float angle = angles[i].y + offset;
-          while (angle < 0) {
-            angle += pi * 2;
-          }
-          while (angle > pi * 2) {
-            angle -= pi * 2;
-          }
-          minAngle = std::min(minAngle, float(angle * 180 / pi));
-          maxAngle = std::max(maxAngle, float(angle * 180 / pi));
-          angles[i].y = angle;
-        }
-        if (maxAngle - minAngle >= 30) {
-          return;
-        }
-        auto fit = FitLine(angles);
-        if (!fit) {
-          return;
-        }
-        map<int, Line> result;
-        // 切片 b を b = B * v + A の形にして等間隔となるようにしたとき, B と A を最小二乗法により最適化する.
-        // https://gyazo.com/e5841fbf59652da39d2e19760e450461
-        vector<tuple<int, float, Line>> k;
-        float beta = 0;
-        float gamma = 0;
-        float f = 0;
-        float e = 0;
-        int N = (int)lines.size();
-        for (auto const &it : lines) {
-          float v = it.first;
-          Line line = it.second;
-          auto angle = YFromX(*fit, v);
-          if (!angle) {
-            result[it.first] = line;
-            continue;
-          }
-          // offset 回転させているので, *angle はだいたい 180 度付近になっている.
-          float m = tan(*angle);
-          if (!(m == 0 || isnormal(m))) {
-            result[it.first] = line;
-            continue;
-          }
-          float gamma_v = 0;
-          float f_v = 0;
-          float n = line.points.size();
-          for (auto const &p : line.points) {
-            float x = cos(offset) * p.x - sin(offset) * p.y;
-            float y = sin(offset) * p.x + cos(offset) * p.y;
-            gamma_v += y - m * x;
-            f_v += (y - m * x) * v;
-          }
-          gamma += gamma_v / n;
-          f += f_v / n;
-          beta += v;
-          e += v * v;
-          k.push_back(make_tuple(it.first, *angle, line));
-        }
-        float B = (f - beta * gamma / N) / (e - beta * beta / N);
-        float A = (gamma - beta * B) / N;
-        for (auto const &it : k) {
-          auto [v, angle, line] = it;
-          float b = B * v + A;
-          line.line = cv::Vec4f(cos(angle - offset), sin(angle - offset), -sin(-offset) * b, cos(-offset) * b);
-          result[v] = line;
-        }
-        for (int v = vmin - extra; v <= vmax + extra; v++) {
-          if (result.find(v) != result.end()) {
-            continue;
-          }
-          auto angle = YFromX(*fit, v);
-          if (!angle) {
-            continue;
-          }
-          Line line;
-          float b = B * v + A;
-          line.line = cv::Vec4f(cos(*angle - offset), sin(*angle - offset), -sin(-offset) * b, cos(-offset) * b);
-          result[v] = line;
-        }
-        result.swap(lines);
-      };
-      Equalize(hlines, dy);
-      Equalize(vlines, dx);
+      hlines.equalize(dy);
+      vlines.equalize(dx);
       // フィッティングした直線を元に足りていない点を交点を計算することで補う
       for (int x = minX - dx; x <= maxX + dx; x++) {
-        auto found = vlines.find(x);
-        if (found == vlines.end()) {
+        auto vline = vlines.find(x);
+        if (!vline) {
           continue;
         }
-        Line vline = found->second;
         for (int y = minY - dy; y <= maxY + dy; y++) {
           if (grids.find(make_pair(x, y)) != grids.end()) {
             continue;
           }
           auto hline = hlines.find(y);
-          if (hline == hlines.end()) {
+          if (!hline) {
             continue;
           }
-          if (auto cross = Intersection(vline.line, hline->second.line); cross) {
+          if (auto cross = Intersection(vline->line, hline->line); cross) {
             grids[make_pair(x, y)] = *cross;
           }
         }
@@ -849,7 +884,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
       s.clusters.swap(clusters);
       grids.swap(tmpGrids);
       // clusters[0] の y 方向の向きが s.boardDirection と一致しているか調べる. 一致していなければ y 方向を反転させる
-      double angle = atan2(vlines[0].line[1], vlines[0].line[0]);
+      double angle = vlines.direction();
       if (cos(angle - s.boardDirection) < 0) {
         bool first = true;
         for (auto const &cluster : clusters) {
@@ -877,14 +912,8 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           }
           first = false;
         }
-        for (auto &vline : vlines) {
-          vline.second.line[0] = -vline.second.line[0];
-          vline.second.line[1] = -vline.second.line[1];
-        }
-        for (auto &hline : hlines) {
-          hline.second.line[0] = -hline.second.line[0];
-          hline.second.line[1] = -hline.second.line[1];
-        }
+        vlines.rotate();
+        hlines.rotate();
       } else {
         s.clusters.swap(clusters);
       }
@@ -915,34 +944,34 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
       for (auto const &it : grids) {
         cv::circle(img, cv::Point2f(it.second.x * 2, it.second.y * 2), distanceTh * 2 / 2, cv::Scalar(0, 0, 255));
       }
-      for (auto const &it : vlines) {
-        auto y0 = YFromX(it.second.line, 0);
+      vlines.each([&](int k, Line const &line) {
+        auto y0 = YFromX(line.line, 0);
         if (!y0) {
-          continue;
+          return;
         }
-        auto y1 = YFromX(it.second.line, s.width);
+        auto y1 = YFromX(line.line, s.width);
         if (!y1) {
-          continue;
+          return;
         }
         vector<cv::Point> points;
         points.push_back(cv::Point2f(0, (*y0) * 2));
         points.push_back(cv::Point2f(s.width * 2, (*y1) * 2));
         cv::polylines(img, points, false, cv::Scalar(255, 0, 0));
-      }
-      for (auto const &it : hlines) {
-          auto y0 = YFromX(it.second.line, 0);
-          if (!y0) {
-            continue;
-          }
-          auto y1 = YFromX(it.second.line, s.width);
-          if (!y1) {
-            continue;
-          }
+      });
+      hlines.each([&](int k, Line const &line) {
+        auto y0 = YFromX(line.line, 0);
+        if (!y0) {
+          return;
+        }
+        auto y1 = YFromX(line.line, s.width);
+        if (!y1) {
+          return;
+        }
         vector<cv::Point> points;
-          points.push_back(cv::Point2f(0, (*y0) * 2));
-          points.push_back(cv::Point2f(s.width * 2, (*y1) * 2));
+        points.push_back(cv::Point2f(0, (*y0) * 2));
+        points.push_back(cv::Point2f(s.width * 2, (*y1) * 2));
         cv::polylines(img, points, false, cv::Scalar(0, 255, 0));
-      }
+      });
       cout << "b64png(grids_" << cv::format("%04d", cnt) << "):" << base64::to_base64(Img::EncodeToPng(img)) << endl;
 #endif
     }
@@ -1043,11 +1072,11 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
       auto bottom = hlines.find(8);
       auto left = vlines.find(0);
       auto right = vlines.find(8);
-      if (top != hlines.end() && bottom != hlines.end() && left != vlines.end() && right != vlines.end()) {
-        auto tl = Intersection(top->second.line, left->second.line);
-        auto tr = Intersection(top->second.line, right->second.line);
-        auto br = Intersection(bottom->second.line, right->second.line);
-        auto bl = Intersection(bottom->second.line, left->second.line);
+      if (top && bottom && left && right) {
+        auto tl = Intersection(top->line, left->line);
+        auto tr = Intersection(top->line, right->line);
+        auto br = Intersection(bottom->line, right->line);
+        auto bl = Intersection(bottom->line, left->line);
         if (tl && tr && br && bl) {
           // tl, tr, br, bl は駒中心を元に計算しているので 8x8 の範囲しか無い. 半マス分増やす
           cv::Point2f topLeft = (*tl) + (((*tl) - (*tr)) / 16) + (((*tl) - (*bl)) / 16);
