@@ -444,7 +444,6 @@ struct Sunfish3AI::Impl {
         cout << "move を sunfish 形式に変換できなかった" << endl;
         return random(p, color, hand, handEnemy);
       }
-      cout << sm->toString() << endl;
       if (!record.makeMove(*sm)) {
         cout << "move を record に適用できなかった" << endl;
         return random(p, color, hand, handEnemy);
