@@ -1110,7 +1110,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat, size_t moves) 
       auto bottom = hlines.fitted(8.5f);
       auto left = vlines.fitted(-0.5f);
       auto right = vlines.fitted(8.5f);
-      if (top && bottom && left && right) {
+      if (top && bottom && left && right && hlines.find(0) && hlines.find(8) && vlines.find(0) && vlines.find(8)) {
         auto topLeft = Intersection(*top, *left);
         auto topRight = Intersection(*top, *right);
         auto bottomRight = Intersection(*bottom, *right);
