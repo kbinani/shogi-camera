@@ -246,7 +246,7 @@ bool IsAdj(LatticeContent const &a, LatticeContent const &b, float width, float 
   return false;
 }
 
-void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
+void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat, size_t moves) {
   using namespace std;
   using namespace std::numbers;
   vector<shared_ptr<Contour>> squares;
@@ -1129,7 +1129,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           stat.outlineTR.push_back(*topRight);
           stat.outlineBR.push_back(*bottomRight);
           stat.outlineBL.push_back(*bottomLeft);
-          int maxCount = s.game.moves.empty() ? Statistics::kOutlineMaxCount_ : Statistics::kOutlineMaxCountDuringGame;
+          int maxCount = moves == 0 ? Statistics::kOutlineMaxCount_ : Statistics::kOutlineMaxCountDuringGame;
           if (stat.outlineTL.size() > maxCount) {
             stat.outlineTL.pop_front();
           }
@@ -1256,7 +1256,7 @@ void Session::run() {
     s->width = frame.size().width;
     s->height = frame.size().height;
     Img::FindContours(frame, s->contours, s->squares, s->pieces);
-    FindBoard(frame, *s, stat);
+    FindBoard(frame, *s, stat, game.moves.size());
     stat.update(*s);
     s->book = stat.book;
     CreateWarpedBoard(frame, *s, stat);
