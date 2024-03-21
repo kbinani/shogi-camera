@@ -1264,6 +1264,7 @@ void Session::run() {
     s->boardDirection = this->s->boardDirection;
     s->width = frameGray.size().width;
     s->height = frameGray.size().height;
+    s->yourTurn = this->s->yourTurn;
     Img::FindContours(frameGray, s->contours, s->squares, s->pieces);
     FindBoard(frameGray, *s, stat, game.moves.size());
     stat.update(*s);
