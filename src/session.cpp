@@ -1183,7 +1183,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat, size_t moves) 
   }
 }
 
-void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) {
+void CreateWarpedBoard(cv::Mat const &frameGray, cv::Mat const &frameColor, Status &s, Statistics const &stat) {
   using namespace std;
   optional<Contour> preciseOutline = stat.preciseOutline;
   if (!stat.preciseOutline || !stat.aspectRatio || !stat.squareArea) {
@@ -1191,7 +1191,7 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
   }
   // 台形補正. キャプチャ画像と同じ面積で, アスペクト比が Status.aspectRatio と等しいサイズとなるような台形補正済み画像を作る.
   double area = *stat.squareArea * 81;
-  if (area > frame.size().area()) {
+  if (area > frameGray.size().area()) {
     // キャプチャ画像より盤面が広いことはありえない.
     return;
   }
@@ -1212,10 +1212,14 @@ void CreateWarpedBoard(cv::Mat const &frame, Status &s, Statistics const &stat) 
   s.warpedHeight = height;
   if (stat.rotate) {
     cv::Mat tmp1;
-    cv::warpPerspective(frame, tmp1, mtx, cv::Size(width, height));
-    cv::rotate(tmp1, s.boardWarped, cv::ROTATE_180);
+    cv::warpPerspective(frameGray, tmp1, mtx, cv::Size(width, height));
+    cv::rotate(tmp1, s.boardWarpedGray, cv::ROTATE_180);
+
+    cv::warpPerspective(frameColor, tmp1, mtx, cv::Size(width, height));
+    cv::rotate(tmp1, s.boardWarpedColor, cv::ROTATE_180);
   } else {
-    cv::warpPerspective(frame, s.boardWarped, mtx, cv::Size(width, height));
+    cv::warpPerspective(frameGray, s.boardWarpedGray, mtx, cv::Size(width, height));
+    cv::warpPerspective(frameColor, s.boardWarpedColor, mtx, cv::Size(width, height));
   }
 }
 
@@ -1243,11 +1247,12 @@ void Session::run() {
       lock.unlock();
       break;
     }
-    cv::Mat frame = queue.front();
+    cv::Mat frameColor = queue.front();
     queue.pop_front();
     lock.unlock();
 
-    cv::cvtColor(frame, frame, cv::COLOR_RGB2GRAY);
+    cv::Mat frameGray;
+    cv::cvtColor(frameColor, frameGray, cv::COLOR_RGB2GRAY);
 
     auto s = std::make_shared<Status>();
     s->stableBoardMaxSimilarity = BoardImage::kStableBoardMaxSimilarity;
@@ -1257,13 +1262,13 @@ void Session::run() {
     s->boardReady = this->s->boardReady;
     s->wrongMove = this->s->wrongMove;
     s->boardDirection = this->s->boardDirection;
-    s->width = frame.size().width;
-    s->height = frame.size().height;
-    Img::FindContours(frame, s->contours, s->squares, s->pieces);
-    FindBoard(frame, *s, stat, game.moves.size());
+    s->width = frameGray.size().width;
+    s->height = frameGray.size().height;
+    Img::FindContours(frameGray, s->contours, s->squares, s->pieces);
+    FindBoard(frameGray, *s, stat, game.moves.size());
     stat.update(*s);
     s->book = stat.book;
-    CreateWarpedBoard(frame, *s, stat);
+    CreateWarpedBoard(frameGray, frameColor, *s, stat);
     if (playerConfig) {
       if (playerConfig->players.index() == 0) {
         PlayerConfig::Local local = get<0>(playerConfig->players);
@@ -1295,7 +1300,7 @@ void Session::run() {
         }
       }
     }
-    stat.push(s->boardWarped, *s, game, detected, players != nullptr);
+    stat.push(s->boardWarpedGray, s->boardWarpedColor, *s, game, detected, players != nullptr);
     if (players && detected.size() == game.moves.size()) {
       if (game.moves.size() % 2 == 0) {
         // 次が先手番
@@ -1334,7 +1339,7 @@ void Session::run() {
     s->waitingMove = detected.size() != game.moves.size();
     s->game = game;
     if (!stat.stableBoardHistory.empty()) {
-      s->stableBoard = stat.stableBoardHistory.back().back().image;
+      s->stableBoard = stat.stableBoardHistory.back().back().gray;
     }
     this->s = s;
   }

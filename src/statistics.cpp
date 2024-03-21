@@ -26,7 +26,13 @@ bool IsIdentical(std::set<T, L> const &a, std::set<T, L> const &b) {
   return true;
 }
 
-void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardAfter, PieceBook &book, std::optional<Move> hint, Status const &s, hwm::task_queue &pool) {
+void AppendPromotion(Move &mv,
+                     cv::Mat const &boardBefore, cv::Mat const &boardBeforeColor,
+                     cv::Mat const &boardAfter, cv::Mat const &boardAfterColor,
+                     PieceBook &book,
+                     std::optional<Move> hint,
+                     Status const &s,
+                     hwm::task_queue &pool) {
   using namespace std;
   if (!mv.from || IsPromotedPiece(mv.piece)) {
     return;
@@ -253,13 +259,14 @@ void Statistics::update(Status const &s) {
   }
 }
 
-void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move> &detected, bool detectMove) {
+void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s, Game &g, std::vector<Move> &detected, bool detectMove) {
   using namespace std;
   if (board.size().area() <= 0) {
     return;
   }
   BoardImage bi;
-  bi.image = board;
+  bi.gray = board;
+  bi.fullcolor = fullcolor;
   boardHistory.push_back(bi);
   if (boardHistory.size() == 1) {
     return;
@@ -355,8 +362,8 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   if (detected.size() + 1 == g.moves.size()) {
     hint = g.moves.back();
   }
-  optional<Move> move = Detect(last.back().image,
-                               board,
+  optional<Move> move = Detect(last.back().gray, last.back().fullcolor,
+                               board, fullcolor,
                                ch,
                                g.position,
                                detected,
@@ -399,19 +406,15 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
     move->to = move->to.rotated();
     move->piece = RemoveColorFromPiece(move->piece) | static_cast<PieceUnderlyingType>(color);
     for (int i = 0; i < history.size(); i++) {
-      cv::Mat rotated;
-      cv::rotate(history[i].image, rotated, cv::ROTATE_180);
-      history[i].image = rotated;
+      history[i].rotate();
     }
     for (int i = 0; i < last.size(); i++) {
-      cv::Mat rotated;
-      cv::rotate(last[i].image, rotated, cv::ROTATE_180);
-      last[i].image = rotated;
+      last[i].rotate();
     }
     rotate = true;
   }
   if (detected.empty()) {
-    book->update(g.position, last.back().image, s);
+    book->update(g.position, last.back().gray, s);
   }
   move->decideSuffix(g.position);
   if (detected.size() + 1 == g.moves.size()) {
@@ -434,8 +437,8 @@ void Statistics::push(cv::Mat const &board, Status &s, Game &g, std::vector<Move
   cout << g.moves.size() << ":" << (char const *)StringFromMoveWithOptionalLast(*move, lastMoveTo).c_str() << endl;
 }
 
-std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
-                                       cv::Mat const &boardAfter,
+std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardBeforeColor,
+                                       cv::Mat const &boardAfter, cv::Mat const &boardAfterColor,
                                        CvPointSet const &changes,
                                        Position const &position,
                                        std::vector<Move> const &moves,
@@ -448,6 +451,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
   using namespace std;
   optional<Move> move;
   auto [before, after] = Img::Equalize(boardBefore, boardAfter);
+  auto [beforeColor, afterColor] = Img::Equalize(boardBeforeColor, boardAfterColor);
 
   if (changes.size() == 1) {
     cv::Point ch = *changes.begin();
@@ -580,7 +584,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
         mv.captured = RemoveColorFromPiece(position.pieces[minSquare->file][minSquare->rank]);
         mv.piece = p;
         if (!moves.empty()) {
-          AppendPromotion(mv, before, after, book, hint, s, pool);
+          AppendPromotion(mv, before, beforeColor, after, afterColor, book, hint, s, pool);
         }
         move = mv;
       } else {
@@ -613,7 +617,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             mv.piece = p0;
             mv.captured = RemoveColorFromPiece(p1);
             if (!moves.empty()) {
-              AppendPromotion(mv, before, after, book, hint, s, pool);
+              AppendPromotion(mv, before, beforeColor, after, afterColor, book, hint, s, pool);
             }
             move = mv;
           } else {
@@ -629,7 +633,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
             mv.piece = p1;
             mv.captured = RemoveColorFromPiece(p0);
             if (!moves.empty()) {
-              AppendPromotion(mv, before, after, book, hint, s, pool);
+              AppendPromotion(mv, before, beforeColor, after, afterColor, book, hint, s, pool);
             }
             move = mv;
           } else {
@@ -649,7 +653,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
           mv.to = to;
           mv.piece = p0;
           if (!moves.empty()) {
-            AppendPromotion(mv, before, after, book, hint, s, pool);
+            AppendPromotion(mv, before, beforeColor, after, afterColor, book, hint, s, pool);
           }
           move = mv;
         } else {
@@ -670,7 +674,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore,
           mv.to = to;
           mv.piece = p1;
           if (!moves.empty()) {
-            AppendPromotion(mv, before, after, book, hint, s, pool);
+            AppendPromotion(mv, before, beforeColor, after, afterColor, book, hint, s, pool);
           }
           move = mv;
         } else {

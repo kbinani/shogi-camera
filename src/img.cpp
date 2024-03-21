@@ -44,7 +44,7 @@ void Img::Compare(BoardImage const &before, BoardImage const &after, CvPointSet 
   // 2 枚の盤面画像を比較する. 変動が検出された升目を buffer に格納する.
 
   buffer.clear();
-  auto [b, a] = Equalize(before.image, after.image);
+  auto [b, a] = Equalize(before.gray, after.gray);
   double sim[9][9];
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {

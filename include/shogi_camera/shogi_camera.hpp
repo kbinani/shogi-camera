@@ -1108,7 +1108,8 @@ struct Status {
   // より正確な盤面のアウトライン.
   std::optional<Contour> preciseOutline;
   // 台形補正済みの盤面画像
-  cv::Mat boardWarped;
+  cv::Mat boardWarpedGray;
+  cv::Mat boardWarpedColor;
   // 台形補正する際に使用した透視変換
   cv::Mat perspectiveTransform;
   bool rotate = false;
@@ -1140,9 +1141,15 @@ struct Status {
 
 // 盤面画像.
 struct BoardImage {
-  cv::Mat image;
+  cv::Mat gray;
+  cv::Mat fullcolor;
   static constexpr double kStableBoardMaxSimilarity = 0.02;
   static constexpr double kStableBoardThreshold = kStableBoardMaxSimilarity * 0.5;
+
+  void rotate() {
+    cv::rotate(gray, gray, cv::ROTATE_180);
+    cv::rotate(fullcolor, fullcolor, cv::ROTATE_180);
+  }
 };
 
 struct LessCvPoint {
@@ -1181,14 +1188,14 @@ struct Statistics {
 
   std::deque<BoardImage> boardHistory;
   std::deque<std::array<BoardImage, 3>> stableBoardHistory;
-  void push(cv::Mat const &board, Status &s, Game &g, std::vector<Move> &detected, bool detectMove);
+  void push(cv::Mat const &boardGray, cv::Mat const &boardFullcolor, Status &s, Game &g, std::vector<Move> &detected, bool detectMove);
   // 盤面画像を180度回転してから盤面認識処理すべき場合に true.
   bool rotate = false;
 
   std::deque<Move> moveCandidateHistory;
 
-  static std::optional<Move> Detect(cv::Mat const &boardBefore,
-                                    cv::Mat const &boardAfter,
+  static std::optional<Move> Detect(cv::Mat const &boardBeforeGray, cv::Mat const &boardBeforeColor,
+                                    cv::Mat const &boardAfterGray, cv::Mat const &boardAfterColor,
                                     CvPointSet const &changes,
                                     Position const &position,
                                     std::vector<Move> const &moves,
