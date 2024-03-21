@@ -29,7 +29,7 @@ void Move::decideSuffix(Position const &p) {
     SquareSet up;
     SquareSet down;
     SquareSet sideway;
-    // piece 以外の candiate が piece に対して左右どちらに居るか.
+    // piece 以外の candidate が piece に対して左右どちらに居るか.
     SquareSet left;
     SquareSet right;
     for (auto const &candidate : candidates) {
