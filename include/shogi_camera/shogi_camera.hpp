@@ -1286,6 +1286,7 @@ private:
   std::vector<Move> detected;
   std::shared_ptr<PlayerConfig> playerConfig;
   std::shared_ptr<Players> players;
+  std::optional<std::future<std::pair<Color, std::optional<Move>>>> next;
 };
 
 class Img {

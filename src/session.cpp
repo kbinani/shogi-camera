@@ -1270,14 +1270,34 @@ void Session::run() {
     stat.update(*s);
     s->book = stat.book;
     CreateWarpedBoard(frameGray, frameColor, *s, stat);
+    if (next) {
+      if (next->wait_for(chrono::milliseconds(100)) == future_status::ready) {
+        auto [color, mv] = next->get();
+        if (mv) {
+          mv->decideSuffix(game.position);
+          game.moves.push_back(*mv);
+        } else {
+          if (color == Color::Black) {
+            s->blackResign = true;
+          } else {
+            s->whiteResign = true;
+          }
+          resign(color);
+        }
+        next = nullopt;
+      }
+    }
     if (playerConfig) {
       if (playerConfig->players.index() == 0) {
         PlayerConfig::Local local = get<0>(playerConfig->players);
         if (local.black) {
-          if (auto move = local.black->next(game.position, game.moves, game.handBlack, game.handWhite); move) {
-            move->decideSuffix(game.position);
-            game.moves.push_back(*move);
-          }
+          assert(!next);
+          next = async(
+              launch::async, [](std::shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
+                return make_pair(Color::Black, player->next(game.position, game.moves, game.handBlack, game.handWhite));
+              },
+              local.black, game);
+          s->waitingMove = true;
         }
         auto p = make_shared<Players>();
         p->black = local.black;
@@ -1305,35 +1325,21 @@ void Session::run() {
     if (players && detected.size() == game.moves.size()) {
       if (game.moves.size() % 2 == 0) {
         // 次が先手番
-        if (players->black && !s->blackResign) {
-          auto move = players->black->next(game.position, game.moves, game.handBlack, game.handWhite);
-          if (move) {
-            move->decideSuffix(game.position);
-            optional<Square> lastTo;
-            if (game.moves.size() > 0) {
-              lastTo = game.moves.back().to;
-            }
-            game.moves.push_back(*move);
-          } else {
-            s->blackResign = true;
-            resign(Color::Black);
-          }
+        if (players->black && !s->blackResign && !next) {
+          next = async(
+              launch::async, [](std::shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
+                return make_pair(Color::Black, player->next(game.position, game.moves, game.handBlack, game.handWhite));
+              },
+              players->black, game);
         }
       } else {
         // 次が後手番
-        if (players->white && !s->whiteResign) {
-          auto move = players->white->next(game.position, game.moves, game.handWhite, game.handBlack);
-          if (move) {
-            move->decideSuffix(game.position);
-            optional<Square> lastTo;
-            if (game.moves.size() > 0) {
-              lastTo = game.moves.back().to;
-            }
-            game.moves.push_back(*move);
-          } else {
-            s->whiteResign = true;
-            resign(Color::White);
-          }
+        if (players->white && !s->whiteResign && !next) {
+          next = async(
+              launch::async, [](std::shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
+                return make_pair(Color::White, player->next(game.position, game.moves, game.handBlack, game.handWhite));
+              },
+              players->white, game);
         }
       }
     }
