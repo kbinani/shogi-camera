@@ -418,14 +418,12 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
   }
   move->decideSuffix(g.position);
   if (detected.size() + 1 == g.moves.size()) {
-#if !defined(SHOGI_CAMERA_DISABLE_HINT)
-    // g.moves_.back() は AI が生成した手なので, それと合致しているか調べる.
+    // g.moves.back() は AI が生成した手なので, それと合致しているか調べる.
     if (*move != g.moves.back()) {
       s.wrongMove = true;
       cout << "AIの示した手と違う手が指されている" << endl;
       return;
     }
-#endif
   } else {
     g.moves.push_back(*move);
   }
