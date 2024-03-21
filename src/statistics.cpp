@@ -110,6 +110,14 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
 
   int promote = mv.promote;
 
+  constexpr float kTScoreThresholdBetweenUnpromote = 40;
+  // 実例:
+  // 指し手 | tScoreBeforeUnpromote | tScoreAfterUnpromote | diff
+  // -------------------------------------------------------------
+  // 銀不成 | 63.8766               | 30.8876              | 32.989
+  // 角成   | 177.716               | 50.5639              | 228.28
+  // 歩成   | 137.282               | -14.2832             | 151.565
+
   if (meanPromoteAfter && stddevPromoteAfter) {
     // 成り駒画像群と比較した時の類似度の平均値が, 不成駒画像群と比較したときの類似度の集合に居たと仮定した時の偏差値.
     float tScoreAfterPromote = 10 * (*meanPromoteAfter - meanUnpromoteAfter) / stddevUnpromoteAfter + 50;
@@ -118,7 +126,7 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
     cout << "tScoreBeforeUnpromote=" << tScoreBeforeUnpromote << ", tScoreAfterUnpromote=" << tScoreAfterUnpromote << ", (tScoreBeforeUnpromote - tScoreAfterUnpromote)=" << (tScoreBeforeUnpromote - tScoreAfterUnpromote) << endl;
     cout << "tScoreAfterPromote=" << tScoreAfterPromote << ", tScoreAfterUnpromote=" << tScoreAfterUnpromote << ", (tScoreAfterPromote - tScoreAfterUnpromote)=" << (tScoreAfterPromote - tScoreAfterUnpromote) << endl;
 
-    if (tScoreBeforeUnpromote - tScoreAfterUnpromote > 40 || tScoreAfterPromote - tScoreAfterUnpromote > 20) {
+    if (tScoreBeforeUnpromote - tScoreAfterUnpromote > kTScoreThresholdBetweenUnpromote || tScoreAfterPromote - tScoreAfterUnpromote > 20) {
       if (!hint || hint->promote == 1) {
         promote = 1;
       } else if (hint && promote != hint->promote) {
@@ -136,7 +144,7 @@ void AppendPromotion(Move &mv, cv::Mat const &boardBefore, cv::Mat const &boardA
   } else {
     cout << "tScoreBeforeUnpromote=" << tScoreBeforeUnpromote << ", tScoreAfterUnpromote=" << tScoreAfterUnpromote << ", (tScoreBeforeUnpromote - tScoreAfterUnpromote)=" << (tScoreBeforeUnpromote - tScoreAfterUnpromote) << endl;
 
-    if (tScoreBeforeUnpromote - tScoreAfterUnpromote > 20) {
+    if (tScoreBeforeUnpromote - tScoreAfterUnpromote > kTScoreThresholdBetweenUnpromote) {
       if (!hint || hint->promote == 1) {
         promote = 1;
       } else if (hint && promote != hint->promote) {
