@@ -1293,7 +1293,7 @@ void Session::run() {
         if (local.black) {
           assert(!next);
           next = async(
-              launch::async, [](std::shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
+              launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
                 return make_pair(Color::Black, player->next(game.position, game.moves, game.handBlack, game.handWhite));
               },
               local.black, game);
@@ -1327,7 +1327,7 @@ void Session::run() {
         // 次が先手番
         if (players->black && !s->blackResign && !next) {
           next = async(
-              launch::async, [](std::shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
+              launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
                 return make_pair(Color::Black, player->next(game.position, game.moves, game.handBlack, game.handWhite));
               },
               players->black, game);
@@ -1336,8 +1336,8 @@ void Session::run() {
         // 次が後手番
         if (players->white && !s->whiteResign && !next) {
           next = async(
-              launch::async, [](std::shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
-                return make_pair(Color::White, player->next(game.position, game.moves, game.handBlack, game.handWhite));
+              launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
+                return make_pair(Color::White, player->next(game.position, game.moves, game.handWhite, game.handBlack));
               },
               players->white, game);
         }
