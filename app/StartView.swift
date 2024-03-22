@@ -172,8 +172,7 @@ class StartView: UIView {
     if let connection = previewLayer?.connection {
       analyzer.captureSession.removeConnection(connection)
     }
-    //    analyzer.startGame(userColor: .Black, aiLevel: 0)
-    analyzer.startGame(userColor: .Black, csaServer: "192.168.1.33", csaPort: 4081, username: "ShogiCamera", password: "foo")
+    analyzer.startGame(userColor: .Black, aiLevel: 0)
     delegate?.startViewDidStartGame(self, with: analyzer)
   }
 
