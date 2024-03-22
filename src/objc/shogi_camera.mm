@@ -156,6 +156,7 @@ cv::Mat Utility::MatFromUIImage(void *ptr) {
 cv::Mat Utility::MatFromCGImage(void *ptr) {
   cv::Mat image;
   CGImageToMat((CGImageRef)ptr, image);
+  cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
   return image;
 }
 
