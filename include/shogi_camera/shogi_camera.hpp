@@ -1062,7 +1062,7 @@ public:
     virtual void send(std::string const &line) = 0;
   };
 
-  CsaServer(int port, std::shared_ptr<Peer> local);
+  CsaServer(int port, std::shared_ptr<Peer> local, Color color);
   ~CsaServer();
 
 private:

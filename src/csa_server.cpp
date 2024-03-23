@@ -19,7 +19,7 @@ struct RemotePeer : public CsaServer::Peer {
 };
 
 struct CsaServer::Impl {
-  Impl(int port, shared_ptr<Peer> local) : port(port), local(local) {
+  Impl(int port, shared_ptr<Peer> local, Color color) : port(port), local(local), color(color) {
     stop = false;
     thread(std::bind(&Impl::run, this)).detach();
   }
@@ -61,6 +61,12 @@ struct CsaServer::Impl {
 
   void loop(shared_ptr<RemotePeer> peer) {
     string buffer;
+    optional<string> username;
+    auto send = [peer](string const &msg) {
+      string m = msg + "\x0a";
+      ::send(peer->socket, m.c_str(), m.size(), 0);
+      cout << "csa_server:<<< " << msg << endl;
+    };
     while (!stop) {
       char tmp[64];
       ssize_t len = recv(peer->socket, tmp, sizeof(tmp), 0);
@@ -68,7 +74,29 @@ struct CsaServer::Impl {
         break;
       }
       copy_n(tmp, len, back_inserter(buffer));
-      cout << buffer << endl;
+      string::size_type offset = 0;
+      while (offset < buffer.size()) {
+        auto found = buffer.find('\xa', offset);
+        if (found == string::npos) {
+          break;
+        }
+        string line = buffer.substr(offset, found);
+        cout << "csa_server:>>> " << line << endl;
+        if (!username && line.starts_with("LOGIN ")) {
+          auto n = line.find(' ', 6);
+          if (n != string::npos) {
+            auto name = line.substr(6, n - 6);
+            send("LOGIN:" + name + " OK");
+            username = name;
+          }
+        } else if (username && line == "LOGOUT") {
+          send("LOGOUT:completed");
+          close(peer->socket);
+          return;
+        }
+        offset = found + 1;
+      }
+      buffer = buffer.substr(offset);
     }
   }
 
@@ -77,9 +105,10 @@ struct CsaServer::Impl {
   int port;
   shared_ptr<Peer> local;
   weak_ptr<RemotePeer> remote;
+  Color color;
 };
 
-CsaServer::CsaServer(int port, shared_ptr<CsaServer::Peer> local) : impl(make_unique<Impl>(port, local)) {
+CsaServer::CsaServer(int port, shared_ptr<CsaServer::Peer> local, Color color) : impl(make_unique<Impl>(port, local, color)) {
 }
 
 CsaServer::~CsaServer() {}

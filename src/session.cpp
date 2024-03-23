@@ -1232,7 +1232,7 @@ Session::Session() {
   this->th.swap(th);
 
 #if SHOGI_CAMERA_DEBUG
-  server = std::make_unique<CsaServer>(4081, nullptr);
+  server = std::make_unique<CsaServer>(4081, nullptr, Color::Black);
 #endif
 }
 
