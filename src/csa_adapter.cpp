@@ -31,95 +31,9 @@ void StringValueFromPossible(string const &msg, string const &key, optional<stri
     }
   }
 }
-
-optional<PieceUnderlyingType> PieceTypeFromCsaString(string const &p) {
-  if (p == "FU") {
-    return static_cast<PieceUnderlyingType>(PieceType::Pawn);
-  } else if (p == "KY") {
-    return static_cast<PieceUnderlyingType>(PieceType::Lance);
-  } else if (p == "KE") {
-    return static_cast<PieceUnderlyingType>(PieceType::Knight);
-  } else if (p == "GI") {
-    return static_cast<PieceUnderlyingType>(PieceType::Silver);
-  } else if (p == "KI") {
-    return static_cast<PieceUnderlyingType>(PieceType::Gold);
-  } else if (p == "HI") {
-    return static_cast<PieceUnderlyingType>(PieceType::Rook);
-  } else if (p == "KA") {
-    return static_cast<PieceUnderlyingType>(PieceType::Bishop);
-  } else if (p == "OU") {
-    return static_cast<PieceUnderlyingType>(PieceType::King);
-  } else if (p == "TO") {
-    return static_cast<PieceUnderlyingType>(PieceType::Pawn) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
-  } else if (p == "NY") {
-    return static_cast<PieceUnderlyingType>(PieceType::Lance) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
-  } else if (p == "NK") {
-    return static_cast<PieceUnderlyingType>(PieceType::Knight) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
-  } else if (p == "NG") {
-    return static_cast<PieceUnderlyingType>(PieceType::Silver) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
-  } else if (p == "UM") {
-    return static_cast<PieceUnderlyingType>(PieceType::Bishop) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
-  } else if (p == "RY") {
-    return static_cast<PieceUnderlyingType>(PieceType::Rook) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
-  } else {
-    return nullopt;
-  }
-}
-
-optional<string> CsaStringFromPiece(Piece p, int promote) {
-  bool promoted = IsPromotedPiece(p);
-  auto type = PieceTypeFromPiece(p);
-  if (type == PieceType::Pawn) {
-    if (promoted || promote == 1) {
-      return "TO";
-    } else {
-      return "FU";
-    }
-  } else if (type == PieceType::Lance) {
-    if (promoted || promote == 1) {
-      return "NY";
-    } else {
-      return "KY";
-    }
-  } else if (type == PieceType::Knight) {
-    if (promoted || promote == 1) {
-      return "NK";
-    } else {
-      return "KE";
-    }
-  } else if (type == PieceType::Silver) {
-    if (promoted || promote == 1) {
-      return "NG";
-    } else {
-      return "GI";
-    }
-  } else if (type == PieceType::Gold) {
-    return "KI";
-  } else if (type == PieceType::Bishop) {
-    if (promoted || promote == 1) {
-      return "UM";
-    } else {
-      return "KA";
-    }
-  } else if (type == PieceType::Rook) {
-    if (promoted || promote == 1) {
-      return "RY";
-    } else {
-      return "HI";
-    }
-  } else if (type == PieceType::King) {
-    return "OU";
-  }
-  return nullopt;
-}
 } // namespace
 
-// struct CsaAdapter::Impl {
-//   Impl(CsaServerParameter parameter, std::shared_ptr<CsaServer> server) : server(server) {
-//   }
-// };
-//
-CsaAdapter::CsaAdapter(CsaServerParameter_ parameter, std::shared_ptr<CsaServer> server) : server(server) {
+CsaAdapter::CsaAdapter(std::shared_ptr<CsaServer> server) : server(server) {
 }
 
 CsaAdapter::~CsaAdapter() {
@@ -266,7 +180,7 @@ void CsaAdapter::onmessage(string const &msg) {
       rejected = true;
     } else if (started) {
       if ((msg.starts_with("+") || msg.starts_with("-")) && msg.size() >= 7) {
-        auto mv = CsaServer::MoveFromCsaMove(msg, game.position);
+        auto mv = MoveFromCsaMove(msg, game.position);
         if (holds_alternative<Move>(mv)) {
           auto m = get<Move>(mv);
           lock_guard<mutex> lock(mut);

@@ -1000,9 +1000,146 @@ struct CsaPositionReceiver {
   std::optional<std::pair<Game, Color>> validate() const;
 };
 
-struct CsaServerParameter_ {
-  std::string username;
-};
+inline std::optional<PieceUnderlyingType> PieceTypeFromCsaString(std::string const &p) {
+  if (p == "FU") {
+    return static_cast<PieceUnderlyingType>(PieceType::Pawn);
+  } else if (p == "KY") {
+    return static_cast<PieceUnderlyingType>(PieceType::Lance);
+  } else if (p == "KE") {
+    return static_cast<PieceUnderlyingType>(PieceType::Knight);
+  } else if (p == "GI") {
+    return static_cast<PieceUnderlyingType>(PieceType::Silver);
+  } else if (p == "KI") {
+    return static_cast<PieceUnderlyingType>(PieceType::Gold);
+  } else if (p == "HI") {
+    return static_cast<PieceUnderlyingType>(PieceType::Rook);
+  } else if (p == "KA") {
+    return static_cast<PieceUnderlyingType>(PieceType::Bishop);
+  } else if (p == "OU") {
+    return static_cast<PieceUnderlyingType>(PieceType::King);
+  } else if (p == "TO") {
+    return static_cast<PieceUnderlyingType>(PieceType::Pawn) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (p == "NY") {
+    return static_cast<PieceUnderlyingType>(PieceType::Lance) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (p == "NK") {
+    return static_cast<PieceUnderlyingType>(PieceType::Knight) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (p == "NG") {
+    return static_cast<PieceUnderlyingType>(PieceType::Silver) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (p == "UM") {
+    return static_cast<PieceUnderlyingType>(PieceType::Bishop) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else if (p == "RY") {
+    return static_cast<PieceUnderlyingType>(PieceType::Rook) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
+  } else {
+    return std::nullopt;
+  }
+}
+
+inline std::variant<Move, std::u8string> MoveFromCsaMove(std::string const &msg, Position const &position) {
+  using namespace std;
+  if (!msg.starts_with("+") && !msg.starts_with("-")) {
+    return u8"指し手を読み取れませんでした";
+  }
+  if (msg.size() < 7) {
+    return u8"指し手を読み取れませんでした";
+  }
+  Color color = Color::Black;
+  if (msg.starts_with("-")) {
+    color = Color::White;
+  }
+  auto fromFile = atoi(msg.substr(1, 1).c_str());
+  auto fromRank = atoi(msg.substr(2, 1).c_str());
+  auto toFile = atoi(msg.substr(3, 1).c_str());
+  auto toRank = atoi(msg.substr(4, 1).c_str());
+  auto piece = PieceTypeFromCsaString(msg.substr(5, 2));
+  if (!piece) {
+    return u8"指し手を読み取れませんでした";
+  }
+  if (!msg.substr(1).starts_with(to_string(fromFile) + to_string(fromRank) + to_string(toFile) + to_string(toRank))) {
+    return u8"指し手を読み取れませんでした";
+  }
+  if (fromFile < 0 || 9 < fromFile || fromRank < 0 || 9 < fromRank || toFile < 1 || 9 < toFile || toRank < 1 || 9 < toRank) {
+    return u8"指し手を読み取れませんでした";
+  }
+  if ((fromFile == 0 && fromRank != 0) || (fromFile != 0 && fromRank == 0)) {
+    return u8"指し手を読み取れませんでした";
+  }
+  Move mv;
+  mv.color = color;
+  mv.piece = *piece | static_cast<PieceUnderlyingType>(color);
+  mv.to = MakeSquare(9 - toFile, toRank - 1);
+  if (fromFile != 0 && fromRank != 0) {
+    Square from = MakeSquare(9 - fromFile, fromRank - 1);
+    Piece existing = position.pieces[from.file][from.rank];
+    if (existing == 0) {
+      return u8"盤上にない駒の移動が指定されました";
+    }
+    if (existing == mv.piece) {
+      if (CanPromote(mv.piece) && IsPromotableMove(from, mv.to, color)) {
+        mv.promote = -1;
+      }
+    } else {
+      if (Promote(existing) == mv.piece) {
+        mv.promote = 1;
+      } else {
+        return u8"不正な指し手が指定されました";
+      }
+    }
+    mv.from = from;
+  }
+  Piece captured = position.pieces[mv.to.file][mv.to.rank];
+  if (captured != 0) {
+    mv.captured = RemoveColorFromPiece(captured);
+  }
+  mv.decideSuffix(position);
+  return mv;
+}
+
+std::optional<std::string> CsaStringFromPiece(Piece p, int promote) {
+  bool promoted = IsPromotedPiece(p);
+  auto type = PieceTypeFromPiece(p);
+  if (type == PieceType::Pawn) {
+    if (promoted || promote == 1) {
+      return "TO";
+    } else {
+      return "FU";
+    }
+  } else if (type == PieceType::Lance) {
+    if (promoted || promote == 1) {
+      return "NY";
+    } else {
+      return "KY";
+    }
+  } else if (type == PieceType::Knight) {
+    if (promoted || promote == 1) {
+      return "NK";
+    } else {
+      return "KE";
+    }
+  } else if (type == PieceType::Silver) {
+    if (promoted || promote == 1) {
+      return "NG";
+    } else {
+      return "GI";
+    }
+  } else if (type == PieceType::Gold) {
+    return "KI";
+  } else if (type == PieceType::Bishop) {
+    if (promoted || promote == 1) {
+      return "UM";
+    } else {
+      return "KA";
+    }
+  } else if (type == PieceType::Rook) {
+    if (promoted || promote == 1) {
+      return "RY";
+    } else {
+      return "HI";
+    }
+  } else if (type == PieceType::King) {
+    return "OU";
+  }
+  return std::nullopt;
+}
 
 class CsaServer {
 public:
@@ -1018,8 +1155,6 @@ public:
   void start(std::shared_ptr<Peer> local, Color color);
   void send(std::string const &msg);
 
-  static std::variant<Move, std::u8string> MoveFromCsaMove(std::string const &line, Position const &p);
-
 private:
   struct Impl;
   std::unique_ptr<Impl> impl;
@@ -1034,7 +1169,7 @@ public:
     virtual void csaAdapterDidFinishGame(GameResult) = 0;
   };
 
-  CsaAdapter(CsaServerParameter_ parameter, std::shared_ptr<CsaServer> server);
+  explicit CsaAdapter(std::shared_ptr<CsaServer> server);
   ~CsaAdapter();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   std::optional<std::u8string> name() override;
@@ -1068,8 +1203,6 @@ private:
   std::optional<CsaGameSummary> summary;
   // 初期局面と手番
   std::optional<std::pair<Game, Color>> init;
-  //  struct Impl;
-  //  std::unique_ptr<Impl> impl;
 };
 
 struct Status;
@@ -1263,7 +1396,8 @@ struct GameStartParameter {
   Color userColor;
   // 0: random
   // 1~: sunfish
-  std::variant<int, CsaServerParameter_> parameter;
+  // -1: csa
+  int option;
 };
 
 class Session : public CsaAdapter::Delegate, public std::enable_shared_from_this<Session> {
@@ -1306,9 +1440,6 @@ private:
   std::shared_ptr<PlayerConfig> playerConfig;
   std::shared_ptr<Players> players;
   std::optional<std::future<std::pair<Color, std::optional<Move>>>> next;
-  // #if SHOGI_CAMERA_DEBUG
-  //   std::unique_ptr<CsaServer> server;
-  // #endif
 };
 
 class Img {
@@ -1364,17 +1495,10 @@ public:
     return ptr->status();
   }
 
-  void startGame(Color userColor, int aiLevel) {
+  void startGame(Color userColor, int option) {
     GameStartParameter p;
     p.userColor = userColor;
-    p.parameter = aiLevel;
-    ptr->startGame(p);
-  }
-
-  void startGame(Color userColor, CsaServerParameter_ parameter) {
-    GameStartParameter p;
-    p.userColor = userColor;
-    p.parameter = parameter;
+    p.option = option;
     ptr->startGame(p);
   }
 

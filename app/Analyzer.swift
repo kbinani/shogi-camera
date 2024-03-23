@@ -85,25 +85,9 @@ class Analyzer {
     }
   }
 
-  func startGame(userColor: sci.Color, aiLevel: Int) {
+  func startGame(userColor: sci.Color, option: Int) {
     self.userColor = userColor
-    self.session.startGame(userColor, Int32(aiLevel))
-  }
-
-  func startGame(userColor: sci.Color, csaServer: String, csaPort: Int32, username: String, password: String) {
-    self.userColor = userColor
-    var p = sci.CsaServerParameter_()
-    //    p.server = csaServer.withCString { ptr in
-    //      std.string(ptr)
-    //    }
-    //    p.port = csaPort
-    p.username = username.withCString { ptr in
-      std.string(ptr)
-    }
-    //    p.password = password.withCString { ptr in
-    //      std.string(ptr)
-    //    }
-    self.session.startGame(userColor, p)
+    self.session.startGame(userColor, Int32(option))
   }
 
   func stopGame() {

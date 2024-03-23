@@ -11,42 +11,6 @@ using namespace std;
 
 namespace sci {
 
-namespace {
-optional<PieceUnderlyingType> PieceTypeFromCsaString(string const &p) {
-  if (p == "FU") {
-    return static_cast<PieceUnderlyingType>(PieceType::Pawn);
-  } else if (p == "KY") {
-    return static_cast<PieceUnderlyingType>(PieceType::Lance);
-  } else if (p == "KE") {
-    return static_cast<PieceUnderlyingType>(PieceType::Knight);
-  } else if (p == "GI") {
-    return static_cast<PieceUnderlyingType>(PieceType::Silver);
-  } else if (p == "KI") {
-    return static_cast<PieceUnderlyingType>(PieceType::Gold);
-  } else if (p == "HI") {
-    return static_cast<PieceUnderlyingType>(PieceType::Rook);
-  } else if (p == "KA") {
-    return static_cast<PieceUnderlyingType>(PieceType::Bishop);
-  } else if (p == "OU") {
-    return static_cast<PieceUnderlyingType>(PieceType::King);
-  } else if (p == "TO") {
-    return static_cast<PieceUnderlyingType>(PieceType::Pawn) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
-  } else if (p == "NY") {
-    return static_cast<PieceUnderlyingType>(PieceType::Lance) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
-  } else if (p == "NK") {
-    return static_cast<PieceUnderlyingType>(PieceType::Knight) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
-  } else if (p == "NG") {
-    return static_cast<PieceUnderlyingType>(PieceType::Silver) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
-  } else if (p == "UM") {
-    return static_cast<PieceUnderlyingType>(PieceType::Bishop) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
-  } else if (p == "RY") {
-    return static_cast<PieceUnderlyingType>(PieceType::Rook) | static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
-  } else {
-    return nullopt;
-  }
-}
-} // namespace
-
 struct RemotePeer : public CsaServer::Peer {
   explicit RemotePeer(int socket) : socket(socket) {}
   void onmessage(std::string const &line) override {}
@@ -394,65 +358,6 @@ void CsaServer::start(std::shared_ptr<Peer> local, Color color) {
 
 void CsaServer::send(string const &msg) {
   impl->send(msg);
-}
-
-variant<Move, u8string> CsaServer::MoveFromCsaMove(string const &msg, Position const &position) {
-  if (!msg.starts_with("+") && !msg.starts_with("-")) {
-    return u8"指し手を読み取れませんでした";
-  }
-  if (msg.size() < 7) {
-    return u8"指し手を読み取れませんでした";
-  }
-  Color color = Color::Black;
-  if (msg.starts_with("-")) {
-    color = Color::White;
-  }
-  auto fromFile = atoi(msg.substr(1, 1).c_str());
-  auto fromRank = atoi(msg.substr(2, 1).c_str());
-  auto toFile = atoi(msg.substr(3, 1).c_str());
-  auto toRank = atoi(msg.substr(4, 1).c_str());
-  auto piece = PieceTypeFromCsaString(msg.substr(5, 2));
-  if (!piece) {
-    return u8"指し手を読み取れませんでした";
-  }
-  if (!msg.substr(1).starts_with(to_string(fromFile) + to_string(fromRank) + to_string(toFile) + to_string(toRank))) {
-    return u8"指し手を読み取れませんでした";
-  }
-  if (fromFile < 0 || 9 < fromFile || fromRank < 0 || 9 < fromRank || toFile < 1 || 9 < toFile || toRank < 1 || 9 < toRank) {
-    return u8"指し手を読み取れませんでした";
-  }
-  if ((fromFile == 0 && fromRank != 0) || (fromFile != 0 && fromRank == 0)) {
-    return u8"指し手を読み取れませんでした";
-  }
-  Move mv;
-  mv.color = color;
-  mv.piece = *piece | static_cast<PieceUnderlyingType>(color);
-  mv.to = MakeSquare(9 - toFile, toRank - 1);
-  if (fromFile != 0 && fromRank != 0) {
-    Square from = MakeSquare(9 - fromFile, fromRank - 1);
-    Piece existing = position.pieces[from.file][from.rank];
-    if (existing == 0) {
-      return u8"盤上にない駒の移動が指定されました";
-    }
-    if (existing == mv.piece) {
-      if (CanPromote(mv.piece) && IsPromotableMove(from, mv.to, color)) {
-        mv.promote = -1;
-      }
-    } else {
-      if (Promote(existing) == mv.piece) {
-        mv.promote = 1;
-      } else {
-        return u8"不正な指し手が指定されました";
-      }
-    }
-    mv.from = from;
-  }
-  Piece captured = position.pieces[mv.to.file][mv.to.rank];
-  if (captured != 0) {
-    mv.captured = RemoveColorFromPiece(captured);
-  }
-  mv.decideSuffix(position);
-  return mv;
 }
 
 } // namespace sci
