@@ -54,7 +54,29 @@ struct CsaServer::Impl {
     inet_aton("0.0.0.0", &addr.sin_addr);
 
     if (::bind(this->socket, (sockaddr *)&addr, sizeof(addr)) < 0) {
-      cerr << "bind failed" << endl;
+      int code = errno;
+      string desc;
+#define CATCH(code) \
+  case (code):      \
+    desc = #code;   \
+    break;
+      switch (code) {
+        CATCH(EACCES)
+        CATCH(EADDRINUSE)
+        CATCH(EADDRNOTAVAIL)
+        CATCH(EAFNOSUPPORT)
+        CATCH(EBADF)
+        CATCH(EDESTADDRREQ)
+        CATCH(EFAULT)
+        CATCH(EINVAL)
+        CATCH(ENOTSOCK)
+        CATCH(EOPNOTSUPP)
+      default:
+        desc = "(unknown)";
+        break;
+      }
+#undef CATCH
+      cerr << "bind failed: code=" << code << ", desc=" << desc << endl;
       return;
     }
     listen(this->socket, 1);
