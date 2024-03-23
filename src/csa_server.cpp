@@ -31,6 +31,7 @@ struct CsaServer::Impl {
     stop = true;
     close(socket);
     if (auto remote = this->remote.lock(); remote) {
+      remote->send("#CHUDAN");
       close(remote->socket);
     }
   }
@@ -151,6 +152,9 @@ struct CsaServer::Impl {
       remote->send("#WIN");
       local->peer->onmessage("#LOSE");
       info.reset();
+    } else if (msg == "%CHUDAN") {
+      sendboth("#CHUDAN");
+      info.reset();
     }
   }
 
@@ -253,7 +257,7 @@ struct CsaServer::Impl {
           }
           info.reset();
         } else if (line == "%CHUDAN") {
-          local->peer->onmessage("%CHUDAN");
+          sendboth("#CHUDAN");
           info.reset();
         } else if (line.starts_with("+") && info) {
           if (info->game.moves.size() % 2 != 0) {
