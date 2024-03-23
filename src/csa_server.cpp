@@ -59,6 +59,9 @@ struct CsaServer::Impl {
     listen(this->socket, 1);
     while (!stop) {
       int socket = accept(this->socket, nil, nil);
+      if (socket == -1) {
+        break;
+      }
       if (auto existing = this->remote.lock(); existing) {
         close(socket);
         continue;
