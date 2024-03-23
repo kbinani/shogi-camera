@@ -3,6 +3,12 @@
 
 #include <CoreFoundation/CoreFoundation.h>
 #import <Foundation/Foundation.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <iostream>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 using namespace std;
 
@@ -189,7 +195,12 @@ struct CsaAdapter::Impl {
   CsaAdapterImpl *impl;
 };
 
+void foo();
+
 CsaAdapter::CsaAdapter(CsaServerParameter parameter) : impl(make_unique<Impl>(this, parameter)) {
+#if SHOGI_CAMERA_DEBUG
+  foo();
+#endif
 }
 
 CsaAdapter::~CsaAdapter() {
@@ -197,6 +208,52 @@ CsaAdapter::~CsaAdapter() {
 
 void CsaAdapter::send(std::string const &msg) {
   impl->send(msg);
+}
+
+void foo() {
+  using namespace std;
+  thread([]() {
+    struct ifaddrs *ifaddr, *ifa;
+    getifaddrs(&ifaddr);
+    for (ifa = ifaddr; ifa; ifa = ifa->ifa_next) {
+      if (!ifa->ifa_addr) {
+        continue;
+      }
+      int family = ifa->ifa_addr->sa_family;
+      if (family != AF_INET) {
+        continue;
+      }
+      char str[NI_MAXHOST];
+      getnameinfo(ifa->ifa_addr, sizeof(sockaddr_in), str, NI_MAXHOST, nil, 0, NI_NUMERICHOST);
+      if (string(str).starts_with("lo")) {
+        continue;
+      }
+      cout << ifa->ifa_name << ":" << str << endl;
+    }
+    freeifaddrs(ifaddr);
+
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    cout << "fd=" << fd << endl;
+    sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_len = sizeof(addr);
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(4081);
+    inet_aton("0.0.0.0", &addr.sin_addr);
+
+    if (::bind(fd, (sockaddr *)&addr, sizeof(addr)) < 0) {
+      cerr << "bind failed" << endl;
+      return;
+    }
+    listen(fd, 1);
+    int client = accept(fd, nil, nil);
+    char buffer[64];
+    ssize_t len = recv(client, buffer, sizeof(buffer), 0);
+    buffer[len] = 0;
+    cout << buffer << endl;
+    close(client);
+    close(fd);
+  }).detach();
 }
 
 } // namespace sci
