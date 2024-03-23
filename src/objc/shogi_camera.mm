@@ -6,6 +6,7 @@
 
 using namespace std;
 
+#if 0
 @interface CsaAdapterImpl : NSObject <NSStreamDelegate> {
   sci::CsaAdapter *owner;
   NSInputStream *inputStream;
@@ -144,6 +145,7 @@ using namespace std;
   received = received.substr(offset);
 }
 @end
+#endif
 
 namespace sci {
 
@@ -164,41 +166,41 @@ void *Utility::UIImageFromMat(cv::Mat const &m) {
   return (__bridge_retained void *)MatToUIImage(m);
 }
 
-struct CsaAdapter::Impl {
-  Impl(CsaAdapter *owner, CsaServerParameter parameter) : owner(owner) {
-    impl = [[CsaAdapterImpl alloc] initWithOwner:owner
-                                          server:parameter.server
-                                            port:parameter.port
-                                        username:parameter.username
-                                        password:parameter.password];
-  }
+// struct CsaAdapter::Impl {
+//   Impl(CsaAdapter *owner, CsaServerParameter parameter) : owner(owner) {
+////    impl = [[CsaAdapterImpl alloc] initWithOwner:owner
+////                                          server:parameter.server
+////                                            port:parameter.port
+////                                        username:parameter.username
+////                                        password:parameter.password];
+//  }
+//
+//  ~Impl() {
+////    if (impl) {
+////      [impl close];
+////    }
+//  }
+//
+//  void send(string const &msg) {
+////    if (impl) {
+////      [impl send:msg];
+////    }
+//  }
+//
+//  CsaAdapter *const owner;
+////  CsaAdapterImpl *impl;
+//};
 
-  ~Impl() {
-    if (impl) {
-      [impl close];
-    }
-  }
-
-  void send(string const &msg) {
-    if (impl) {
-      [impl send:msg];
-    }
-  }
-
-  CsaAdapter *const owner;
-  CsaAdapterImpl *impl;
-};
-
-void foo();
-
-CsaAdapter::CsaAdapter(CsaServerParameter parameter) : impl(make_unique<Impl>(this, parameter)) {
-}
-
-CsaAdapter::~CsaAdapter() {
-}
-
-void CsaAdapter::send(std::string const &msg) {
-  impl->send(msg);
-}
+// void foo();
+//
+// CsaAdapter::CsaAdapter(CsaServerParameter parameter) : impl(make_unique<Impl>(this, parameter)) {
+// }
+//
+// CsaAdapter::~CsaAdapter() {
+// }
+//
+// void CsaAdapter::send(std::string const &msg) {
+//   impl->send(msg);
+// }
 
 } // namespace sci

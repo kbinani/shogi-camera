@@ -114,25 +114,20 @@ optional<string> CsaStringFromPiece(Piece p, int promote) {
 }
 } // namespace
 
-#if !defined(__APPLE__)
-struct CsaAdapter::Impl {
-  Impl(CsaServerParameter parameter) {
-  }
-};
-
-CsaAdapter::CsaAdapter(CsaServerParameter parameter) : color(color), impl(make_unique<Impl>(parameter)) {
+// struct CsaAdapter::Impl {
+//   Impl(CsaServerParameter parameter, std::shared_ptr<CsaServer> server) : server(server) {
+//   }
+// };
+//
+CsaAdapter::CsaAdapter(CsaServerParameter_ parameter, std::shared_ptr<CsaServer> server) : server(server) {
 }
 
 CsaAdapter::~CsaAdapter() {
 }
 
-optional<Move> CsaAdapter::next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
-  return nullopt;
+void CsaAdapter::send(std::string const &msg) {
+  server->send(msg);
 }
-
-void CsaAdapter::send(std::string const &) {
-}
-#endif
 
 std::optional<std::u8string> CsaAdapter::name() {
   if (!summary) {
@@ -271,66 +266,17 @@ void CsaAdapter::onmessage(string const &msg) {
       rejected = true;
     } else if (started) {
       if ((msg.starts_with("+") || msg.starts_with("-")) && msg.size() >= 7) {
-        Color color = Color::Black;
-        if (msg.starts_with("-")) {
-          color = Color::White;
-        }
-        auto fromFile = atoi(msg.substr(1, 1).c_str());
-        auto fromRank = atoi(msg.substr(2, 1).c_str());
-        auto toFile = atoi(msg.substr(3, 1).c_str());
-        auto toRank = atoi(msg.substr(4, 1).c_str());
-        auto piece = PieceTypeFromCsaString(msg.substr(5, 2));
-        if (!piece) {
-          error(u8"指し手を読み取れませんでした");
+        auto mv = CsaServer::MoveFromCsaMove(msg, game.position);
+        if (holds_alternative<Move>(mv)) {
+          auto m = get<Move>(mv);
+          lock_guard<mutex> lock(mut);
+          game.apply(m);
+          moves.push_back(m);
+          cv.notify_all();
+        } else if (holds_alternative<u8string>(mv)) {
+          error(get<u8string>(mv));
           return;
         }
-        if (!msg.substr(1).starts_with(to_string(fromFile) + to_string(fromRank) + to_string(toFile) + to_string(toRank))) {
-          error(u8"指し手を読み取れませんでした");
-          return;
-        }
-        if (fromFile < 0 || 9 < fromFile || fromRank < 0 || 9 < fromRank || toFile < 1 || 9 < toFile || toRank < 1 || 9 < toRank) {
-          error(u8"指し手を読み取れませんでした");
-          return;
-        }
-        if ((fromFile == 0 && fromRank != 0) || (fromFile != 0 && fromRank == 0)) {
-          error(u8"指し手を読み取れませんでした");
-          return;
-        }
-        Move mv;
-        mv.color = color;
-        mv.piece = *piece | static_cast<PieceUnderlyingType>(color);
-        mv.to = MakeSquare(9 - toFile, toRank - 1);
-        if (fromFile != 0 && fromRank != 0) {
-          Square from = MakeSquare(9 - fromFile, fromRank - 1);
-          Piece existing = game.position.pieces[from.file][from.rank];
-          if (existing == 0) {
-            error(u8"盤上にない駒の移動が指定されました");
-            return;
-          }
-          if (existing == mv.piece) {
-            if (CanPromote(mv.piece) && IsPromotableMove(from, mv.to, color)) {
-              mv.promote = -1;
-            }
-          } else {
-            if (Promote(existing) == mv.piece) {
-              mv.promote = 1;
-            } else {
-              error(u8"不正な指し手が指定されました");
-              return;
-            }
-          }
-          mv.from = from;
-        }
-        Piece captured = game.position.pieces[mv.to.file][mv.to.rank];
-        if (captured != 0) {
-          mv.captured = RemoveColorFromPiece(captured);
-        }
-        mv.decideSuffix(game.position);
-
-        lock_guard<mutex> lock(mut);
-        game.apply(mv);
-        moves.push_back(mv);
-        cv.notify_all();
       } else if (msg.starts_with("#WIN")) {
         if (auto d = delegate.lock(); d && color_) {
           if (*color_ == Color::Black) {

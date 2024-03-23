@@ -92,17 +92,17 @@ class Analyzer {
 
   func startGame(userColor: sci.Color, csaServer: String, csaPort: Int32, username: String, password: String) {
     self.userColor = userColor
-    var p = sci.CsaServerParameter()
-    p.server = csaServer.withCString { ptr in
-      std.string(ptr)
-    }
-    p.port = csaPort
+    var p = sci.CsaServerParameter_()
+    //    p.server = csaServer.withCString { ptr in
+    //      std.string(ptr)
+    //    }
+    //    p.port = csaPort
     p.username = username.withCString { ptr in
       std.string(ptr)
     }
-    p.password = password.withCString { ptr in
-      std.string(ptr)
-    }
+    //    p.password = password.withCString { ptr in
+    //      std.string(ptr)
+    //    }
     self.session.startGame(userColor, p)
   }
 

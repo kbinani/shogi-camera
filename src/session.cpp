@@ -1231,14 +1231,14 @@ Session::Session() {
   std::thread th(std::bind(&Session::run, this));
   this->th.swap(th);
 
-#if SHOGI_CAMERA_DEBUG
-  struct Peer : public CsaServer::Peer {
-    void onmessage(std::string const &line) override {}
-    void send(std::string const &line) override {}
-  };
-  auto p = std::make_shared<Peer>();
-  server = std::make_unique<CsaServer>(4081, p, Color::Black);
-#endif
+  // #if SHOGI_CAMERA_DEBUG
+  //   struct Peer : public CsaServer::Peer {
+  //     void onmessage(std::string const &line) override {}
+  //     void send(std::string const &line) override {}
+  //   };
+  //   auto p = std::make_shared<Peer>();
+  //   server = std::make_unique<CsaServer>(4081, p, Color::Black);
+  // #endif
 }
 
 Session::~Session() {
@@ -1391,10 +1391,13 @@ void Session::startGame(GameStartParameter p) {
 
   if (p.parameter.index() == 1) {
     auto param = std::get<1>(p.parameter);
-    auto csa = std::make_shared<CsaAdapter>(param);
+    auto server = std::make_shared<CsaServer>(4081);
+    auto csa = std::make_shared<CsaAdapter>(param, server);
     csa->delegate = weak_from_this();
+    server->start(csa, p.userColor);
     PlayerConfig::Remote remote;
     remote.csa = csa;
+    remote.local = std::make_shared<Sunfish3AI>();
     config->players = remote;
   } else if (p.parameter.index() == 0) {
     PlayerConfig::Local local;

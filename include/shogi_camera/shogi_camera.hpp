@@ -1000,14 +1000,32 @@ struct CsaPositionReceiver {
   std::optional<std::pair<Game, Color>> validate() const;
 };
 
-struct CsaServerParameter {
-  std::string server;
-  int port;
+struct CsaServerParameter_ {
   std::string username;
-  std::string password;
 };
 
-class CsaAdapter : public Player {
+class CsaServer {
+public:
+  class Peer {
+  public:
+    virtual ~Peer() {}
+    virtual void onmessage(std::string const &line) = 0;
+    virtual void send(std::string const &line) = 0;
+  };
+
+  explicit CsaServer(int port);
+  ~CsaServer();
+  void start(std::shared_ptr<Peer> local, Color color);
+  void send(std::string const &msg);
+
+  static std::variant<Move, std::u8string> MoveFromCsaMove(std::string const &line, Position const &p);
+
+private:
+  struct Impl;
+  std::unique_ptr<Impl> impl;
+};
+
+class CsaAdapter : public Player, public CsaServer::Peer {
 public:
   struct Delegate {
     virtual ~Delegate() {}
@@ -1016,13 +1034,13 @@ public:
     virtual void csaAdapterDidFinishGame(GameResult) = 0;
   };
 
-  explicit CsaAdapter(CsaServerParameter parameter);
+  CsaAdapter(CsaServerParameter_ parameter, std::shared_ptr<CsaServer> server);
   ~CsaAdapter();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   std::optional<std::u8string> name() override;
 
-  void onmessage(std::string const &);
-  void send(std::string const &);
+  void onmessage(std::string const &) override;
+  void send(std::string const &) override;
   void resign(Color color);
 
 private:
@@ -1033,6 +1051,7 @@ public:
   std::optional<Color> color_;
 
 private:
+  std::shared_ptr<CsaServer> server;
   std::deque<std::string> stack;
   std::string current;
   bool started = false;
@@ -1049,25 +1068,8 @@ private:
   std::optional<CsaGameSummary> summary;
   // 初期局面と手番
   std::optional<std::pair<Game, Color>> init;
-  struct Impl;
-  std::unique_ptr<Impl> impl;
-};
-
-class CsaServer {
-public:
-  class Peer {
-  public:
-    virtual ~Peer() {}
-    virtual void onmessage(std::string const &line) = 0;
-    virtual void send(std::string const &line) = 0;
-  };
-
-  CsaServer(int port, std::shared_ptr<Peer> local, Color color);
-  ~CsaServer();
-
-private:
-  struct Impl;
-  std::unique_ptr<Impl> impl;
+  //  struct Impl;
+  //  std::unique_ptr<Impl> impl;
 };
 
 struct Status;
@@ -1261,7 +1263,7 @@ struct GameStartParameter {
   Color userColor;
   // 0: random
   // 1~: sunfish
-  std::variant<int, CsaServerParameter> parameter;
+  std::variant<int, CsaServerParameter_> parameter;
 };
 
 class Session : public CsaAdapter::Delegate, public std::enable_shared_from_this<Session> {
@@ -1304,9 +1306,9 @@ private:
   std::shared_ptr<PlayerConfig> playerConfig;
   std::shared_ptr<Players> players;
   std::optional<std::future<std::pair<Color, std::optional<Move>>>> next;
-#if SHOGI_CAMERA_DEBUG
-  std::unique_ptr<CsaServer> server;
-#endif
+  // #if SHOGI_CAMERA_DEBUG
+  //   std::unique_ptr<CsaServer> server;
+  // #endif
 };
 
 class Img {
@@ -1369,7 +1371,7 @@ public:
     ptr->startGame(p);
   }
 
-  void startGame(Color userColor, CsaServerParameter parameter) {
+  void startGame(Color userColor, CsaServerParameter_ parameter) {
     GameStartParameter p;
     p.userColor = userColor;
     p.parameter = parameter;
