@@ -60,12 +60,16 @@ struct CsaServer::Impl {
   }
 
   void loop(shared_ptr<RemotePeer> peer) {
+    auto local = this->local;
+    if (!local) {
+      return;
+    }
     auto send = [peer](string const &msg) {
       string m = msg + "\x0a";
       ::send(peer->socket, m.c_str(), m.size(), 0);
       cout << "csa_server:<<< " << msg << endl;
     };
-    auto sendboth = [this, peer](string const &msg) {
+    auto sendboth = [local, peer](string const &msg) {
       string m = msg + "\x0a";
       ::send(peer->socket, m.c_str(), m.size(), 0);
       cout << "csa_server:<<< " << msg << endl;
@@ -101,7 +105,7 @@ struct CsaServer::Impl {
             username = name;
             string gid = "shogicamera";
             gameId = gid;
-            sendboth("BEGIN Game_Simmary");
+            sendboth("BEGIN Game_Summary");
             sendboth("Protocol_Version:1.2");
             sendboth("Protocol_Mode:Server");
             sendboth("Format:Shogi 1.0");
@@ -110,16 +114,12 @@ struct CsaServer::Impl {
               sendboth("Name+:Player");
               sendboth("Name-:" + name);
               send("Your_Turn:-");
-              if (local) {
-                local->send("Your_Turn:+");
-              }
+              local->send("Your_Turn:+");
             } else {
               sendboth("Name+:" + name);
               sendboth("Name-:Player");
               send("Your_Turn:+");
-              if (local) {
-                local->send("Your_Turn:-");
-              }
+              local->send("Your_Turn:-");
             }
             sendboth("To_Move:+");
             sendboth("BEGIN Position");
@@ -132,6 +132,8 @@ struct CsaServer::Impl {
             sendboth("P7+FU+FU+FU+FU+FU+FU+FU+FU+FU");
             sendboth("P8 * +KA *  *  *  *  * +HI * ");
             sendboth("P9+KY+KE+GI+KI+OU+KI+GI+KE+KY");
+            sendboth("P+");
+            sendboth("P-");
             sendboth("+");
             sendboth("END Position");
             sendboth("END Game_Summary");
@@ -151,20 +153,18 @@ struct CsaServer::Impl {
         } else if (line == "REJECT") {
           auto gid = gameId;
           gameId = nullopt;
-          if (local && gid && username) {
+          if (gid && username) {
             local->send("REJECT:" + *gid + " by " + *username);
           }
         } else if (gameId && line == "REJECT " + *gameId) {
           auto gid = gameId;
           gameId = nullopt;
-          if (local && gid && username) {
+          if (gid && username) {
             local->send("REJECT:" + *gid + " by " + *username);
           }
         } else if (line == "%CHUDAN") {
           gameId = nullopt;
-          if (local) {
-            local->send("%CHUDAN");
-          }
+          local->send("%CHUDAN");
         }
         offset = found + 1;
       }

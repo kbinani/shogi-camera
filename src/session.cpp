@@ -1232,7 +1232,12 @@ Session::Session() {
   this->th.swap(th);
 
 #if SHOGI_CAMERA_DEBUG
-  server = std::make_unique<CsaServer>(4081, nullptr, Color::Black);
+  struct Peer : public CsaServer::Peer {
+    void onmessage(std::string const &line) override {}
+    void send(std::string const &line) override {}
+  };
+  auto p = std::make_shared<Peer>();
+  server = std::make_unique<CsaServer>(4081, p, Color::Black);
 #endif
 }
 
