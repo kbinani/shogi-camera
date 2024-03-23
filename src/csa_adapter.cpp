@@ -33,7 +33,7 @@ void StringValueFromPossible(string const &msg, string const &key, optional<stri
 }
 } // namespace
 
-CsaAdapter::CsaAdapter(std::shared_ptr<CsaServer> server) : server(server) {
+CsaAdapter::CsaAdapter(std::shared_ptr<CsaServer> server) : server(server), stopSignal(false) {
 }
 
 CsaAdapter::~CsaAdapter() {
@@ -251,7 +251,7 @@ optional<Move> CsaAdapter::next(Position const &p, vector<Move> const &moves, de
   }
   unique_lock<mutex> lock(mut);
   cv.wait(lock, [&]() {
-    return this->moves.size() == moves.size() + 1;
+    return this->moves.size() == moves.size() + 1 || stopSignal;
   });
   Move mv = this->moves.back();
   lock.unlock();
@@ -276,6 +276,11 @@ void CsaAdapter::resign(Color color) {
     send("%TORYO");
     resignSent[color] = true;
   }
+}
+
+void CsaAdapter::stop() {
+  stopSignal = true;
+  cv.notify_all();
 }
 
 optional<CsaGameSummary> CsaGameSummary::Receiver::validate() const {

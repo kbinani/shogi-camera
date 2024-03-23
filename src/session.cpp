@@ -1236,6 +1236,17 @@ Session::~Session() {
   stop = true;
   cv.notify_all();
   th.detach();
+  if (players) {
+    if (players->black) {
+      players->black->stop();
+    }
+    if (players->white) {
+      players->white->stop();
+    }
+  }
+  if (next) {
+    next->get();
+  }
 }
 
 void Session::run() {

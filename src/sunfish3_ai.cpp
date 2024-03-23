@@ -159,6 +159,10 @@ struct Sunfish3AI::Impl {
     searcher.setConfig(config);
   }
 
+  ~Impl() {
+    searcher.forceInterrupt();
+  }
+
   static void RunTests() {
     Test2();
   }
@@ -375,6 +379,10 @@ struct Sunfish3AI::Impl {
     }
   }
 
+  void stop() {
+    searcher.forceInterrupt();
+  }
+
   sunfish::Searcher searcher;
   unique_ptr<mt19937_64> engine;
   std::mutex mut;
@@ -387,6 +395,10 @@ Sunfish3AI::~Sunfish3AI() {}
 
 optional<Move> Sunfish3AI::next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
   return impl->next(p, moves, hand, handEnemy);
+}
+
+void Sunfish3AI::stop() {
+  impl->stop();
 }
 
 void Sunfish3AI::RunTests() {
