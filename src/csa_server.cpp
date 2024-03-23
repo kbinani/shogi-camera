@@ -60,13 +60,24 @@ struct CsaServer::Impl {
   }
 
   void loop(shared_ptr<RemotePeer> peer) {
-    string buffer;
-    optional<string> username;
     auto send = [peer](string const &msg) {
       string m = msg + "\x0a";
       ::send(peer->socket, m.c_str(), m.size(), 0);
       cout << "csa_server:<<< " << msg << endl;
     };
+    auto sendboth = [this, peer](string const &msg) {
+      string m = msg + "\x0a";
+      ::send(peer->socket, m.c_str(), m.size(), 0);
+      cout << "csa_server:<<< " << msg << endl;
+      if (local) {
+        local->send(msg);
+      }
+    };
+
+    string buffer;
+    optional<string> username;
+    optional<string> gameId;
+
     while (!stop) {
       char tmp[64];
       ssize_t len = recv(peer->socket, tmp, sizeof(tmp), 0);
@@ -88,6 +99,34 @@ struct CsaServer::Impl {
             auto name = line.substr(6, n - 6);
             send("LOGIN:" + name + " OK");
             username = name;
+            string gid = "shogicamera";
+            gameId = gid;
+            sendboth("BEGIN Game_Simmary");
+            sendboth("Protocol_Version:1.2");
+            sendboth("Protocol_Mode:Server");
+            sendboth("Format:Shogi 1.0");
+            sendboth("Game_ID:" + gid);
+            if (color == Color::Black) {
+              sendboth("Name+:Player");
+              sendboth("Name-:" + name);
+              send("Your_Turn:-");
+              if (local) {
+                local->send("Your_Turn:+");
+              }
+            } else {
+              sendboth("Name+:" + name);
+              sendboth("Name-:Player");
+              send("Your_Turn:+");
+              if (local) {
+                local->send("Your_Turn:-");
+              }
+            }
+            sendboth("To_Move:+");
+            sendboth("BEGIN Position");
+            sendboth("PI");
+            sendboth("+");
+            sendboth("END Position");
+            sendboth("END Game_Summary");
           }
         } else if (username && line == "LOGOUT") {
           send("LOGOUT:completed");
