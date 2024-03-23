@@ -1182,6 +1182,8 @@ public:
   void send(std::string const &) override;
   void resign(Color color);
 
+  bool aborted() const { return chudan; }
+
 private:
   void error(std::u8string const &what);
 
@@ -1196,6 +1198,7 @@ private:
   bool started = false;
   bool finished = false;
   bool rejected = false;
+  bool chudan = false;
   std::map<Color, bool> resignSent;
 
   std::condition_variable cv;
@@ -1295,6 +1298,7 @@ struct Status {
   std::shared_ptr<PieceBook> book;
   std::deque<std::map<std::pair<int, int>, std::set<std::shared_ptr<Lattice>>>> clusters;
   std::optional<Color> yourTurn;
+  bool aborted = false;
 };
 
 // 盤面画像.

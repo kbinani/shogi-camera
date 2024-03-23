@@ -1276,6 +1276,7 @@ void Session::run() {
     s->width = frameGray.size().width;
     s->height = frameGray.size().height;
     s->yourTurn = this->s->yourTurn;
+    s->aborted = this->s->aborted;
     Img::FindContours(frameGray, s->contours, s->squares, s->pieces);
     FindBoard(frameGray, *s, stat, game.moves.size());
     stat.update(*s);
@@ -1333,25 +1334,32 @@ void Session::run() {
       }
     }
     stat.push(s->boardWarpedGray, s->boardWarpedColor, *s, game, detected, players != nullptr);
-    if (players && detected.size() == game.moves.size()) {
-      if (game.moves.size() % 2 == 0) {
-        // 次が先手番
-        if (players->black && !s->blackResign && !next) {
-          next = async(
-              launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
-                return make_pair(Color::Black, player->next(game.position, game.moves, game.handBlack, game.handWhite));
-              },
-              players->black, game);
+    if (players) {
+      if (detected.size() == game.moves.size()) {
+        if (game.moves.size() % 2 == 0) {
+          // 次が先手番
+          if (players->black && !s->blackResign && !next) {
+            next = async(
+                launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
+                  return make_pair(Color::Black, player->next(game.position, game.moves, game.handBlack, game.handWhite));
+                },
+                players->black, game);
+          }
+        } else {
+          // 次が後手番
+          if (players->white && !s->whiteResign && !next) {
+            next = async(
+                launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
+                  return make_pair(Color::White, player->next(game.position, game.moves, game.handWhite, game.handBlack));
+                },
+                players->white, game);
+          }
         }
-      } else {
-        // 次が後手番
-        if (players->white && !s->whiteResign && !next) {
-          next = async(
-              launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
-                return make_pair(Color::White, player->next(game.position, game.moves, game.handWhite, game.handBlack));
-              },
-              players->white, game);
-        }
+      }
+      if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->black); csa && csa->aborted()) {
+        s->aborted = true;
+      } else if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->white); csa && csa->aborted()) {
+        s->aborted = true;
       }
     }
     s->waitingMove = detected.size() != game.moves.size();

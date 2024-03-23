@@ -213,6 +213,7 @@ void CsaAdapter::onmessage(string const &msg) {
         }
       } else if (msg.starts_with("#CHUDAN")) {
         finished = true;
+        chudan = true;
         if (auto d = delegate.lock(); d) {
           d->csaAdapterDidFinishGame(GameResult::Abort);
         }

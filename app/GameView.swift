@@ -218,6 +218,9 @@ class GameView: UIView {
         lines.append("△投了")
       }
     }
+    if status.aborted && !status.blackResign && !status.whiteResign {
+      lines.append("中断")
+    }
     let text = lines.enumerated().map({ "\($0.offset + 1): \($0.element)" }).joined(separator: "\n")
     if text != historyView.text {
       historyView.text = text
@@ -398,6 +401,9 @@ class GameView: UIView {
         lines.append("\(status.game.moves.size() + 1) 投了")
         lines.append("まで\(status.game.moves.size())手で後手の勝ち")
       }
+    }
+    if status.aborted && !status.blackResign && !status.whiteResign {
+      lines.append("\(status.game.moves.size() + 1) 中断")
     }
     let contents = lines.joined(separator: "\r\n")
     guard let utf8 = contents.data(using: .utf8) else {
