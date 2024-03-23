@@ -272,6 +272,9 @@ class GameView: UIView {
     if let oldValue, oldValue.waitingMove && !status.waitingMove {
       self.reader?.playNextMoveReady()
     }
+    if let oldValue, status.aborted && !oldValue.aborted {
+      self.reader?.playAborted()
+    }
   }
 
   private func updatePieceBook() {
