@@ -81,7 +81,7 @@ struct CsaServer::Impl {
     while (!stop) {
       char tmp[64];
       ssize_t len = recv(peer->socket, tmp, sizeof(tmp), 0);
-      if (len == 0) {
+      if (len <= 0) {
         break;
       }
       copy_n(tmp, len, back_inserter(buffer));
