@@ -46,6 +46,11 @@ struct CsaServer::Impl {
 
   void run() {
     this->socket = ::socket(AF_INET, SOCK_STREAM, 0);
+    int optval = 1;
+    if (setsockopt(this->socket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
+      close(this->socket);
+      return;
+    }
     sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_len = sizeof(addr);
@@ -77,6 +82,7 @@ struct CsaServer::Impl {
       }
 #undef CATCH
       cerr << "bind failed: code=" << code << ", desc=" << desc << endl;
+      close(this->socket);
       return;
     }
     listen(this->socket, 1);
