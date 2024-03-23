@@ -145,7 +145,7 @@ struct CsaServer::Impl {
     } else if (msg == "%TORYO") {
       sendboth("%TORYO," + info->seconds());
       sendboth("#RESIGN");
-      send("#WIN");
+      remote->send("#WIN");
       local->peer->onmessage("#LOSE");
       info.reset();
     }
