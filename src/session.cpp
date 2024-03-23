@@ -1230,6 +1230,10 @@ Session::Session() {
   stop = false;
   std::thread th(std::bind(&Session::run, this));
   this->th.swap(th);
+
+#if SHOGI_CAMERA_DEBUG
+  server = std::make_unique<CsaServer>(4081, nullptr);
+#endif
 }
 
 Session::~Session() {

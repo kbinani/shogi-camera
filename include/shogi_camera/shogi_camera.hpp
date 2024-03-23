@@ -1053,6 +1053,23 @@ private:
   std::unique_ptr<Impl> impl;
 };
 
+class CsaServer {
+public:
+  class Peer {
+  public:
+    virtual ~Peer() {}
+    virtual void onmessage(std::string const &line) = 0;
+    virtual void send(std::string const &line) = 0;
+  };
+
+  CsaServer(int port, std::shared_ptr<Peer> local);
+  ~CsaServer();
+
+private:
+  struct Impl;
+  std::unique_ptr<Impl> impl;
+};
+
 struct Status;
 
 // 駒の画像を集めたもの.
@@ -1287,6 +1304,9 @@ private:
   std::shared_ptr<PlayerConfig> playerConfig;
   std::shared_ptr<Players> players;
   std::optional<std::future<std::pair<Color, std::optional<Move>>>> next;
+#if SHOGI_CAMERA_DEBUG
+  std::unique_ptr<CsaServer> server;
+#endif
 };
 
 class Img {

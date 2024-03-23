@@ -32,6 +32,7 @@ add_library(shogi_camera STATIC
   src/piece_contour.cpp
   src/csa_adapter.cpp
   src/objc/shogi_camera.mm
+  src/csa_server.cpp
   test/doctest_main.cpp
   test/move.test.hpp
   test/sunfish3.test.hpp
