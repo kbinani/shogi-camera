@@ -40,7 +40,9 @@ CsaAdapter::~CsaAdapter() {
 }
 
 void CsaAdapter::send(std::string const &msg) {
-  server->send(msg);
+  if (auto server = this->server.lock(); server) {
+    server->send(msg);
+  }
 }
 
 std::optional<std::u8string> CsaAdapter::name() {

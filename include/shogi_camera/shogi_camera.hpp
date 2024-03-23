@@ -1186,7 +1186,7 @@ public:
   std::optional<Color> color_;
 
 private:
-  std::shared_ptr<CsaServer> server;
+  std::weak_ptr<CsaServer> server;
   std::deque<std::string> stack;
   std::string current;
   bool started = false;
@@ -1441,6 +1441,7 @@ private:
   std::shared_ptr<PlayerConfig> playerConfig;
   std::shared_ptr<Players> players;
   std::optional<std::future<std::pair<Color, std::optional<Move>>>> next;
+  std::shared_ptr<CsaServer> server;
 };
 
 class Img {

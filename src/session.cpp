@@ -1387,8 +1387,9 @@ void Session::startGame(GameStartParameter p) {
     server->start(csa, p.userColor);
     PlayerConfig::Remote remote;
     remote.csa = csa;
-    remote.local = std::make_shared<Sunfish3AI>();
+    remote.local = std::make_shared<Sunfish3AI>(); // TODO:debug
     config->players = remote;
+    this->server = server;
   } else {
     PlayerConfig::Local local;
     std::shared_ptr<Player> ai;
@@ -1420,6 +1421,7 @@ void Session::stopGame() {
     csa->send("%CHUDAN");
     csa->send("LOGOUT");
   }
+  server.reset();
 }
 
 std::optional<std::u8string> Session::name(Color color) {
