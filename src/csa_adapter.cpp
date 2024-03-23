@@ -178,7 +178,7 @@ void CsaAdapter::onmessage(string const &msg) {
       started = true;
     } else if (auto reject = Take(msg, "REJECT"); reject) {
       rejected = true;
-    } else if (started) {
+    } else if (started && !finished) {
       if ((msg.starts_with("+") || msg.starts_with("-")) && msg.size() >= 7) {
         auto mv = MoveFromCsaMove(msg, game.position);
         if (holds_alternative<Move>(mv)) {
@@ -192,6 +192,7 @@ void CsaAdapter::onmessage(string const &msg) {
           return;
         }
       } else if (msg.starts_with("#WIN")) {
+        finished = true;
         if (auto d = delegate.lock(); d && color_) {
           if (*color_ == Color::Black) {
             d->csaAdapterDidFinishGame(GameResult::WhiteWin);
@@ -200,6 +201,7 @@ void CsaAdapter::onmessage(string const &msg) {
           }
         }
       } else if (msg.starts_with("#LOSE")) {
+        finished = true;
         if (auto d = delegate.lock(); d && color_) {
           if (*color_ == Color::Black) {
             d->csaAdapterDidFinishGame(GameResult::BlackWin);
@@ -208,6 +210,7 @@ void CsaAdapter::onmessage(string const &msg) {
           }
         }
       } else if (msg.starts_with("#CHUDAN")) {
+        finished = true;
         if (auto d = delegate.lock(); d) {
           d->csaAdapterDidFinishGame(GameResult::Abort);
         }

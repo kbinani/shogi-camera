@@ -142,6 +142,12 @@ struct CsaServer::Impl {
           info.reset();
         }
       }
+    } else if (msg == "%TORYO") {
+      sendboth("%TORYO," + info->seconds());
+      sendboth("#RESIGN");
+      send("#WIN");
+      local->peer->onmessage("#LOSE");
+      info.reset();
     }
   }
 

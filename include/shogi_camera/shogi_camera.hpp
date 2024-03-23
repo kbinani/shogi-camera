@@ -1190,6 +1190,7 @@ private:
   std::deque<std::string> stack;
   std::string current;
   bool started = false;
+  bool finished = false;
   bool rejected = false;
   std::map<Color, bool> resignSent;
 
