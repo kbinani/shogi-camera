@@ -140,6 +140,31 @@ struct CsaServer::Impl {
           send("LOGOUT:completed");
           close(peer->socket);
           return;
+        } else if (line == "AGREE") {
+          if (gameId) {
+            sendboth("START:" + *gameId);
+          } else {
+            sendboth("START");
+          }
+        } else if (gameId && line == "AGREE " + *gameId) {
+          sendboth("START:" + *gameId);
+        } else if (line == "REJECT") {
+          auto gid = gameId;
+          gameId = nullopt;
+          if (local && gid && username) {
+            local->send("REJECT:" + *gid + " by " + *username);
+          }
+        } else if (gameId && line == "REJECT " + *gameId) {
+          auto gid = gameId;
+          gameId = nullopt;
+          if (local && gid && username) {
+            local->send("REJECT:" + *gid + " by " + *username);
+          }
+        } else if (line == "%CHUDAN") {
+          gameId = nullopt;
+          if (local) {
+            local->send("%CHUDAN");
+          }
         }
         offset = found + 1;
       }
