@@ -49,6 +49,7 @@ target_include_directories(shogi_camera PRIVATE
 set_target_properties(shogi_camera PROPERTIES
   XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++20"
   XCODE_ATTRIBUTE_SWIFT_OBJC_INTEROP_MODE "objcxx"
+  XCODE_ATTRIBUTE_GCC_PREPROCESSOR_DEFINITIONS $<IF:$<CONFIG:Debug>,SHOGI_CAMERA_DEBUG=1,SHOGI_CAMERA_RELEASE=1>
 )
 target_link_libraries(shogi_camera
   sunfish_searcher

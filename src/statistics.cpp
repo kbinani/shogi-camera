@@ -40,7 +40,7 @@ void AppendPromotion(Move &mv,
   if (!CanPromote(mv.piece)) {
     return;
   }
-#if !defined(SHOGI_CAMERA_DEBUG)
+#if !SHOGI_CAMERA_DEBUG
   if (!IsPromotableMove(*mv.from, mv.to, mv.color)) {
     return;
   }
@@ -51,7 +51,7 @@ void AppendPromotion(Move &mv,
     return;
   }
 
-#if defined(SHOGI_CAMERA_DISABLE_HINT)
+#if SHOGI_CAMERA_DISABLE_HINT
   hint = nullopt;
 #endif
 
@@ -178,7 +178,7 @@ void AppendPromotion(Move &mv,
   cout << "b64png(promote_" << count << "_maxafter_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(maxImgUnpromoteAfter)) << endl;
 #endif
 
-#if defined(SHOGI_CAMERA_DEBUG)
+#if SHOGI_CAMERA_DEBUG
   if (!IsPromotableMove(*mv.from, mv.to, mv.color)) {
     return;
   }
