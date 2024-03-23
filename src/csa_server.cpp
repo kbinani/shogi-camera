@@ -123,7 +123,15 @@ struct CsaServer::Impl {
             }
             sendboth("To_Move:+");
             sendboth("BEGIN Position");
-            sendboth("PI");
+            sendboth("P1-KY-KE-GI-KI-OU-KI-GI-KE-KY");
+            sendboth("P2 * -HI *  *  *  *  * -KA * ");
+            sendboth("P3-FU-FU-FU-FU-FU-FU-FU-FU-FU");
+            sendboth("P4 *  *  *  *  *  *  *  *  * ");
+            sendboth("P5 *  *  *  *  *  *  *  *  * ");
+            sendboth("P6 *  *  *  *  *  *  *  *  * ");
+            sendboth("P7+FU+FU+FU+FU+FU+FU+FU+FU+FU");
+            sendboth("P8 * +KA *  *  *  *  * +HI * ");
+            sendboth("P9+KY+KE+GI+KI+OU+KI+GI+KE+KY");
             sendboth("+");
             sendboth("END Position");
             sendboth("END Game_Summary");
