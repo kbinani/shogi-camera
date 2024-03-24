@@ -51,11 +51,12 @@ class GameView: UIView {
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
-  init(analyzer: Analyzer, server: sci.CsaServerWrapper?) {
+  init(analyzer: Analyzer, server: sci.CsaServerWrapper?, wifiConnectivity: WifiConnectivity?) {
     self.analyzer = analyzer
     self.server = server
     self.reader = .init()
     self.startDate = Date.now
+    self.wifiConnectivity = wifiConnectivity
     super.init(frame: .zero)
 
     analyzer.delegate = self

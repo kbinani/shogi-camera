@@ -96,7 +96,7 @@ class StartView: UIView {
     }
   }
 
-  init(analyzer reusable: Analyzer?, server: sci.CsaServerWrapper?) {
+  init(analyzer reusable: Analyzer?, server: sci.CsaServerWrapper?, wifiConnectivity: WifiConnectivity?) {
     if let reusable {
       reusable.reset()
       self.analyzer = reusable
@@ -104,6 +104,7 @@ class StartView: UIView {
       self.analyzer = .init()
     }
     self.server = server
+    self.wifiConnectivity = wifiConnectivity
     super.init(frame: .zero)
     self.server?.unsetLocalPeer()
 

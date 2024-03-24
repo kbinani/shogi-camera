@@ -14,10 +14,18 @@ protocol MainViewPage: AnyObject {
 class MainViewController: UIViewController {
   private var current: (UIView & MainViewPage)?
   private var monitor: NWPathMonitor? = NWPathMonitor(requiredInterfaceType: .wifi)
+  private var wifiConnectivity: WifiConnectivity? {
+    didSet {
+      guard wifiConnectivity != oldValue else {
+        return
+      }
+      current?.mainViewPageDidDetectWifiConnectivity(wifiConnectivity)
+    }
+  }
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    let startView = StartView(analyzer: nil, server: nil)
+    let startView = StartView(analyzer: nil, server: nil, wifiConnectivity: wifiConnectivity)
     startView.delegate = self
     self.current = startView
     self.view.addSubview(startView)
@@ -40,9 +48,9 @@ class MainViewController: UIViewController {
 
   private func handlePathUpdate(_ path: NWPath) {
     if path.status == .satisfied, let name = path.availableInterfaces.first?.name, let address = Self.ipAddressString(name) {
-      current?.mainViewPageDidDetectWifiConnectivity(.available(address: address))
+      wifiConnectivity = .available(address: address)
     } else {
-      current?.mainViewPageDidDetectWifiConnectivity(.unavailable)
+      wifiConnectivity = .unavailable
     }
   }
 
@@ -83,7 +91,7 @@ class MainViewController: UIViewController {
 
 extension MainViewController: StartViewDelegate {
   func startViewDidStartGame(_ view: StartView, with analyzer: Analyzer, server: sci.CsaServerWrapper?) {
-    let gameView = GameView(analyzer: analyzer, server: server)
+    let gameView = GameView(analyzer: analyzer, server: server, wifiConnectivity: wifiConnectivity)
     gameView.frame = .init(origin: .zero, size: self.view.bounds.size)
     gameView.delegate = self
     self.current?.removeFromSuperview()
@@ -109,7 +117,7 @@ extension MainViewController: GameViewDelegate {
   }
 
   func gameViewDidAbort(_ sender: GameView, server: sci.CsaServerWrapper?) {
-    let startView = StartView(analyzer: sender.analyzer, server: server)
+    let startView = StartView(analyzer: sender.analyzer, server: server, wifiConnectivity: wifiConnectivity)
     startView.delegate = self
     self.current?.removeFromSuperview()
     self.current = startView
