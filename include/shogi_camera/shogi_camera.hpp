@@ -1151,6 +1151,7 @@ public:
     virtual ~Peer() {}
     virtual void onmessage(std::string const &line) = 0;
     virtual void send(std::string const &line) = 0;
+    virtual std::string name() const = 0;
   };
 
   explicit CsaServer(int port);
@@ -1192,6 +1193,7 @@ public:
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   std::optional<std::u8string> name() override;
   void stop() override;
+  std::string name() const override { return "Player"; }
 
   void onmessage(std::string const &) override;
   void send(std::string const &) override;
@@ -1419,10 +1421,9 @@ struct Players {
 
 struct GameStartParameter {
   Color userColor;
-  // 0: random
   // 1~: sunfish
-  // -1: csa
-  int option;
+  // other: random
+  std::variant<int, CsaServerWrapper> option;
 };
 
 class Session : public CsaAdapter::Delegate, public std::enable_shared_from_this<Session> {
@@ -1525,6 +1526,13 @@ public:
     GameStartParameter p;
     p.userColor = userColor;
     p.option = option;
+    ptr->startGame(p);
+  }
+
+  void startGame(Color userColor, CsaServerWrapper server) {
+    GameStartParameter p;
+    p.userColor = userColor;
+    p.option = server;
     ptr->startGame(p);
   }
 

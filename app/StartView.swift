@@ -247,7 +247,11 @@ class StartView: UIView {
     if let connection = previewLayer?.connection {
       analyzer.captureSession.removeConnection(connection)
     }
-    analyzer.startGame(userColor: .Black, option: -1)  //TODO:debug
+    if csaSwitch.isOn, let server {
+      analyzer.startGame(userColor: .Black, server: server)
+    } else {
+      analyzer.startGame(userColor: .Black, option: 0)
+    }
     delegate?.startViewDidStartGame(self, with: analyzer)
   }
 
@@ -258,7 +262,11 @@ class StartView: UIView {
     if let connection = previewLayer?.connection {
       analyzer.captureSession.removeConnection(connection)
     }
-    analyzer.startGame(userColor: .White, option: 0)
+    if csaSwitch.isOn, let server {
+      analyzer.startGame(userColor: .White, server: server)
+    } else {
+      analyzer.startGame(userColor: .White, option: 0)
+    }
     delegate?.startViewDidStartGame(self, with: analyzer)
   }
 

@@ -19,7 +19,14 @@ struct RemotePeer : public CsaServer::Peer {
     ::send(socket, m.c_str(), m.size(), 0);
     cout << "csa_server:<<< " << line << endl;
   }
+  string name() const override {
+    return username;
+  }
+  void setName(string const &n) {
+    username = n;
+  }
   int socket;
+  string username;
 };
 
 struct CsaServer::Impl {
@@ -41,7 +48,53 @@ struct CsaServer::Impl {
     Local l;
     l.peer = local;
     l.color = localColor;
-    this->local = l;
+    this->local_ = l;
+    if (auto remote = this->remote.lock(); remote) {
+      sendGameSummary(*local, *remote, localColor);
+    }
+  }
+
+  void sendGameSummary(Peer &local, Peer &remote, Color localColor) {
+    if (info) {
+      return;
+    }
+    info = make_unique<Info>();
+    auto sendboth = [&](string const &msg) {
+      local.onmessage(msg);
+      remote.send(msg);
+    };
+    sendboth("BEGIN Game_Summary");
+    sendboth("Protocol_Version:1.2");
+    sendboth("Protocol_Mode:Server");
+    sendboth("Format:Shogi 1.0");
+    sendboth("Game_ID:" + info->gameId);
+    if (localColor == Color::Black) {
+      sendboth("Name+:" + local.name());
+      sendboth("Name-:" + remote.name());
+      remote.send("Your_Turn:-");
+      local.onmessage("Your_Turn:+");
+    } else {
+      sendboth("Name+:" + remote.name());
+      sendboth("Name-:" + local.name());
+      remote.send("Your_Turn:+");
+      local.onmessage("Your_Turn:-");
+    }
+    sendboth("To_Move:+");
+    sendboth("BEGIN Position");
+    sendboth("P1-KY-KE-GI-KI-OU-KI-GI-KE-KY");
+    sendboth("P2 * -HI *  *  *  *  * -KA * ");
+    sendboth("P3-FU-FU-FU-FU-FU-FU-FU-FU-FU");
+    sendboth("P4 *  *  *  *  *  *  *  *  * ");
+    sendboth("P5 *  *  *  *  *  *  *  *  * ");
+    sendboth("P6 *  *  *  *  *  *  *  *  * ");
+    sendboth("P7+FU+FU+FU+FU+FU+FU+FU+FU+FU");
+    sendboth("P8 * +KA *  *  *  *  * +HI * ");
+    sendboth("P9+KY+KE+GI+KI+OU+KI+GI+KE+KY");
+    sendboth("P+");
+    sendboth("P-");
+    sendboth("+");
+    sendboth("END Position");
+    sendboth("END Game_Summary");
   }
 
   void run() {
@@ -112,7 +165,7 @@ struct CsaServer::Impl {
     if (!info) {
       return;
     }
-    auto local = this->local;
+    auto local = this->local_;
     if (!local) {
       return;
     }
@@ -193,13 +246,12 @@ struct CsaServer::Impl {
     };
     auto sendboth = [this, peer](string const &msg) {
       peer->send(msg);
-      if (local) {
-        local->peer->onmessage(msg);
+      if (local_) {
+        local_->peer->onmessage(msg);
       }
     };
 
     string buffer;
-    optional<string> username;
 
     while (!stop) {
       char tmp[64];
@@ -208,10 +260,6 @@ struct CsaServer::Impl {
         break;
       }
       copy_n(tmp, len, back_inserter(buffer));
-      auto local = this->local;
-      if (!local) {
-        continue;
-      }
       string::size_type offset = 0;
       while (offset < buffer.size()) {
         auto found = buffer.find('\xa', offset);
@@ -221,47 +269,17 @@ struct CsaServer::Impl {
         string line = buffer.substr(offset, found);
         cout << "csa_server:>>> " << line << endl;
         lock_guard<recursive_mutex> lock(mut);
-        if (!username && line.starts_with("LOGIN ")) {
+        if (peer->username.empty() && line.starts_with("LOGIN ")) {
           auto n = line.find(' ', 6);
           if (n != string::npos) {
             auto name = line.substr(6, n - 6);
             send("LOGIN:" + name + " OK");
-            username = name;
-            info = make_unique<Info>();
-            sendboth("BEGIN Game_Summary");
-            sendboth("Protocol_Version:1.2");
-            sendboth("Protocol_Mode:Server");
-            sendboth("Format:Shogi 1.0");
-            sendboth("Game_ID:" + info->gameId);
-            if (local->color == Color::Black) {
-              sendboth("Name+:Player");
-              sendboth("Name-:" + name);
-              send("Your_Turn:-");
-              local->peer->onmessage("Your_Turn:+");
-            } else {
-              sendboth("Name+:" + name);
-              sendboth("Name-:Player");
-              send("Your_Turn:+");
-              local->peer->onmessage("Your_Turn:-");
+            peer->setName(name);
+            if (local_) {
+              sendGameSummary(*local_->peer, *peer, local_->color);
             }
-            sendboth("To_Move:+");
-            sendboth("BEGIN Position");
-            sendboth("P1-KY-KE-GI-KI-OU-KI-GI-KE-KY");
-            sendboth("P2 * -HI *  *  *  *  * -KA * ");
-            sendboth("P3-FU-FU-FU-FU-FU-FU-FU-FU-FU");
-            sendboth("P4 *  *  *  *  *  *  *  *  * ");
-            sendboth("P5 *  *  *  *  *  *  *  *  * ");
-            sendboth("P6 *  *  *  *  *  *  *  *  * ");
-            sendboth("P7+FU+FU+FU+FU+FU+FU+FU+FU+FU");
-            sendboth("P8 * +KA *  *  *  *  * +HI * ");
-            sendboth("P9+KY+KE+GI+KI+OU+KI+GI+KE+KY");
-            sendboth("P+");
-            sendboth("P-");
-            sendboth("+");
-            sendboth("END Position");
-            sendboth("END Game_Summary");
           }
-        } else if (username && line == "LOGOUT") {
+        } else if (!peer->username.empty() && line == "LOGOUT") {
           send("LOGOUT:completed");
           close(peer->socket);
           return;
@@ -278,13 +296,13 @@ struct CsaServer::Impl {
             info->update();
           }
         } else if (info && line == "REJECT") {
-          if (username) {
-            local->peer->onmessage("REJECT:" + info->gameId + " by " + *username);
+          if (local_) {
+            local_->peer->onmessage("REJECT:" + info->gameId + " by " + peer->username);
           }
           info.reset();
         } else if (info && line == "REJECT " + info->gameId) {
-          if (username) {
-            local->peer->onmessage("REJECT:" + info->gameId + " by " + *username);
+          if (local_) {
+            local_->peer->onmessage("REJECT:" + info->gameId + " by " + peer->username);
           }
           info.reset();
         } else if (line == "%CHUDAN") {
@@ -293,12 +311,14 @@ struct CsaServer::Impl {
         } else if (line.starts_with("+") && info) {
           if (info->game.moves.size() % 2 != 0) {
             sendboth("#ILLEGAL_ACTION");
-            if (local->color == Color::Black) {
-              send("#LOSE");
-              local->peer->onmessage("#WIN");
-            } else {
-              send("#WIN");
-              local->peer->onmessage("#LOSE");
+            if (local_) {
+              if (local_->color == Color::Black) {
+                send("#LOSE");
+                local_->peer->onmessage("#WIN");
+              } else {
+                send("#WIN");
+                local_->peer->onmessage("#LOSE");
+              }
             }
             info.reset();
           } else {
@@ -312,7 +332,9 @@ struct CsaServer::Impl {
             } else {
               sendboth("#ILLEGAAL_MOVE");
               send("#LOSE");
-              local->peer->onmessage("#WIN");
+              if (local_) {
+                local_->peer->onmessage("#WIN");
+              }
               info.reset();
             }
           }
@@ -320,7 +342,9 @@ struct CsaServer::Impl {
           if (info->game.moves.size() % 2 != 1) {
             sendboth("#ILLEGAL_ACTION");
             send("#LOSE");
-            local->peer->onmessage("#WIN");
+            if (local_) {
+              local_->peer->onmessage("#WIN");
+            }
             info.reset();
           } else {
             auto ret = MoveFromCsaMove(line, info->game.position);
@@ -333,7 +357,9 @@ struct CsaServer::Impl {
             } else {
               sendboth("#ILLEGAAL_MOVE");
               send("#WIN");
-              local->peer->onmessage("#LOSE");
+              if (local_) {
+                local_->peer->onmessage("#LOSE");
+              }
               info.reset();
             }
           }
@@ -341,7 +367,9 @@ struct CsaServer::Impl {
           sendboth("%TORYO," + info->seconds());
           sendboth("#RESIGN");
           send("#LOSE");
-          local->peer->onmessage("#WIN");
+          if (local_) {
+            local_->peer->onmessage("#WIN");
+          }
           info.reset();
         }
         offset = found + 1;
@@ -354,7 +382,7 @@ struct CsaServer::Impl {
     Local l;
     l.peer = local;
     l.color = color;
-    this->local = l;
+    this->local_ = l;
   }
 
   bool ready() const {
@@ -368,7 +396,7 @@ struct CsaServer::Impl {
     shared_ptr<Peer> peer;
     Color color;
   };
-  optional<Local> local;
+  optional<Local> local_;
   weak_ptr<RemotePeer> remote;
   std::recursive_mutex mut;
 

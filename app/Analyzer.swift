@@ -90,6 +90,11 @@ class Analyzer {
     self.session.startGame(userColor, Int32(option))
   }
 
+  func startGame(userColor: sci.Color, server: sci.CsaServerWrapper) {
+    self.userColor = userColor
+    self.session.startGame(userColor, server)
+  }
+
   func stopGame() {
     session.stopGame()
   }

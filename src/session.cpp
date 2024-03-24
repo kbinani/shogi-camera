@@ -1399,24 +1399,23 @@ void Session::resign(Color color) {
 void Session::startGame(GameStartParameter p) {
   auto config = std::make_shared<PlayerConfig>();
 
-  if (p.option < 0) {
-    auto server = std::make_shared<CsaServer>(4081);
-    auto csa = std::make_shared<CsaAdapter>(server);
+  if (std::holds_alternative<CsaServerWrapper>(p.option)) {
+    auto wrapper = std::get<CsaServerWrapper>(p.option);
+    auto csa = std::make_shared<CsaAdapter>(wrapper.server);
     csa->delegate = weak_from_this();
-    server->start(csa, p.userColor);
+    wrapper.server->start(csa, p.userColor);
     PlayerConfig::Remote remote;
     remote.csa = csa;
-    remote.local = std::make_shared<Sunfish3AI>(); // TODO:debug
     config->players = remote;
-    this->server = server;
-  } else {
+    this->server = wrapper.server;
+  } else if (std::holds_alternative<int>(p.option)) {
     PlayerConfig::Local local;
     std::shared_ptr<Player> ai;
-    int aiLevel = p.option;
-    if (aiLevel == 0) {
-      ai = std::make_shared<RandomAI>();
-    } else {
+    int aiLevel = std::get<int>(p.option);
+    if (aiLevel > 0) {
       ai = std::make_shared<Sunfish3AI>();
+    } else {
+      ai = std::make_shared<RandomAI>();
     }
     if (p.userColor == Color::White) {
       local.black = ai;
