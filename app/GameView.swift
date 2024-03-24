@@ -29,17 +29,20 @@ class GameView: UIView {
   private var stableBoardLayer: StableBoardLayer?
   private var pieceBookView: UIImageView?
   private var readYourTurn = false
-  private let server: sci.CsaServerWrapper?
+  private var server: sci.CsaServerWrapper?
   private var wifiAvailable: Bool? {
     didSet {
       guard wifiAvailable != oldValue else {
         return
       }
       if wifiAvailable == false && server != nil {
+        reader?.playError()
         let controller = UIAlertController(title: "エラー", message: "WiFi がオフラインになりました", preferredStyle: .alert)
         controller.addAction(.init(title: "OK", style: .default))
         delegate?.gameView(self, presentViewController: controller)
         server = nil
+        analyzer.stopGame()
+        delegate?.gameViewDidAbort(self, server: nil)
       }
     }
   }

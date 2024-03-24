@@ -29,7 +29,7 @@ class StartView: UIView {
   private var wifiAvailable: Bool? {
     didSet {
       updateButton()
-      if server != nil && !wifiAvailable {
+      if server != nil && wifiAvailable == false {
         server = nil
       }
     }

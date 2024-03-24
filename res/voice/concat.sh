@@ -10,6 +10,7 @@ voices=(
   "m_YourTurnBlack"
   "m_YourTurnWhite"
   "m_Aborted"
+  "m_Error"
 
   "sq_1_1"
   "sq_1_2"
