@@ -68,14 +68,15 @@ class GameView: UIView {
     self.boardLayer = boardLayer
     self.layer.addSublayer(boardLayer)
 
-    if server != nil {
+    if server != nil, case .available(let address) = wifiConnectivity {
       let boardOverlay = UILabel()
-      boardOverlay.backgroundColor = .darkGray.withAlphaComponent(0.5)
+      boardOverlay.backgroundColor = .darkGray.withAlphaComponent(0.7)
       boardOverlay.isOpaque = false
-      boardOverlay.text = "対局相手を待っています"
+      boardOverlay.text = "対局相手を待っています.\nサーバーアドレスは \(address),\nポートは \(4081) です."
       boardOverlay.textColor = .white
       boardOverlay.font = .boldSystemFont(ofSize: 30)
       boardOverlay.textAlignment = .center
+      boardOverlay.numberOfLines = 0
       self.boardOverlay = boardOverlay
       self.addSubview(boardOverlay)
 
