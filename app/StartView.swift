@@ -262,7 +262,8 @@ class StartView: UIView {
     label.numberOfLines = 0
     label.lineBreakMode = .byWordWrapping
     label.textColor = .black
-    let rect = label.textRect(forBounds: .init(x: 0, y: 0, width: 300, height: CGFloat.greatestFiniteMagnitude), limitedToNumberOfLines: 100)
+    let width = self.bounds.width * 0.8
+    let rect = label.textRect(forBounds: .init(x: 0, y: 0, width: width, height: CGFloat.greatestFiniteMagnitude), limitedToNumberOfLines: 100)
     let margin: CGFloat = 15
     label.frame = .init(x: margin, y: margin, width: rect.width, height: rect.height)
     vc.view.addSubview(label)
