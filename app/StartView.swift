@@ -1,4 +1,5 @@
 import AVFoundation
+import Network
 import ShogiCamera
 import UIKit
 
@@ -25,6 +26,14 @@ class StartView: UIView {
   private var csaHelpButton: UIButton!
   private var server: sci.CsaServerWrapper?
   private var serverReadyWatchdogTimer: Timer?
+  private var wifiAvailable: Bool? {
+    didSet {
+      updateButton()
+      if server != nil && !wifiAvailable {
+        server = nil
+      }
+    }
+  }
 
   private let helpButtonSize: CGFloat = 30
   private let csaHelpButtonSize: CGFloat = 20
@@ -51,10 +60,20 @@ class StartView: UIView {
       self.startAsBlackButton.isEnabled = false
       self.startAsWhiteButton.isEnabled = false
     case .ready:
-      if csaSwitch.isOn && server?.ready() != true {
-        self.messageLabel.text = "CSA サーバを準備中です"
-        self.startAsBlackButton.isEnabled = false
-        self.startAsWhiteButton.isEnabled = false
+      if csaSwitch.isOn {
+        if wifiAvailable != true {
+          self.messageLabel.text = "WiFi がオフラインになっています"
+          self.startAsBlackButton.isEnabled = false
+          self.startAsWhiteButton.isEnabled = false
+        } else if server?.ready() != true {
+          self.messageLabel.text = "CSA サーバを準備中です"
+          self.startAsBlackButton.isEnabled = false
+          self.startAsWhiteButton.isEnabled = false
+        } else {
+          self.messageLabel.text = "準備ができました"
+          self.startAsBlackButton.isEnabled = true
+          self.startAsWhiteButton.isEnabled = true
+        }
       } else {
         self.messageLabel.text = "準備ができました"
         self.startAsBlackButton.isEnabled = true
@@ -319,7 +338,12 @@ class StartView: UIView {
           return
         }
         updateButton()
-        if self.server?.ready() == true {
+        guard let server else {
+          timer.invalidate()
+          self.serverReadyWatchdogTimer = nil
+          return
+        }
+        if server.ready() {
           timer.invalidate()
           self.serverReadyWatchdogTimer = nil
         }
@@ -350,5 +374,11 @@ extension StartView: AnalyzerDelegate {
     case .cameraNotAvailable:
       state = .waitingStableBoard
     }
+  }
+}
+
+extension StartView: MainViewPage {
+  func mainViewPageDidDetectWifiAvailability(_ available: Bool) {
+    wifiAvailable = available
   }
 }

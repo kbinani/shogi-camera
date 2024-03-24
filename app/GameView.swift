@@ -1,4 +1,5 @@
 import AVFoundation
+import Network
 import ShogiCamera
 import UIKit
 
@@ -29,6 +30,19 @@ class GameView: UIView {
   private var pieceBookView: UIImageView?
   private var readYourTurn = false
   private let server: sci.CsaServerWrapper?
+  private var wifiAvailable: Bool? {
+    didSet {
+      guard wifiAvailable != oldValue else {
+        return
+      }
+      if wifiAvailable == false && server != nil {
+        let controller = UIAlertController(title: "エラー", message: "WiFi がオフラインになりました", preferredStyle: .alert)
+        controller.addAction(.init(title: "OK", style: .default))
+        delegate?.gameView(self, presentViewController: controller)
+        server = nil
+      }
+    }
+  }
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
@@ -509,5 +523,11 @@ class GameView: UIView {
 extension GameView: AnalyzerDelegate {
   func analyzerDidUpdateStatus(_ analyzer: Analyzer) {
     self.status = analyzer.status
+  }
+}
+
+extension GameView: MainViewPage {
+  func mainViewPageDidDetectWifiAvailability(_ available: Bool) {
+    wifiAvailable = available
   }
 }

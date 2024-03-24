@@ -1,8 +1,14 @@
+import Network
 import ShogiCamera
 import UIKit
 
+protocol MainViewPage: AnyObject {
+  func mainViewPageDidDetectWifiAvailability(_ available: Bool)
+}
+
 class MainViewController: UIViewController {
-  private var current: UIView?
+  private var current: (UIView & MainViewPage)?
+  private var monitor: NWPathMonitor? = NWPathMonitor(requiredInterfaceType: .wifi)
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -10,11 +16,29 @@ class MainViewController: UIViewController {
     startView.delegate = self
     self.current = startView
     self.view.addSubview(startView)
+    monitor?.pathUpdateHandler = { [weak self] path in
+      self?.handlePathUpdate(path)
+    }
+    monitor?.start(queue: .main)
+  }
+
+  override func viewWillDisappear(_ animated: Bool) {
+    super.viewWillDisappear(animated)
+    monitor?.cancel()
+    monitor = nil
   }
 
   override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
     self.current?.frame = .init(origin: .zero, size: self.view.bounds.size)
+  }
+
+  private func handlePathUpdate(_ path: NWPath) {
+    if path.status == .satisfied {
+      current?.mainViewPageDidDetectWifiAvailability(true)
+    } else {
+      current?.mainViewPageDidDetectWifiAvailability(false)
+    }
   }
 }
 
