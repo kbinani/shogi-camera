@@ -21,7 +21,10 @@ class StartView: UIView {
   private var csaSwitch: UISwitch!
   private var csaSwitchLabel: UILabel!
   private var csaAddressLabel: UILabel!
+  private var csaHelpButton: UIButton!
+
   private let helpButtonSize: CGFloat = 30
+  private let csaHelpButtonSize: CGFloat = 20
 
   enum State {
     case waitingStableBoard
@@ -109,6 +112,16 @@ class StartView: UIView {
     self.addSubview(csaSwitchLabel)
     self.csaSwitchLabel = csaSwitchLabel
 
+    let csaHelpButton = UIButton(type: .custom)
+    csaHelpButton.setImage(
+      .init(
+        systemName: "questionmark.circle.fill",
+        withConfiguration: UIImage.SymbolConfiguration(pointSize: csaHelpButtonSize)),
+      for: .normal)
+    csaHelpButton.tintColor = .white
+    self.addSubview(csaHelpButton)
+    self.csaHelpButton = csaHelpButton
+
     let csaAddressLabel = UILabel()
     csaAddressLabel.textColor = .white
     self.addSubview(csaAddressLabel)
@@ -125,8 +138,11 @@ class StartView: UIView {
     self.messageLabel = messageLabel
 
     let helpButton = UIButton.init(type: .custom)
-    let config = UIImage.SymbolConfiguration(pointSize: helpButtonSize, weight: .regular, scale: .default)
-    helpButton.setImage(.init(systemName: "questionmark.circle.fill", withConfiguration: config), for: .normal)
+    helpButton.setImage(
+      .init(
+        systemName: "questionmark.circle.fill",
+        withConfiguration: UIImage.SymbolConfiguration(pointSize: helpButtonSize)),
+      for: .normal)
     helpButton.tintColor = .white
     helpButton.addTarget(self, action: #selector(helpButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(helpButton)
@@ -181,11 +197,28 @@ class StartView: UIView {
 
     self.helpButton.frame = .init(x: innerBounds.maxX - helpButtonSize, y: innerBounds.minY, width: helpButtonSize, height: helpButtonSize)
 
-    let csa = bounds.removeFromBottom(csaSwitch.intrinsicContentSize.height + csaSwitchLabel.intrinsicContentSize.height)
-    let csaWidth = csaSwitch.intrinsicContentSize.width + margin + csaSwitchLabel.intrinsicContentSize.width
-    csaSwitch.frame = .init(x: csa.midX - csaWidth / 2, y: csa.minY, width: csaSwitch.intrinsicContentSize.width, height: csaSwitch.intrinsicContentSize.height)
+    let csaRow1Height = max(csaSwitch.intrinsicContentSize.height, csaSwitchLabel.intrinsicContentSize.height, csaHelpButton.intrinsicContentSize.height)
+    let csaWidth = csaSwitch.intrinsicContentSize.width + margin + csaSwitchLabel.intrinsicContentSize.width + margin + csaHelpButton.intrinsicContentSize.width
+    let csa = bounds.removeFromBottom(csaRow1Height + csaSwitchLabel.intrinsicContentSize.height)
+    csaSwitch.frame = .init(
+      x: csa.midX - csaWidth / 2,
+      y: csa.minY,
+      width: csaSwitch.intrinsicContentSize.width,
+      height: csaRow1Height
+    )
     csaSwitch.layer.cornerRadius = csaSwitch.frame.height / 2
-    csaSwitchLabel.frame = .init(x: csa.midX + csaWidth / 2 - csaSwitchLabel.intrinsicContentSize.width, y: csa.minY, width: csaSwitchLabel.intrinsicContentSize.width, height: csaSwitch.intrinsicContentSize.height)
+    csaSwitchLabel.frame = .init(
+      x: csa.midX - csaWidth / 2 + csaSwitch.intrinsicContentSize.width + margin,
+      y: csa.minY,
+      width: csaSwitchLabel.intrinsicContentSize.width,
+      height: csaRow1Height
+    )
+    csaHelpButton.frame = .init(
+      x: csa.midX + csaWidth / 2 - csaHelpButton.intrinsicContentSize.width,
+      y: csa.minY,
+      width: csaHelpButton.intrinsicContentSize.width,
+      height: csaRow1Height
+    )
     csaAddressLabel.frame = .init(x: csa.minX, y: csa.minY, width: csa.width, height: csaAddressLabel.intrinsicContentSize.height)
     bounds.removeFromBottom(margin)
 
