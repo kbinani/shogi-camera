@@ -389,8 +389,15 @@ struct CsaServer::Impl {
     this->local_ = l;
   }
 
-  bool ready() const {
+  bool isServerReady() const {
     return socket != -1;
+  }
+
+  bool isGameReady() const {
+    if (!info) {
+      return false;
+    }
+    return info->agrees > 1;
   }
 
   atomic_bool stop;
@@ -444,8 +451,12 @@ void CsaServer::send(string const &msg) {
   impl->send(msg);
 }
 
-bool CsaServer::ready() const {
-  return impl->ready();
+bool CsaServer::isServerReady() const {
+  return impl->isServerReady();
+}
+
+bool CsaServer::isGameReady() const {
+  return impl->isGameReady();
 }
 
 CsaServerWrapper CsaServerWrapper::Create(int port) {

@@ -30,6 +30,8 @@ class GameView: UIView {
   private var pieceBookView: UIImageView?
   private var readYourTurn = false
   private var server: sci.CsaServerWrapper?
+  private var boardOverlay: UILabel?
+
   private var wifiConnectivity: WifiConnectivity? {
     didSet {
       guard wifiConnectivity != oldValue else {
@@ -64,6 +66,33 @@ class GameView: UIView {
     boardLayer.contentsScale = self.traitCollection.displayScale
     self.boardLayer = boardLayer
     self.layer.addSublayer(boardLayer)
+
+    if server != nil {
+      let boardOverlay = UILabel()
+      boardOverlay.backgroundColor = .darkGray.withAlphaComponent(0.5)
+      boardOverlay.isOpaque = false
+      boardOverlay.text = "対局相手を待っています"
+      boardOverlay.textColor = .white
+      boardOverlay.font = .boldSystemFont(ofSize: 30)
+      boardOverlay.textAlignment = .center
+      self.boardOverlay = boardOverlay
+      self.addSubview(boardOverlay)
+
+      Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
+        guard let self else {
+          timer.invalidate()
+          return
+        }
+        guard let server else {
+          timer.invalidate()
+          return
+        }
+        if server.isGameReady() {
+          timer.invalidate()
+          self.boardOverlay?.removeFromSuperview()
+        }
+      }
+    }
 
     let abortButton = RoundButton(type: .custom)
     abortButton.setTitle("中断", for: .normal)
@@ -160,6 +189,7 @@ class GameView: UIView {
     self.boardLayer.frame = boardBounds
     self.stableBoardLayer?.frame = boardBounds
     self.pieceBookView?.frame = boardBounds
+    self.boardOverlay?.frame = boardBounds
 
     var footer = bounds.removeFromBottom(44)
     exportKifButton.frame = footer.removeFromLeft(exportKifButton.intrinsicContentSize.width + 2 * margin)
@@ -356,6 +386,9 @@ class GameView: UIView {
 
   @objc private func tapGestureRecognizer(_ sender: UITapGestureRecognizer) {
     guard case .ended = sender.state else {
+      return
+    }
+    if boardOverlay != nil {
       return
     }
     let location = sender.location(in: self)

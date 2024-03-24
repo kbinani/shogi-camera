@@ -71,7 +71,7 @@ class StartView: UIView {
           self.startAsBlackButton.isEnabled = false
           self.startAsWhiteButton.isEnabled = false
         case .available:
-          if server?.ready() != true {
+          if server?.isServerReady() != true {
             self.messageLabel.text = "CSA サーバを準備中です"
             self.startAsBlackButton.isEnabled = false
             self.startAsWhiteButton.isEnabled = false
@@ -362,7 +362,7 @@ class StartView: UIView {
           self.serverReadyWatchdogTimer = nil
           return
         }
-        if server.ready() {
+        if server.isServerReady() {
           timer.invalidate()
           self.serverReadyWatchdogTimer = nil
         }
