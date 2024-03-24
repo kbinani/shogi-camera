@@ -2,8 +2,13 @@ import Network
 import ShogiCamera
 import UIKit
 
+enum WifiConnectivity: Equatable {
+  case available(address: String)
+  case unavailable
+}
+
 protocol MainViewPage: AnyObject {
-  func mainViewPageDidDetectWifiAvailability(_ available: Bool)
+  func mainViewPageDidDetectWifiConnectivity(_ connectivity: WifiConnectivity?)
 }
 
 class MainViewController: UIViewController {
@@ -34,11 +39,45 @@ class MainViewController: UIViewController {
   }
 
   private func handlePathUpdate(_ path: NWPath) {
-    if path.status == .satisfied {
-      current?.mainViewPageDidDetectWifiAvailability(true)
+    if path.status == .satisfied, let name = path.availableInterfaces.first?.name, let address = Self.ipAddressString(name) {
+      current?.mainViewPageDidDetectWifiConnectivity(.available(address: address))
     } else {
-      current?.mainViewPageDidDetectWifiAvailability(false)
+      current?.mainViewPageDidDetectWifiConnectivity(.unavailable)
     }
+  }
+
+  private static func ipAddressString(_ interfaceName: String) -> String? {
+    var address: String? = nil
+    var ifaddr: UnsafeMutablePointer<ifaddrs>? = nil
+    guard getifaddrs(&ifaddr) == 0 else {
+      return nil
+    }
+    var ptr = ifaddr
+    while let p = ptr {
+      let flags = Int32(p.pointee.ifa_flags)
+      let addr = p.pointee.ifa_addr.pointee
+
+      if (flags & (IFF_UP | IFF_RUNNING | IFF_LOOPBACK)) == (IFF_UP | IFF_RUNNING) {
+        if addr.sa_family == UInt8(AF_INET) && String(cString: p.pointee.ifa_name) == interfaceName {
+          var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+          if getnameinfo(
+            p.pointee.ifa_addr,
+            socklen_t(p.pointee.ifa_addr.pointee.sa_len),
+            &hostname,
+            socklen_t(hostname.count),
+            nil,
+            socklen_t(0),
+            NI_NUMERICHOST) == 0
+          {
+            address = String(cString: hostname)
+            break
+          }
+        }
+      }
+      ptr = p.pointee.ifa_next
+    }
+    freeifaddrs(ifaddr)
+    return address
   }
 }
 

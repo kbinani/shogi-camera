@@ -30,12 +30,12 @@ class GameView: UIView {
   private var pieceBookView: UIImageView?
   private var readYourTurn = false
   private var server: sci.CsaServerWrapper?
-  private var wifiAvailable: Bool? {
+  private var wifiConnectivity: WifiConnectivity? {
     didSet {
-      guard wifiAvailable != oldValue else {
+      guard wifiConnectivity != oldValue else {
         return
       }
-      if wifiAvailable == false && server != nil {
+      if case .unavailable = wifiConnectivity, server != nil {
         reader?.playError()
         let controller = UIAlertController(title: "エラー", message: "WiFi がオフラインになりました", preferredStyle: .alert)
         controller.addAction(.init(title: "OK", style: .default))
@@ -530,7 +530,7 @@ extension GameView: AnalyzerDelegate {
 }
 
 extension GameView: MainViewPage {
-  func mainViewPageDidDetectWifiAvailability(_ available: Bool) {
-    wifiAvailable = available
+  func mainViewPageDidDetectWifiConnectivity(_ connectivity: WifiConnectivity?) {
+    wifiConnectivity = connectivity
   }
 }

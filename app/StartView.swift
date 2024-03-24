@@ -26,10 +26,13 @@ class StartView: UIView {
   private var csaHelpButton: UIButton!
   private var server: sci.CsaServerWrapper?
   private var serverReadyWatchdogTimer: Timer?
-  private var wifiAvailable: Bool? {
+  private var wifiConnectivity: WifiConnectivity? {
     didSet {
+      guard wifiConnectivity != oldValue else {
+        return
+      }
       updateButton()
-      if server != nil && wifiAvailable == false {
+      if case .unavailable = wifiConnectivity, server != nil {
         server = nil
       }
     }
@@ -37,6 +40,7 @@ class StartView: UIView {
 
   private let helpButtonSize: CGFloat = 30
   private let csaHelpButtonSize: CGFloat = 20
+  private let dummyIPAddress = "192.168.x.x"
 
   enum State {
     case waitingStableBoard
@@ -61,24 +65,34 @@ class StartView: UIView {
       self.startAsWhiteButton.isEnabled = false
     case .ready:
       if csaSwitch.isOn {
-        if wifiAvailable != true {
+        switch wifiConnectivity {
+        case .unavailable, nil:
           self.messageLabel.text = "WiFi がオフラインになっています"
           self.startAsBlackButton.isEnabled = false
           self.startAsWhiteButton.isEnabled = false
-        } else if server?.ready() != true {
-          self.messageLabel.text = "CSA サーバを準備中です"
-          self.startAsBlackButton.isEnabled = false
-          self.startAsWhiteButton.isEnabled = false
-        } else {
-          self.messageLabel.text = "準備ができました"
-          self.startAsBlackButton.isEnabled = true
-          self.startAsWhiteButton.isEnabled = true
+        case .available:
+          if server?.ready() != true {
+            self.messageLabel.text = "CSA サーバを準備中です"
+            self.startAsBlackButton.isEnabled = false
+            self.startAsWhiteButton.isEnabled = false
+          } else {
+            self.messageLabel.text = "準備ができました"
+            self.startAsBlackButton.isEnabled = true
+            self.startAsWhiteButton.isEnabled = true
+          }
         }
       } else {
         self.messageLabel.text = "準備ができました"
         self.startAsBlackButton.isEnabled = true
         self.startAsWhiteButton.isEnabled = true
       }
+    }
+    if case .available(let address) = wifiConnectivity, csaSwitch.isOn {
+      self.csaAddressLabel.text = "アドレス: " + address + ", ポート: 4081"
+      self.csaAddressLabel.textColor = .white
+    } else {
+      self.csaAddressLabel.text = dummyIPAddress
+      self.csaAddressLabel.textColor = .white.withAlphaComponent(0)
     }
   }
 
@@ -160,7 +174,9 @@ class StartView: UIView {
     self.csaHelpButton = csaHelpButton
 
     let csaAddressLabel = UILabel()
-    csaAddressLabel.textColor = .white
+    csaAddressLabel.textColor = UIColor.white.withAlphaComponent(0)
+    csaAddressLabel.text = dummyIPAddress
+    csaAddressLabel.textAlignment = .center
     self.addSubview(csaAddressLabel)
     self.csaAddressLabel = csaAddressLabel
 
@@ -236,7 +252,7 @@ class StartView: UIView {
 
     let csaRow1Height = max(csaSwitch.intrinsicContentSize.height, csaSwitchLabel.intrinsicContentSize.height, csaHelpButton.intrinsicContentSize.height)
     let csaWidth = csaSwitch.intrinsicContentSize.width + margin + csaSwitchLabel.intrinsicContentSize.width + margin + csaHelpButton.intrinsicContentSize.width
-    let csa = bounds.removeFromBottom(csaRow1Height + csaSwitchLabel.intrinsicContentSize.height)
+    let csa = bounds.removeFromBottom(csaRow1Height + margin + csaAddressLabel.intrinsicContentSize.height)
     csaSwitch.frame = .init(
       x: csa.midX - csaWidth / 2,
       y: csa.minY,
@@ -256,7 +272,7 @@ class StartView: UIView {
       width: csaHelpButton.intrinsicContentSize.width,
       height: csaRow1Height
     )
-    csaAddressLabel.frame = .init(x: csa.minX, y: csa.minY, width: csa.width, height: csaAddressLabel.intrinsicContentSize.height)
+    csaAddressLabel.frame = .init(x: csa.minX, y: csa.minY + csaRow1Height + margin, width: csa.width, height: csaAddressLabel.intrinsicContentSize.height)
     bounds.removeFromBottom(margin)
 
     self.messageLabel.frame = bounds
@@ -316,12 +332,15 @@ class StartView: UIView {
     vc.popoverPresentationController?.sourceView = sender
     vc.popoverPresentationController?.backgroundColor = .white
     vc.popoverPresentationController?.delegate = self
-    vc.popoverPresentationController?.permittedArrowDirections = .any
+    vc.popoverPresentationController?.permittedArrowDirections = .down
 
     delegate?.startViewPresentViewController(vc)
   }
 
   @objc private func csaSwitchDidChangeValue(_ sender: UISwitch) {
+    defer {
+      updateButton()
+    }
     guard sender.isOn else {
       return
     }
@@ -378,7 +397,7 @@ extension StartView: AnalyzerDelegate {
 }
 
 extension StartView: MainViewPage {
-  func mainViewPageDidDetectWifiAvailability(_ available: Bool) {
-    wifiAvailable = available
+  func mainViewPageDidDetectWifiConnectivity(_ connectivity: WifiConnectivity?) {
+    wifiConnectivity = connectivity
   }
 }
