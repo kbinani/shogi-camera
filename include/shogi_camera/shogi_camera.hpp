@@ -1157,10 +1157,25 @@ public:
   ~CsaServer();
   void start(std::shared_ptr<Peer> local, Color color);
   void send(std::string const &msg);
+  bool ready() const;
 
 private:
   struct Impl;
   std::unique_ptr<Impl> impl;
+};
+
+struct CsaServerWrapper {
+  std::shared_ptr<CsaServer> server;
+
+  bool ready() const {
+    if (server) {
+      return server->ready();
+    } else {
+      return false;
+    }
+  }
+
+  static CsaServerWrapper Create(int port);
 };
 
 class CsaAdapter : public Player, public CsaServer::Peer {

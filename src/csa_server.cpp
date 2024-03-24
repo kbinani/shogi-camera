@@ -25,6 +25,7 @@ struct RemotePeer : public CsaServer::Peer {
 struct CsaServer::Impl {
   Impl(int port) : port(port) {
     stop = false;
+    thread(std::bind(&Impl::run, this)).detach();
   }
 
   ~Impl() {
@@ -41,14 +42,13 @@ struct CsaServer::Impl {
     l.peer = local;
     l.color = localColor;
     this->local = l;
-    thread(std::bind(&Impl::run, this)).detach();
   }
 
   void run() {
-    this->socket = ::socket(AF_INET, SOCK_STREAM, 0);
+    int socket = ::socket(AF_INET, SOCK_STREAM, 0);
     int optval = 1;
-    if (setsockopt(this->socket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
-      close(this->socket);
+    if (setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
+      close(socket);
       return;
     }
     sockaddr_in addr;
@@ -58,7 +58,7 @@ struct CsaServer::Impl {
     addr.sin_port = htons(port);
     inet_aton("0.0.0.0", &addr.sin_addr);
 
-    if (::bind(this->socket, (sockaddr *)&addr, sizeof(addr)) < 0) {
+    if (::bind(socket, (sockaddr *)&addr, sizeof(addr)) < 0) {
       int code = errno;
       string desc;
 #define CATCH(code) \
@@ -82,9 +82,10 @@ struct CsaServer::Impl {
       }
 #undef CATCH
       cerr << "bind failed: code=" << code << ", desc=" << desc << endl;
-      close(this->socket);
+      close(socket);
       return;
     }
+    this->socket = socket;
     listen(this->socket, 1);
     while (!stop) {
       int socket = accept(this->socket, nil, nil);
@@ -187,16 +188,14 @@ struct CsaServer::Impl {
   }
 
   void loop(shared_ptr<RemotePeer> peer) {
-    auto local = this->local;
-    if (!local) {
-      return;
-    }
     auto send = [peer](string const &msg) {
       peer->send(msg);
     };
-    auto sendboth = [local, peer](string const &msg) {
+    auto sendboth = [this, peer](string const &msg) {
       peer->send(msg);
-      local->peer->onmessage(msg);
+      if (local) {
+        local->peer->onmessage(msg);
+      }
     };
 
     string buffer;
@@ -209,6 +208,10 @@ struct CsaServer::Impl {
         break;
       }
       copy_n(tmp, len, back_inserter(buffer));
+      auto local = this->local;
+      if (!local) {
+        continue;
+      }
       string::size_type offset = 0;
       while (offset < buffer.size()) {
         auto found = buffer.find('\xa', offset);
@@ -354,8 +357,12 @@ struct CsaServer::Impl {
     this->local = l;
   }
 
+  bool ready() const {
+    return socket != -1;
+  }
+
   atomic_bool stop;
-  int socket;
+  int socket = -1;
   int port;
   struct Local {
     shared_ptr<Peer> peer;
@@ -399,6 +406,16 @@ void CsaServer::start(std::shared_ptr<Peer> local, Color color) {
 
 void CsaServer::send(string const &msg) {
   impl->send(msg);
+}
+
+bool CsaServer::ready() const {
+  return impl->ready();
+}
+
+CsaServerWrapper CsaServerWrapper::Create(int port) {
+  CsaServerWrapper w;
+  w.server = make_shared<CsaServer>(port);
+  return w;
 }
 
 } // namespace sci

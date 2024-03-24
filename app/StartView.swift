@@ -23,6 +23,8 @@ class StartView: UIView {
   private var csaSwitchLabel: UILabel!
   private var csaAddressLabel: UILabel!
   private var csaHelpButton: UIButton!
+  private var server: sci.CsaServerWrapper?
+  private var serverReadyWatchdogTimer: Timer?
 
   private let helpButtonSize: CGFloat = 30
   private let csaHelpButtonSize: CGFloat = 20
@@ -34,16 +36,26 @@ class StartView: UIView {
   }
   private var state: State = .cameraNotAvailable {
     didSet {
-      switch state {
-      case .cameraNotAvailable:
-        self.messageLabel.text = "カメラを初期化できませんでした"
+      updateButton()
+    }
+  }
+
+  private func updateButton() {
+    switch state {
+    case .cameraNotAvailable:
+      self.messageLabel.text = "カメラを初期化できませんでした"
+      self.startAsBlackButton.isEnabled = false
+      self.startAsWhiteButton.isEnabled = false
+    case .waitingStableBoard:
+      self.messageLabel.text = "将棋盤全体が映る位置で固定してください"
+      self.startAsBlackButton.isEnabled = false
+      self.startAsWhiteButton.isEnabled = false
+    case .ready:
+      if csaSwitch.isOn && server?.ready() != true {
+        self.messageLabel.text = "CSA サーバを準備中です"
         self.startAsBlackButton.isEnabled = false
         self.startAsWhiteButton.isEnabled = false
-      case .waitingStableBoard:
-        self.messageLabel.text = "将棋盤全体が映る位置で固定してください"
-        self.startAsBlackButton.isEnabled = false
-        self.startAsWhiteButton.isEnabled = false
-      case .ready:
+      } else {
         self.messageLabel.text = "準備ができました"
         self.startAsBlackButton.isEnabled = true
         self.startAsWhiteButton.isEnabled = true
@@ -104,6 +116,7 @@ class StartView: UIView {
 
     let csaSwitch = UISwitch()
     csaSwitch.backgroundColor = UIColor.lightGray
+    csaSwitch.addTarget(self, action: #selector(csaSwitchDidChangeValue(_:)), for: .valueChanged)
     self.addSubview(csaSwitch)
     self.csaSwitch = csaSwitch
 
@@ -276,6 +289,30 @@ class StartView: UIView {
     vc.popoverPresentationController?.permittedArrowDirections = .any
 
     delegate?.startViewPresentViewController(vc)
+  }
+
+  @objc private func csaSwitchDidChangeValue(_ sender: UISwitch) {
+    guard sender.isOn else {
+      return
+    }
+    if server != nil {
+      return
+    }
+    server = sci.CsaServerWrapper.Create(4081)
+    serverReadyWatchdogTimer?.invalidate()
+    serverReadyWatchdogTimer = Timer.scheduledTimer(
+      withTimeInterval: 0.5, repeats: true,
+      block: { [weak self] timer in
+        guard let self else {
+          timer.invalidate()
+          return
+        }
+        updateButton()
+        if self.server?.ready() == true {
+          timer.invalidate()
+          self.serverReadyWatchdogTimer = nil
+        }
+      })
   }
 }
 
