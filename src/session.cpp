@@ -1399,19 +1399,18 @@ void Session::resign(Color color) {
 void Session::startGame(GameStartParameter p) {
   auto config = std::make_shared<PlayerConfig>();
 
-  if (std::holds_alternative<CsaServerWrapper>(p.option)) {
-    auto wrapper = std::get<CsaServerWrapper>(p.option);
-    auto csa = std::make_shared<CsaAdapter>(wrapper.server);
+  if (p.server) {
+    std::weak_ptr<CsaServer> server = p.server;
+    auto csa = std::make_shared<CsaAdapter>(server);
     csa->delegate = weak_from_this();
-    wrapper.server->start(csa, p.userColor);
+    p.server->setLocalPeer(csa, p.userColor);
     PlayerConfig::Remote remote;
     remote.csa = csa;
     config->players = remote;
-    this->server = wrapper.server;
-  } else if (std::holds_alternative<int>(p.option)) {
+  } else {
     PlayerConfig::Local local;
     std::shared_ptr<Player> ai;
-    int aiLevel = std::get<int>(p.option);
+    int aiLevel = p.option;
     if (aiLevel > 0) {
       ai = std::make_shared<Sunfish3AI>();
     } else {
@@ -1439,7 +1438,6 @@ void Session::stopGame() {
     csa->send("%CHUDAN");
     csa->send("LOGOUT");
   }
-  server.reset();
 }
 
 std::optional<std::u8string> Session::name(Color color) {

@@ -1156,7 +1156,8 @@ public:
 
   explicit CsaServer(int port);
   ~CsaServer();
-  void start(std::shared_ptr<Peer> local, Color color);
+  void setLocalPeer(std::shared_ptr<Peer> local, Color color);
+  void unsetLocalPeer();
   void send(std::string const &msg);
   bool ready() const;
 
@@ -1176,6 +1177,12 @@ struct CsaServerWrapper {
     }
   }
 
+  void unsetLocalPeer() {
+    if (server) {
+      server->unsetLocalPeer();
+    }
+  }
+
   static CsaServerWrapper Create(int port);
 };
 
@@ -1188,7 +1195,7 @@ public:
     virtual void csaAdapterDidFinishGame(GameResult) = 0;
   };
 
-  explicit CsaAdapter(std::shared_ptr<CsaServer> server);
+  explicit CsaAdapter(std::weak_ptr<CsaServer> server);
   ~CsaAdapter();
   std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   std::optional<std::u8string> name() override;
@@ -1423,7 +1430,8 @@ struct GameStartParameter {
   Color userColor;
   // 1~: sunfish
   // other: random
-  std::variant<int, CsaServerWrapper> option;
+  int option;
+  std::shared_ptr<CsaServer> server;
 };
 
 class Session : public CsaAdapter::Delegate, public std::enable_shared_from_this<Session> {
@@ -1466,7 +1474,6 @@ private:
   std::shared_ptr<PlayerConfig> playerConfig;
   std::shared_ptr<Players> players;
   std::optional<std::future<std::pair<Color, std::optional<Move>>>> next;
-  std::shared_ptr<CsaServer> server;
 };
 
 class Img {
@@ -1532,7 +1539,8 @@ public:
   void startGame(Color userColor, CsaServerWrapper server) {
     GameStartParameter p;
     p.userColor = userColor;
-    p.option = server;
+    p.option = -1;
+    p.server = server.server;
     ptr->startGame(p);
   }
 

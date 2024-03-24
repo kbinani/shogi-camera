@@ -4,7 +4,7 @@ import UIKit
 
 protocol GameViewDelegate: AnyObject {
   func gameView(_ sender: GameView, presentViewController controller: UIViewController)
-  func gameViewDidAbort(_ sender: GameView)
+  func gameViewDidAbort(_ sender: GameView, server: sci.CsaServerWrapper?)
 }
 
 class GameView: UIView {
@@ -28,11 +28,13 @@ class GameView: UIView {
   private var stableBoardLayer: StableBoardLayer?
   private var pieceBookView: UIImageView?
   private var readYourTurn = false
+  private let server: sci.CsaServerWrapper?
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
-  init(analyzer: Analyzer) {
+  init(analyzer: Analyzer, server: sci.CsaServerWrapper?) {
     self.analyzer = analyzer
+    self.server = server
     self.reader = .init()
     self.startDate = Date.now
     super.init(frame: .zero)
@@ -330,7 +332,7 @@ class GameView: UIView {
             analyzer.captureSession.removeConnection(connection)
           }
           analyzer.stopGame()
-          delegate?.gameViewDidAbort(self)
+          delegate?.gameViewDidAbort(self, server: server)
         }))
     delegate?.gameView(self, presentViewController: controller)
   }

@@ -3,7 +3,7 @@ import ShogiCamera
 import UIKit
 
 protocol StartViewDelegate: AnyObject {
-  func startViewDidStartGame(_ vc: StartView, with analyzer: Analyzer)
+  func startViewDidStartGame(_ view: StartView, with analyzer: Analyzer, server: sci.CsaServerWrapper?)
   func startViewPresentHelpViewController(_ v: StartView)
   func startViewPresentViewController(_ vc: UIViewController)
 }
@@ -63,14 +63,16 @@ class StartView: UIView {
     }
   }
 
-  init(analyzer reusable: Analyzer?) {
+  init(analyzer reusable: Analyzer?, server: sci.CsaServerWrapper?) {
     if let reusable {
       reusable.reset()
       self.analyzer = reusable
     } else {
       self.analyzer = .init()
     }
+    self.server = server
     super.init(frame: .zero)
+    self.server?.unsetLocalPeer()
 
     self.backgroundColor = Colors.background
 
@@ -116,6 +118,7 @@ class StartView: UIView {
 
     let csaSwitch = UISwitch()
     csaSwitch.backgroundColor = UIColor.lightGray
+    csaSwitch.isOn = server != nil
     csaSwitch.addTarget(self, action: #selector(csaSwitchDidChangeValue(_:)), for: .valueChanged)
     self.addSubview(csaSwitch)
     self.csaSwitch = csaSwitch
@@ -252,7 +255,7 @@ class StartView: UIView {
     } else {
       analyzer.startGame(userColor: .Black, option: 0)
     }
-    delegate?.startViewDidStartGame(self, with: analyzer)
+    delegate?.startViewDidStartGame(self, with: analyzer, server: server)
   }
 
   @objc private func startAsWhiteButtonDidTouchUpInside(_ sender: UIButton) {
@@ -267,7 +270,7 @@ class StartView: UIView {
     } else {
       analyzer.startGame(userColor: .White, option: 0)
     }
-    delegate?.startViewDidStartGame(self, with: analyzer)
+    delegate?.startViewDidStartGame(self, with: analyzer, server: server)
   }
 
   @objc private func helpButtonDidTouchUpInside(_ sender: UIButton) {

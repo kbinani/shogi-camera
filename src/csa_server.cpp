@@ -44,7 +44,7 @@ struct CsaServer::Impl {
     }
   }
 
-  void start(shared_ptr<Peer> local, Color localColor) {
+  void setLocalPeer(shared_ptr<Peer> local, Color localColor) {
     Local l;
     l.peer = local;
     l.color = localColor;
@@ -52,6 +52,10 @@ struct CsaServer::Impl {
     if (auto remote = this->remote.lock(); remote) {
       sendGameSummary(*local, *remote, localColor);
     }
+  }
+
+  void unsetLocalPeer() {
+    local_ = nullopt;
   }
 
   void sendGameSummary(Peer &local, Peer &remote, Color localColor) {
@@ -428,8 +432,12 @@ CsaServer::CsaServer(int port) : impl(make_unique<Impl>(port)) {
 
 CsaServer::~CsaServer() {}
 
-void CsaServer::start(std::shared_ptr<Peer> local, Color color) {
-  impl->start(local, color);
+void CsaServer::setLocalPeer(std::shared_ptr<Peer> local, Color color) {
+  impl->setLocalPeer(local, color);
+}
+
+void CsaServer::unsetLocalPeer() {
+  impl->unsetLocalPeer();
 }
 
 void CsaServer::send(string const &msg) {

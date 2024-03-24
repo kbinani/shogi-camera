@@ -33,7 +33,7 @@ void StringValueFromPossible(string const &msg, string const &key, optional<stri
 }
 } // namespace
 
-CsaAdapter::CsaAdapter(std::shared_ptr<CsaServer> server) : server(server), stopSignal(false) {
+CsaAdapter::CsaAdapter(std::weak_ptr<CsaServer> server) : server(server), stopSignal(false) {
 }
 
 CsaAdapter::~CsaAdapter() {

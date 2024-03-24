@@ -1,3 +1,4 @@
+import ShogiCamera
 import UIKit
 
 class MainViewController: UIViewController {
@@ -5,7 +6,7 @@ class MainViewController: UIViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    let startView = StartView(analyzer: nil)
+    let startView = StartView(analyzer: nil, server: nil)
     startView.delegate = self
     self.current = startView
     self.view.addSubview(startView)
@@ -18,8 +19,8 @@ class MainViewController: UIViewController {
 }
 
 extension MainViewController: StartViewDelegate {
-  func startViewDidStartGame(_ view: StartView, with analyzer: Analyzer) {
-    let gameView = GameView(analyzer: analyzer)
+  func startViewDidStartGame(_ view: StartView, with analyzer: Analyzer, server: sci.CsaServerWrapper?) {
+    let gameView = GameView(analyzer: analyzer, server: server)
     gameView.frame = .init(origin: .zero, size: self.view.bounds.size)
     gameView.delegate = self
     self.current?.removeFromSuperview()
@@ -44,8 +45,8 @@ extension MainViewController: GameViewDelegate {
     self.present(controller, animated: true)
   }
 
-  func gameViewDidAbort(_ sender: GameView) {
-    let startView = StartView(analyzer: sender.analyzer)
+  func gameViewDidAbort(_ sender: GameView, server: sci.CsaServerWrapper?) {
+    let startView = StartView(analyzer: sender.analyzer, server: server)
     startView.delegate = self
     self.current?.removeFromSuperview()
     self.current = startView
