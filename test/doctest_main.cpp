@@ -7,7 +7,6 @@
 using namespace sci;
 
 #include "move.test.hpp"
-#include "sunfish3.test.hpp"
 #endif
 
 namespace sci {
