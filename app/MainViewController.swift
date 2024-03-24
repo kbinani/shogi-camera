@@ -33,6 +33,10 @@ extension MainViewController: StartViewDelegate {
     vc.delegate = self
     self.present(vc, animated: true)
   }
+
+  func startViewPresentViewController(_ vc: UIViewController) {
+    self.present(vc, animated: true)
+  }
 }
 
 extension MainViewController: GameViewDelegate {

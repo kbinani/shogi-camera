@@ -5,6 +5,7 @@ import UIKit
 protocol StartViewDelegate: AnyObject {
   func startViewDidStartGame(_ vc: StartView, with analyzer: Analyzer)
   func startViewPresentHelpViewController(_ v: StartView)
+  func startViewPresentViewController(_ vc: UIViewController)
 }
 
 class StartView: UIView {
@@ -107,7 +108,7 @@ class StartView: UIView {
     self.csaSwitch = csaSwitch
 
     let csaSwitchLabel = UILabel()
-    csaSwitchLabel.text = "通信対局 (CSA)"
+    csaSwitchLabel.text = "通信対局モード (CSA)"
     csaSwitchLabel.textColor = .white
     self.addSubview(csaSwitchLabel)
     self.csaSwitchLabel = csaSwitchLabel
@@ -119,6 +120,7 @@ class StartView: UIView {
         withConfiguration: UIImage.SymbolConfiguration(pointSize: csaHelpButtonSize)),
       for: .normal)
     csaHelpButton.tintColor = .white
+    csaHelpButton.addTarget(self, action: #selector(csaHelpButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(csaHelpButton)
     self.csaHelpButton = csaHelpButton
 
@@ -249,6 +251,36 @@ class StartView: UIView {
 
   @objc private func helpButtonDidTouchUpInside(_ sender: UIButton) {
     delegate?.startViewPresentHelpViewController(self)
+  }
+
+  @objc private func csaHelpButtonDidTouchUpInside(_ sender: UIButton) {
+    let vc = UIViewController()
+
+    let label = UILabel()
+    label.text = "本アプリに内蔵の CSA サーバーを使って通信対局するモードです。CSA サーバーの準備が整うと画面下部に接続先が表示されるので、CSA 対応の将棋ソフトから接続して下さい。詳しい説明は右上のヘルプボタンで見ることができます。"
+    label.textAlignment = .natural
+    label.numberOfLines = 0
+    label.lineBreakMode = .byWordWrapping
+    label.textColor = .black
+    let rect = label.textRect(forBounds: .init(x: 0, y: 0, width: 300, height: CGFloat.greatestFiniteMagnitude), limitedToNumberOfLines: 100)
+    let margin: CGFloat = 15
+    label.frame = .init(x: margin, y: margin, width: rect.width, height: rect.height)
+    vc.view.addSubview(label)
+    vc.preferredContentSize = .init(width: rect.width + margin * 2, height: rect.height + margin * 2)
+
+    vc.modalPresentationStyle = .popover
+    vc.popoverPresentationController?.sourceView = sender
+    vc.popoverPresentationController?.backgroundColor = .white
+    vc.popoverPresentationController?.delegate = self
+    vc.popoverPresentationController?.permittedArrowDirections = .any
+
+    delegate?.startViewPresentViewController(vc)
+  }
+}
+
+extension StartView: UIPopoverPresentationControllerDelegate {
+  func adaptivePresentationStyle(for controller: UIPresentationController, traitCollection: UITraitCollection) -> UIModalPresentationStyle {
+    return .none
   }
 }
 
