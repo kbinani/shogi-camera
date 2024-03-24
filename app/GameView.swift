@@ -39,7 +39,7 @@ class GameView: UIView {
 
     analyzer.delegate = self
 
-    self.backgroundColor = .darkGray
+    self.backgroundColor = Colors.background
     let boardLayer = BoardLayer()
     boardLayer.backgroundColor = UIColor.white.cgColor
     boardLayer.contentsScale = self.traitCollection.displayScale

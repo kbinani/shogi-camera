@@ -18,6 +18,9 @@ class StartView: UIView {
   private var videoOverlay: VideoOverlay!
   private var messageLabel: UILabel!
   private var helpButton: RoundButton!
+  private var csaSwitch: UISwitch!
+  private var csaSwitchLabel: UILabel!
+  private var csaAddressLabel: UILabel!
 
   enum State {
     case waitingStableBoard
@@ -52,7 +55,7 @@ class StartView: UIView {
     }
     super.init(frame: .zero)
 
-    self.backgroundColor = .darkGray
+    self.backgroundColor = Colors.background
 
     let videoView = UIView(frame: .zero)
     self.addSubview(videoView)
@@ -94,12 +97,29 @@ class StartView: UIView {
     self.addSubview(startAsWhiteButton)
     self.startAsWhiteButton = startAsWhiteButton
 
+    let csaSwitch = UISwitch()
+    csaSwitch.backgroundColor = UIColor.lightGray
+    self.addSubview(csaSwitch)
+    self.csaSwitch = csaSwitch
+
+    let csaSwitchLabel = UILabel()
+    csaSwitchLabel.text = "通信対局 (CSA)"
+    csaSwitchLabel.textColor = .white
+    self.addSubview(csaSwitchLabel)
+    self.csaSwitchLabel = csaSwitchLabel
+
+    let csaAddressLabel = UILabel()
+    csaAddressLabel.textColor = .white
+    self.addSubview(csaAddressLabel)
+    self.csaAddressLabel = csaAddressLabel
+
     let messageLabel = UILabel()
     messageLabel.lineBreakMode = .byWordWrapping
     messageLabel.font = messageLabel.font.withSize(messageLabel.font.pointSize * 1.5)
     messageLabel.numberOfLines = 0
     messageLabel.textAlignment = .center
     messageLabel.minimumScaleFactor = 0.5
+    messageLabel.textColor = .white
     self.addSubview(messageLabel)
     self.messageLabel = messageLabel
 
@@ -136,7 +156,7 @@ class StartView: UIView {
     bounds.reduce(self.safeAreaInsets)
     bounds.expand(-margin, -margin)
 
-    var video: CGRect = bounds.removeFromTop(size.height / 2)
+    var video: CGRect = bounds.removeFromTop(size.height * 2 / 5)
     video.removeFromBottom(margin)
     self.videoView.frame = video
     self.previewLayer?.frame = .init(origin: .zero, size: video.size)
@@ -154,6 +174,13 @@ class StartView: UIView {
     self.startAsBlackButton.frame = buttons.removeFromLeft(buttonWidth)
     self.startAsWhiteButton.frame = buttons.removeFromRight(buttonWidth)
     bounds.removeFromTop(margin)
+
+    let csa = bounds.removeFromTop(csaSwitch.intrinsicContentSize.height + csaSwitchLabel.intrinsicContentSize.height)
+    let csaWidth = csaSwitch.intrinsicContentSize.width + margin + csaSwitchLabel.intrinsicContentSize.width
+    csaSwitch.frame = .init(x: csa.midX - csaWidth / 2, y: csa.minY, width: csaSwitch.intrinsicContentSize.width, height: csaSwitch.intrinsicContentSize.height)
+    csaSwitch.layer.cornerRadius = csaSwitch.frame.height / 2
+    csaSwitchLabel.frame = .init(x: csa.midX + csaWidth / 2 - csaSwitchLabel.intrinsicContentSize.width, y: csa.minY, width: csaSwitchLabel.intrinsicContentSize.width, height: csaSwitch.intrinsicContentSize.height)
+    csaAddressLabel.frame = .init(x: csa.minX, y: csa.minY, width: csa.width, height: csaAddressLabel.intrinsicContentSize.height)
 
     var help = bounds.removeFromBottom(44)
     let helpWidth = helpButton.intrinsicContentSize.width + 2 * margin

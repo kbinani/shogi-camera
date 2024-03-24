@@ -26,7 +26,7 @@ class HelpViewController: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    self.view.backgroundColor = .gray
+    self.view.backgroundColor = Colors.background
 
     let container = UIView()
     let titleScale: CGFloat = 1.2

@@ -74,6 +74,7 @@ add_executable(ShogiCameraApp MACOSX_BUNDLE
   app/HelpViewController.swift
   app/StableBoardLayer.swift
   app/CGSize+Utility.swift
+  app/Colors.swift
   app/LaunchScreen.storyboard
   app/Assets.xcassets
   include/shogi_camera/module.modulemap
