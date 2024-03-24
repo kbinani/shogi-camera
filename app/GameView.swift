@@ -249,7 +249,7 @@ class GameView: UIView {
         self.moveIndex = 0
       }
 
-      if status.wrongMove {
+      if status.wrongMove && !status.aborted {
         if self.wrongMoveLastNotified == nil || Date.now.timeIntervalSince(self.wrongMoveLastNotified!) > self.kWrongMoveNotificationInterval {
           self.wrongMoveLastNotified = Date.now
           if let mv = status.game.moves.last {
