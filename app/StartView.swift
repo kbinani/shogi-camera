@@ -17,10 +17,11 @@ class StartView: UIView {
   private var previewLayer: AVCaptureVideoPreviewLayer?
   private var videoOverlay: VideoOverlay!
   private var messageLabel: UILabel!
-  private var helpButton: RoundButton!
+  private var helpButton: UIButton!
   private var csaSwitch: UISwitch!
   private var csaSwitchLabel: UILabel!
   private var csaAddressLabel: UILabel!
+  private let helpButtonSize: CGFloat = 30
 
   enum State {
     case waitingStableBoard
@@ -123,8 +124,10 @@ class StartView: UIView {
     self.addSubview(messageLabel)
     self.messageLabel = messageLabel
 
-    let helpButton = RoundButton(type: .custom)
-    helpButton.setTitle("ヘルプ", for: .normal)
+    let helpButton = UIButton.init(type: .custom)
+    let config = UIImage.SymbolConfiguration(pointSize: helpButtonSize, weight: .regular, scale: .default)
+    helpButton.setImage(.init(systemName: "questionmark.circle.fill", withConfiguration: config), for: .normal)
+    helpButton.tintColor = .white
     helpButton.addTarget(self, action: #selector(helpButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(helpButton)
     self.helpButton = helpButton
@@ -155,6 +158,7 @@ class StartView: UIView {
     var bounds = CGRect(origin: .zero, size: size)
     bounds.reduce(self.safeAreaInsets)
     bounds.expand(-margin, -margin)
+    let innerBounds = bounds
 
     var video: CGRect = bounds.removeFromTop(size.height * 2 / 5)
     video.removeFromBottom(margin)
@@ -175,18 +179,14 @@ class StartView: UIView {
     self.startAsWhiteButton.frame = buttons.removeFromRight(buttonWidth)
     bounds.removeFromTop(margin)
 
-    let csa = bounds.removeFromTop(csaSwitch.intrinsicContentSize.height + csaSwitchLabel.intrinsicContentSize.height)
+    self.helpButton.frame = .init(x: innerBounds.maxX - helpButtonSize, y: innerBounds.minY, width: helpButtonSize, height: helpButtonSize)
+
+    let csa = bounds.removeFromBottom(csaSwitch.intrinsicContentSize.height + csaSwitchLabel.intrinsicContentSize.height)
     let csaWidth = csaSwitch.intrinsicContentSize.width + margin + csaSwitchLabel.intrinsicContentSize.width
     csaSwitch.frame = .init(x: csa.midX - csaWidth / 2, y: csa.minY, width: csaSwitch.intrinsicContentSize.width, height: csaSwitch.intrinsicContentSize.height)
     csaSwitch.layer.cornerRadius = csaSwitch.frame.height / 2
     csaSwitchLabel.frame = .init(x: csa.midX + csaWidth / 2 - csaSwitchLabel.intrinsicContentSize.width, y: csa.minY, width: csaSwitchLabel.intrinsicContentSize.width, height: csaSwitch.intrinsicContentSize.height)
     csaAddressLabel.frame = .init(x: csa.minX, y: csa.minY, width: csa.width, height: csaAddressLabel.intrinsicContentSize.height)
-
-    var help = bounds.removeFromBottom(44)
-    let helpWidth = helpButton.intrinsicContentSize.width + 2 * margin
-    help.removeFromLeft((help.width - helpWidth) / 2)
-    self.helpButton.frame = help.removeFromLeft(helpWidth)
-
     bounds.removeFromBottom(margin)
 
     self.messageLabel.frame = bounds
