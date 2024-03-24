@@ -26,7 +26,7 @@ class HelpViewController: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    self.view.backgroundColor = Colors.background
+    self.view.backgroundColor = UIColor.gray
 
     let container = UIView()
     let titleScale: CGFloat = 1.2
@@ -41,6 +41,7 @@ class HelpViewController: UIViewController {
     cameraInstructionTitle.text = "カメラの設定方法"
     cameraInstructionTitle.font = UIFont.boldSystemFont(ofSize: cameraInstructionTitle.font.pointSize * titleScale)
     cameraInstructionTitle.textAlignment = .center
+    cameraInstructionTitle.textColor = .white
     container.addSubview(cameraInstructionTitle)
     self.cameraInstructionTitle = cameraInstructionTitle
 
@@ -48,6 +49,7 @@ class HelpViewController: UIViewController {
     cameraInstructionMessage1.text = "　将棋盤をなるべく真上から撮影できる位置にデバイスを固定します。将棋盤の位置が認識できると、対局開始ボタンが押せるようになるので、手番を選んで対局開始ボタンを押します。"
     cameraInstructionMessage1.numberOfLines = 0
     cameraInstructionMessage1.lineBreakMode = .byWordWrapping
+    cameraInstructionMessage1.textColor = .white
     container.addSubview(cameraInstructionMessage1)
     self.cameraInstructionMessage1 = cameraInstructionMessage1
 
@@ -63,6 +65,7 @@ class HelpViewController: UIViewController {
     cameraInstructionMessage2.text = "　上の図は実際の設定例です。緑色の枠は、本アプリが認識した将棋盤の枠を表しています。この枠が安定して正確な位置に来るようにカメラの位置や照明を変えてみて下さい。"
     cameraInstructionMessage2.numberOfLines = 0
     cameraInstructionMessage2.lineBreakMode = .byWordWrapping
+    cameraInstructionMessage2.textColor = .white
     container.addSubview(cameraInstructionMessage2)
     self.cameraInstructionMessage2 = cameraInstructionMessage2
 
@@ -70,6 +73,7 @@ class HelpViewController: UIViewController {
     gameInstructionTitle.text = "対局方法"
     gameInstructionTitle.font = UIFont.boldSystemFont(ofSize: gameInstructionTitle.font.pointSize * titleScale)
     gameInstructionTitle.textAlignment = .center
+    gameInstructionTitle.textColor = .white
     container.addSubview(gameInstructionTitle)
     self.gameInstructionTitle = gameInstructionTitle
 
@@ -83,6 +87,7 @@ class HelpViewController: UIViewController {
 
     gameInstructionMessage1.numberOfLines = 0
     gameInstructionMessage1.lineBreakMode = .byWordWrapping
+    gameInstructionMessage1.textColor = .white
     container.addSubview(gameInstructionMessage1)
     self.gameInstructionMessage1 = gameInstructionMessage1
 
@@ -103,6 +108,7 @@ class HelpViewController: UIViewController {
 """
     gameInstructionMessage2.numberOfLines = 0
     gameInstructionMessage2.lineBreakMode = .byWordWrapping
+    gameInstructionMessage2.textColor = .white
     container.addSubview(gameInstructionMessage2)
     self.gameInstructionMessage2 = gameInstructionMessage2
 
@@ -110,6 +116,7 @@ class HelpViewController: UIViewController {
     acknowledgementTitle.text = "謝辞"
     acknowledgementTitle.font = UIFont.boldSystemFont(ofSize: acknowledgementTitle.font.pointSize * titleScale)
     acknowledgementTitle.textAlignment = .center
+    acknowledgementTitle.textColor = .white
     container.addSubview(acknowledgementTitle)
     self.acknowledgementTitle = acknowledgementTitle
 
@@ -117,6 +124,7 @@ class HelpViewController: UIViewController {
     acknowledgement.numberOfLines = 0
     acknowledgement.lineBreakMode = .byWordWrapping
     acknowledgement.textAlignment = .center
+    acknowledgement.textColor = .white
     // swift-format-ignore
     acknowledgement.text = """
 棋譜読み上げボイスとして
@@ -130,10 +138,12 @@ class HelpViewController: UIViewController {
     openSourceLicenseTitle.text = "オープンソースライセンス"
     openSourceLicenseTitle.font = UIFont.boldSystemFont(ofSize: openSourceLicenseTitle.font.pointSize * titleScale)
     openSourceLicenseTitle.textAlignment = .center
+    openSourceLicenseTitle.textColor = .white
     container.addSubview(openSourceLicenseTitle)
     self.openSourceLicenseTitle = openSourceLicenseTitle
 
     let openSourceLicense = UILabel()
+    openSourceLicense.textColor = .white
     // swift-format-ignore
     openSourceLicense.text = """
 ---
