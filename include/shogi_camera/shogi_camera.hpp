@@ -1159,7 +1159,7 @@ public:
   void setLocalPeer(std::shared_ptr<Peer> local, Color color);
   void unsetLocalPeer();
   void send(std::string const &msg);
-  bool isServerReady() const;
+  std::optional<int> port() const;
   bool isGameReady() const;
 
 private:
@@ -1170,9 +1170,9 @@ private:
 struct CsaServerWrapper {
   std::shared_ptr<CsaServer> server;
 
-  bool isServerReady() const {
+  std::optional<int> port() const {
     if (server) {
-      return server->isServerReady();
+      return server->port();
     } else {
       return false;
     }

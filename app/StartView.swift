@@ -71,7 +71,7 @@ class StartView: UIView {
           self.startAsBlackButton.isEnabled = false
           self.startAsWhiteButton.isEnabled = false
         case .available:
-          if server?.isServerReady() != true {
+          if server?.port().__convertToBool() != true {
             self.messageLabel.text = "CSA サーバを準備中です"
             self.startAsBlackButton.isEnabled = false
             self.startAsWhiteButton.isEnabled = false
@@ -87,8 +87,8 @@ class StartView: UIView {
         self.startAsWhiteButton.isEnabled = true
       }
     }
-    if case .available(let address) = wifiConnectivity, csaSwitch.isOn {
-      self.csaAddressLabel.text = "アドレス: " + address + ", ポート: 4081"
+    if case .available(let address) = wifiConnectivity, csaSwitch.isOn, let port = server?.port().value {
+      self.csaAddressLabel.text = "アドレス: \(address), ポート: \(port)"
       self.csaAddressLabel.textColor = .white
     } else {
       self.csaAddressLabel.text = dummyIPAddress
@@ -363,7 +363,7 @@ class StartView: UIView {
           self.serverReadyWatchdogTimer = nil
           return
         }
-        if server.isServerReady() {
+        if server.port().__convertToBool() {
           timer.invalidate()
           self.serverReadyWatchdogTimer = nil
         }

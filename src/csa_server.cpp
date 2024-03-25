@@ -30,7 +30,7 @@ struct RemotePeer : public CsaServer::Peer {
 };
 
 struct CsaServer::Impl {
-  Impl(int port) : port(port) {
+  explicit Impl(int port) : port(port) {
     stop = false;
     thread(std::bind(&Impl::run, this)).detach();
   }
@@ -389,8 +389,11 @@ struct CsaServer::Impl {
     this->local_ = l;
   }
 
-  bool isServerReady() const {
-    return socket != -1;
+  optional<int> getCurrentPort() const {
+    if (socket == -1) {
+      return nullopt;
+    }
+    return port;
   }
 
   bool isGameReady() const {
@@ -402,7 +405,7 @@ struct CsaServer::Impl {
 
   atomic_bool stop;
   int socket = -1;
-  int port;
+  int const port;
   struct Local {
     shared_ptr<Peer> peer;
     Color color;
@@ -451,8 +454,8 @@ void CsaServer::send(string const &msg) {
   impl->send(msg);
 }
 
-bool CsaServer::isServerReady() const {
-  return impl->isServerReady();
+optional<int> CsaServer::port() const {
+  return impl->getCurrentPort();
 }
 
 bool CsaServer::isGameReady() const {
