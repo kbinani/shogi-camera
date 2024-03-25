@@ -946,6 +946,23 @@ private:
   std::unique_ptr<std::mt19937_64> engine;
 };
 
+class Sunfish3AI : public Player {
+public:
+  Sunfish3AI();
+  ~Sunfish3AI();
+  std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+  std::optional<std::u8string> name() override {
+    return u8"sunfish3";
+  }
+  void stop() override;
+
+  static void RunTests();
+
+private:
+  struct Impl;
+  std::unique_ptr<Impl> impl;
+};
+
 struct CsaGameSummary {
   struct Receiver {
     std::optional<std::string> protocolVersion;

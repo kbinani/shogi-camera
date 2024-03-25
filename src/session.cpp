@@ -1409,8 +1409,13 @@ void Session::startGame(GameStartParameter p) {
     config->players = remote;
   } else {
     PlayerConfig::Local local;
+    std::shared_ptr<Player> ai;
     int aiLevel = p.option;
-    auto ai = std::make_shared<RandomAI>();
+    if (aiLevel > 0) {
+      ai = std::make_shared<Sunfish3AI>();
+    } else {
+      ai = std::make_shared<RandomAI>();
+    }
     if (p.userColor == Color::White) {
       local.black = ai;
     } else {

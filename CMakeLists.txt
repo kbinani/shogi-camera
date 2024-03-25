@@ -8,6 +8,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # add_definitions(-DSHOGI_CAMERA_DISABLE_HINT=1)
 
+add_subdirectory(deps/sunfish3/src/core EXCLUDE_FROM_ALL)
+target_include_directories(sunfish_core PRIVATE deps/sunfish3/src)
+add_subdirectory(deps/sunfish3/src/searcher EXCLUDE_FROM_ALL)
+target_include_directories(sunfish_searcher PRIVATE deps/sunfish3/src)
+add_subdirectory(deps/sunfish3/src/logger EXCLUDE_FROM_ALL)
+target_include_directories(sunfish_logger PRIVATE deps/sunfish3/src)
+
 find_library(opencv2 opencv2 HINTS deps/opencv/opencv/build-ios)
 
 add_library(shogi_camera STATIC
@@ -21,15 +28,18 @@ add_library(shogi_camera STATIC
   src/session.cpp
   src/shogi_camera.cpp
   src/statistics.cpp
+  src/sunfish3_ai.cpp
   src/piece_contour.cpp
   src/csa_adapter.cpp
   src/objc/shogi_camera.mm
   src/csa_server.cpp
   test/doctest_main.cpp
   test/move.test.hpp
+  test/sunfish3.test.hpp
 )
 target_include_directories(shogi_camera PUBLIC
   include
+  deps/sunfish3/src
   deps/base64/include
   deps/hwm.task
   deps/opencv/opencv/build-ios/opencv2.xcframework/ios-arm64/opencv2.framework
@@ -41,6 +51,11 @@ set_target_properties(shogi_camera PROPERTIES
   XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++20"
   XCODE_ATTRIBUTE_SWIFT_OBJC_INTEROP_MODE "objcxx"
   XCODE_ATTRIBUTE_GCC_PREPROCESSOR_DEFINITIONS $<IF:$<CONFIG:Debug>,SHOGI_CAMERA_DEBUG=1,SHOGI_CAMERA_RELEASE=1>
+)
+target_link_libraries(shogi_camera
+  sunfish_searcher
+  sunfish_core
+  sunfish_logger
 )
 
 add_executable(ShogiCameraApp MACOSX_BUNDLE
