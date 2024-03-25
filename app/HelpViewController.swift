@@ -16,6 +16,8 @@ class HelpViewController: UIViewController {
   private var gameInstructionMessage1: UILabel!
   private var gameInstructionImage: UIImageView!
   private var gameInstructionMessage2: UILabel!
+  private var csaInstructionTitle: UILabel!
+  private var csaInstructionMessage1: UILabel!
   private var acknowledgementTitle: UILabel!
   private var acknowledgement: UILabel!
   private var openSourceLicenseTitle: UILabel!
@@ -111,6 +113,37 @@ class HelpViewController: UIViewController {
     gameInstructionMessage2.textColor = .white
     container.addSubview(gameInstructionMessage2)
     self.gameInstructionMessage2 = gameInstructionMessage2
+
+    let csaInstructionTitle = UILabel()
+    csaInstructionTitle.text = "通信対局モードについて"
+    csaInstructionTitle.font = UIFont.boldSystemFont(ofSize: csaInstructionTitle.font.pointSize * titleScale)
+    csaInstructionTitle.textAlignment = .center
+    csaInstructionTitle.textColor = .white
+    container.addSubview(csaInstructionTitle)
+    self.csaInstructionTitle = csaInstructionTitle
+
+    let csaInstructionMessage1 = UILabel()
+    let csaInstructionMessage = NSMutableAttributedString()
+    let font = csaInstructionMessage1.font!
+    let indent = NSAttributedString(string: "　", attributes: [.font: font]).size().width
+    let listIndent = NSAttributedString(string: "① ", attributes: [.font: font]).size().width + indent
+    csaInstructionMessage.append(paragraph(font, text: "世界コンピュータ将棋選手権で用いられ、広く利用されている CSA 通信プロトコルを使用して通信対局を行うモードです。CSA プロトコルに対応した将棋ソフトを PC で起動し、本アプリに内蔵されている CSA サーバーと接続して通信対局を行います。", indent: 0, headIndent: indent))
+    csaInstructionMessage.append(paragraph(font, text: "", indent: 0, headIndent: 0))
+    csaInstructionMessage.append(paragraph(font, text: "通信対局を行うには:", indent: 0, headIndent: indent))
+    csaInstructionMessage.append(paragraph(font, text: "", indent: 0, headIndent: 0))
+    csaInstructionMessage.append(paragraph(font, text: "① 本アプリを起動し、WiFi 接続を ON にします。", indent: listIndent, headIndent: indent))
+    csaInstructionMessage.append(paragraph(font, text: "② PC を iPhone / iPad と同じ LAN に接続し、将棋ソフトを起動します。", indent: listIndent, headIndent: indent))
+    csaInstructionMessage.append(paragraph(font, text: "③ 本アプリ画面下部の「通信対局モード」を ON にします。CSA サーバーの起動が完了すると画面下部に「アドレス: 192.168.x.x, ポート: xxxx」などと表示されるのでメモしておきます。", indent: listIndent, headIndent: indent))
+    csaInstructionMessage.append(paragraph(font, text: "④ 将棋ソフトで通信対局の設定画面で、メモしておいたアドレスとポートを入力し、対局開始します。", indent: listIndent, headIndent: indent))
+    csaInstructionMessage.append(paragraph(font, text: "⑤ 本アプリに戻り、将棋盤が映るようにデバイスを固定して対局開始ボタンが押せる状態になるのを待ちます。", indent: listIndent, headIndent: indent))
+    csaInstructionMessage.append(paragraph(font, text: "⑥ 対局開始ボタンが押せる状態になったら、手番を選んで対局開始ボタンを押します。以降は、通信対局 OFF の場合と同様に対局を行います。", indent: listIndent, headIndent: indent))
+    csaInstructionMessage.append(paragraph(font, text: "", indent: 0, headIndent: 0))
+    csaInstructionMessage.append(paragraph(font, text: "", indent: 0, headIndent: 0))
+    csaInstructionMessage1.attributedText = csaInstructionMessage
+    csaInstructionMessage1.numberOfLines = 0
+    csaInstructionMessage1.lineBreakMode = .byWordWrapping
+    container.addSubview(csaInstructionMessage1)
+    self.csaInstructionMessage1 = csaInstructionMessage1
 
     let acknowledgementTitle = UILabel()
     acknowledgementTitle.text = "謝辞"
@@ -428,6 +461,19 @@ SOFTWARE.
     ).size
   }
 
+  private func paragraph(_ font: UIFont, text: String, indent: CGFloat, headIndent: CGFloat) -> NSAttributedString {
+    let style = NSMutableParagraphStyle()
+    style.headIndent = indent
+    style.firstLineHeadIndent = headIndent
+    return NSAttributedString(
+      string: text + "\n",
+      attributes: [
+        .font: font,
+        .paragraphStyle: style,
+        .foregroundColor: UIColor.white,
+      ])
+  }
+
   override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
     let margin: CGFloat = 15
@@ -466,6 +512,12 @@ SOFTWARE.
       container.removeFromTop(margin)
       gameInstructionMessage2.frame = container.removeFromTop(measure(gameInstructionMessage2, width: container.width).height)
     }
+    container.removeFromTop(paragraphMargin)
+
+    csaInstructionTitle.frame = container.removeFromTop(csaInstructionTitle.intrinsicContentSize.height)
+    container.removeFromTop(margin)
+
+    csaInstructionMessage1.frame = container.removeFromTop(measure(csaInstructionMessage1, width: container.width).height)
     container.removeFromTop(paragraphMargin)
 
     acknowledgementTitle.frame = container.removeFromTop(acknowledgementTitle.intrinsicContentSize.height)
