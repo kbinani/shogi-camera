@@ -390,7 +390,7 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
     rotate = true;
   }
   if (detected.empty()) {
-    book->update(g.position, last.back().gray, s);
+    book->update(g.position, board, s);
   }
   move->decideSuffix(g.position);
   if (detected.size() + 1 == g.moves.size()) {
