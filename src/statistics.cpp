@@ -233,30 +233,6 @@ void Statistics::update(Status const &s) {
       aspectRatio = sum / count;
     }
   }
-  if (s.preciseOutline) {
-    preciseOutlineHistory.push_back(*s.preciseOutline);
-    if (preciseOutlineHistory.size() > maxHistory) {
-      preciseOutlineHistory.pop_front();
-    }
-    Contour sum;
-    sum.points.resize(4);
-    fill_n(sum.points.begin(), 4, cv::Point2f(0, 0));
-    int count = 0;
-    for (auto const &v : preciseOutlineHistory) {
-      if (v.points.size() != 4) {
-        continue;
-      }
-      for (int i = 0; i < 4; i++) {
-        sum.points[i] += v.points[i];
-      }
-      count++;
-    }
-    for (int i = 0; i < 4; i++) {
-      sum.points[i] = sum.points[i] / count;
-    }
-    sum.area = fabs(cv::contourArea(sum.points));
-    preciseOutline = sum;
-  }
 }
 
 void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s, Game &g, std::vector<Move> &detected, bool detectMove) {

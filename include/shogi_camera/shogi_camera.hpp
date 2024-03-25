@@ -1376,9 +1376,6 @@ struct Statistics {
   std::deque<float> aspectRatioHistory;
   std::optional<float> aspectRatio;
 
-  std::deque<Contour> preciseOutlineHistory;
-  std::optional<Contour> preciseOutline;
-
   void update(Status const &s);
 
   std::deque<BoardImage> boardHistory;

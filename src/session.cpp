@@ -1175,7 +1175,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat, size_t moves) 
     Contour preciseOutline;
     preciseOutline.points = {topLeft, topRight, bottomRight, bottomLeft};
     preciseOutline.area = fabs(cv::contourArea(preciseOutline.points));
-    s.preciseOutline = stat.preciseOutline = preciseOutline;
+    s.preciseOutline = preciseOutline;
 
     cv::Point2f midBottom = (bottomRight + bottomLeft) * 0.5f;
     cv::Point2f midTop = (topRight + topLeft) * 0.5f;
@@ -1185,8 +1185,8 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat, size_t moves) 
 
 void CreateWarpedBoard(cv::Mat const &frameGray, cv::Mat const &frameColor, Status &s, Statistics const &stat) {
   using namespace std;
-  optional<Contour> preciseOutline = stat.preciseOutline;
-  if (!stat.preciseOutline || !stat.aspectRatio || !stat.squareArea) {
+  optional<Contour> preciseOutline = s.preciseOutline;
+  if (!preciseOutline || !stat.aspectRatio || !stat.squareArea) {
     return;
   }
   // 台形補正. キャプチャ画像と同じ面積で, アスペクト比が Status.aspectRatio と等しいサイズとなるような台形補正済み画像を作る.
@@ -1205,7 +1205,7 @@ void CreateWarpedBoard(cv::Mat const &frameGray, cv::Mat const &frameColor, Stat
       cv::Point2f(width, height),
       cv::Point2f(0, height),
   });
-  cv::Mat mtx = cv::getPerspectiveTransform(stat.preciseOutline->points, dst);
+  cv::Mat mtx = cv::getPerspectiveTransform(preciseOutline->points, dst);
   s.perspectiveTransform = mtx;
   s.rotate = stat.rotate;
   s.warpedWidth = width;
