@@ -1,4 +1,5 @@
-#if !defined(NDEBUG)
+#if SHOGI_CAMERA_DEBUG
+
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
 
@@ -8,15 +9,14 @@ using namespace sci;
 
 #include "move.test.hpp"
 #include "sunfish3.test.hpp"
-#endif
 
 namespace sci {
 
 void RunTests() {
-#if !defined(NDEBUG)
   doctest::Context context;
   context.run();
-#endif
 }
 
 } // namespace sci
+
+#endif

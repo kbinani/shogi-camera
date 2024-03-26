@@ -1,5 +1,7 @@
+#if SHOGI_CAMERA_DEBUG
 #include "core/record/Record.h"
 #include "searcher/Searcher.h"
+#endif
 
 #include <shogi_camera/shogi_camera.hpp>
 
@@ -9,6 +11,7 @@ using namespace std;
 
 namespace sci {
 
+#if SHOGI_CAMERA_DEBUG
 namespace {
 
 optional<PieceType> PieceTypeFromSunfishPiece(sunfish::Piece p) {
@@ -387,6 +390,20 @@ struct Sunfish3AI::Impl {
   unique_ptr<mt19937_64> engine;
   mutex mut;
 };
+#else
+struct Sunfish3AI::Impl {
+  Impl() {}
+
+  optional<Move> next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+    return nullopt;
+  }
+
+  void stop() {
+  }
+
+  static void RunTests() {}
+};
+#endif
 
 Sunfish3AI::Sunfish3AI() : impl(make_unique<Impl>()) {
 }

@@ -53,9 +53,9 @@ set_target_properties(shogi_camera PROPERTIES
   XCODE_ATTRIBUTE_GCC_PREPROCESSOR_DEFINITIONS $<IF:$<CONFIG:Debug>,SHOGI_CAMERA_DEBUG=1,SHOGI_CAMERA_RELEASE=1>
 )
 target_link_libraries(shogi_camera
-  sunfish_searcher
-  sunfish_core
-  sunfish_logger
+  $<IF:$<CONFIG:Debug>,sunfish_searcher,>
+  $<IF:$<CONFIG:Debug>,sunfish_core,>
+  $<IF:$<CONFIG:Debug>,sunfish_logger,>
 )
 
 add_executable(ShogiCameraApp MACOSX_BUNDLE

@@ -1415,11 +1415,15 @@ void Session::startGame(GameStartParameter p) {
     PlayerConfig::Local local;
     std::shared_ptr<Player> ai;
     int aiLevel = p.option;
+#if SHOGI_CAMERA_DEBUG
     if (aiLevel > 0) {
       ai = std::make_shared<Sunfish3AI>();
     } else {
       ai = std::make_shared<RandomAI>();
     }
+#else
+    ai = std::make_shared<RandomAI>();
+#endif
     if (p.userColor == Color::White) {
       local.black = ai;
     } else {
