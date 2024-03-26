@@ -18,6 +18,7 @@ class HelpViewController: UIViewController {
   private var gameInstructionMessage2: UILabel!
   private var csaInstructionTitle: UILabel!
   private var csaInstructionMessage1: UILabel!
+  private var csaInstructionMessage2: UITextView!
   private var acknowledgementTitle: UILabel!
   private var acknowledgement: UILabel!
   private var openSourceLicenseTitle: UILabel!
@@ -28,7 +29,7 @@ class HelpViewController: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    self.view.backgroundColor = UIColor.gray
+    self.view.backgroundColor = UIColor.init(white: 0.2, alpha: 1)
 
     let container = UIView()
     let titleScale: CGFloat = 1.2
@@ -144,6 +145,18 @@ class HelpViewController: UIViewController {
     csaInstructionMessage1.lineBreakMode = .byWordWrapping
     container.addSubview(csaInstructionMessage1)
     self.csaInstructionMessage1 = csaInstructionMessage1
+
+    let csaInstructionMessage2 = UITextView()
+    let text = NSMutableAttributedString(attributedString: paragraph(font, text: "将棋ソフト毎の具体的な設定方法は将棋ソフト毎の通信対局方法の詳細を参照して下さい", indent: 0, headIndent: 0))
+    let linkRange = (text.string as NSString).range(of: "将棋ソフト毎の通信対局方法の詳細")
+    text.addAttribute(.link, value: "https://scrapbox.io/shogi-camera/%E5%B0%86%E6%A3%8B%E3%82%BD%E3%83%95%E3%83%88%E6%AF%8E%E3%81%AE%E9%80%9A%E4%BF%A1%E5%AF%BE%E5%B1%80%E6%96%B9%E6%B3%95%E3%81%AE%E8%A9%B3%E7%B4%B0", range: linkRange)
+    csaInstructionMessage2.attributedText = text
+    csaInstructionMessage2.isEditable = false
+    //    csaInstructionMessage2.isSelectable = true
+    csaInstructionMessage2.delegate = self
+    csaInstructionMessage2.backgroundColor = .white.withAlphaComponent(0)
+    container.addSubview(csaInstructionMessage2)
+    self.csaInstructionMessage2 = csaInstructionMessage2
 
     let acknowledgementTitle = UILabel()
     acknowledgementTitle.text = "謝辞"
@@ -518,6 +531,7 @@ SOFTWARE.
     container.removeFromTop(margin)
 
     csaInstructionMessage1.frame = container.removeFromTop(measure(csaInstructionMessage1, width: container.width).height)
+    csaInstructionMessage2.frame = container.removeFromTop(csaInstructionMessage2.sizeThatFits(.init(width: container.width, height: .greatestFiniteMagnitude)).height)
     container.removeFromTop(paragraphMargin)
 
     acknowledgementTitle.frame = container.removeFromTop(acknowledgementTitle.intrinsicContentSize.height)
@@ -539,5 +553,12 @@ SOFTWARE.
 
   @objc private func backButtonDidTouchUpInside(_ sender: UIButton) {
     self.delegate?.helpViewControllerBack(self)
+  }
+}
+
+extension HelpViewController: UITextViewDelegate {
+  func textView(_ textView: UITextView, shouldInteractWith url: URL, in characterRange: NSRange, interaction: UITextItemInteraction) -> Bool {
+    UIApplication.shared.open(url)
+    return false
   }
 }
