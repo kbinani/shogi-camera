@@ -1119,7 +1119,11 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat, size_t moves) 
         auto topRight = Intersection(*top, *right);
         auto bottomRight = Intersection(*bottom, *right);
         auto bottomLeft = Intersection(*bottom, *left);
-        if (topLeft && topRight && bottomRight && bottomLeft) {
+        cv::Rect bounds(0, 0, frame.size().width, frame.size().height);
+        if (topLeft && bounds.contains(*topLeft) &&
+            topRight && bounds.contains(*topRight) &&
+            bottomRight && bounds.contains(*bottomRight) &&
+            bottomLeft && bounds.contains(*bottomLeft)) {
           cv::Point2f midBottom = (*bottomRight + *bottomLeft) * 0.5f;
           cv::Point2f midTop = (*topRight + *topLeft) * 0.5f;
           double direction = Angle(midBottom - midTop);
