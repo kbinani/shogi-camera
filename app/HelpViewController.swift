@@ -17,8 +17,7 @@ class HelpViewController: UIViewController {
   private var gameInstructionImage: UIImageView!
   private var gameInstructionMessage2: UILabel!
   private var csaInstructionTitle: UILabel!
-  private var csaInstructionMessage1: UILabel!
-  private var csaInstructionMessage2: UITextView!
+  private var csaInstructionMessage1: UITextView!
   private var acknowledgementTitle: UILabel!
   private var acknowledgement: UILabel!
   private var openSourceLicenseTitle: UILabel!
@@ -41,8 +40,10 @@ class HelpViewController: UIViewController {
     self.backButton = backButton
 
     let cameraInstructionTitle = UILabel()
+    let font = cameraInstructionTitle.font!
+    let titleFont = UIFont.boldSystemFont(ofSize: font.pointSize * titleScale)
     cameraInstructionTitle.text = "カメラの設定方法"
-    cameraInstructionTitle.font = UIFont.boldSystemFont(ofSize: cameraInstructionTitle.font.pointSize * titleScale)
+    cameraInstructionTitle.font = titleFont
     cameraInstructionTitle.textAlignment = .center
     cameraInstructionTitle.textColor = .white
     container.addSubview(cameraInstructionTitle)
@@ -74,7 +75,7 @@ class HelpViewController: UIViewController {
 
     let gameInstructionTitle = UILabel()
     gameInstructionTitle.text = "対局方法"
-    gameInstructionTitle.font = UIFont.boldSystemFont(ofSize: gameInstructionTitle.font.pointSize * titleScale)
+    gameInstructionTitle.font = titleFont
     gameInstructionTitle.textAlignment = .center
     gameInstructionTitle.textColor = .white
     container.addSubview(gameInstructionTitle)
@@ -117,15 +118,14 @@ class HelpViewController: UIViewController {
 
     let csaInstructionTitle = UILabel()
     csaInstructionTitle.text = "通信対局モードについて"
-    csaInstructionTitle.font = UIFont.boldSystemFont(ofSize: csaInstructionTitle.font.pointSize * titleScale)
+    csaInstructionTitle.font = titleFont
     csaInstructionTitle.textAlignment = .center
     csaInstructionTitle.textColor = .white
     container.addSubview(csaInstructionTitle)
     self.csaInstructionTitle = csaInstructionTitle
 
-    let csaInstructionMessage1 = UILabel()
+    let csaInstructionMessage1 = UITextView()
     let csaInstructionMessage = NSMutableAttributedString()
-    let font = csaInstructionMessage1.font!
     let indent = NSAttributedString(string: "　", attributes: [.font: font]).size().width
     let listIndent = NSAttributedString(string: "① ", attributes: [.font: font]).size().width + indent
     csaInstructionMessage.append(paragraph(font, text: "世界コンピュータ将棋選手権で用いられ、広く利用されている CSA 通信プロトコルを使用して通信対局を行うモードです。CSA プロトコルに対応した将棋ソフトを PC で起動し、本アプリに内蔵されている CSA サーバーと接続して通信対局を行います。", indent: 0, headIndent: indent))
@@ -139,28 +139,22 @@ class HelpViewController: UIViewController {
     csaInstructionMessage.append(paragraph(font, text: "⑤ 本アプリに戻り、将棋盤が映るようにデバイスを固定して対局開始ボタンが押せる状態になるのを待ちます。", indent: listIndent, headIndent: indent))
     csaInstructionMessage.append(paragraph(font, text: "⑥ 対局開始ボタンが押せる状態になったら、手番を選んで対局開始ボタンを押します。以降は、通信対局 OFF の場合と同様に対局を行います。", indent: listIndent, headIndent: indent))
     csaInstructionMessage.append(paragraph(font, text: "", indent: 0, headIndent: 0))
-    csaInstructionMessage.append(paragraph(font, text: "", indent: 0, headIndent: 0))
-    csaInstructionMessage1.attributedText = csaInstructionMessage
-    csaInstructionMessage1.numberOfLines = 0
-    csaInstructionMessage1.lineBreakMode = .byWordWrapping
-    container.addSubview(csaInstructionMessage1)
-    self.csaInstructionMessage1 = csaInstructionMessage1
-
-    let csaInstructionMessage2 = UITextView()
     let text = NSMutableAttributedString(attributedString: paragraph(font, text: "将棋ソフト毎の具体的な設定方法は将棋ソフト毎の通信対局方法の詳細を参照して下さい", indent: 0, headIndent: 0))
     let linkRange = (text.string as NSString).range(of: "将棋ソフト毎の通信対局方法の詳細")
     text.addAttribute(.link, value: "https://scrapbox.io/shogi-camera/%E5%B0%86%E6%A3%8B%E3%82%BD%E3%83%95%E3%83%88%E6%AF%8E%E3%81%AE%E9%80%9A%E4%BF%A1%E5%AF%BE%E5%B1%80%E6%96%B9%E6%B3%95%E3%81%AE%E8%A9%B3%E7%B4%B0", range: linkRange)
-    csaInstructionMessage2.attributedText = text
-    csaInstructionMessage2.isEditable = false
-    //    csaInstructionMessage2.isSelectable = true
-    csaInstructionMessage2.delegate = self
-    csaInstructionMessage2.backgroundColor = .white.withAlphaComponent(0)
-    container.addSubview(csaInstructionMessage2)
-    self.csaInstructionMessage2 = csaInstructionMessage2
+    csaInstructionMessage.append(text)
+    csaInstructionMessage1.attributedText = csaInstructionMessage
+    csaInstructionMessage1.isEditable = false
+    csaInstructionMessage1.isScrollEnabled = false
+    csaInstructionMessage1.delegate = self
+    csaInstructionMessage1.backgroundColor = .white.withAlphaComponent(0)
+    csaInstructionMessage1.clipsToBounds = false
+    container.addSubview(csaInstructionMessage1)
+    self.csaInstructionMessage1 = csaInstructionMessage1
 
     let acknowledgementTitle = UILabel()
     acknowledgementTitle.text = "謝辞"
-    acknowledgementTitle.font = UIFont.boldSystemFont(ofSize: acknowledgementTitle.font.pointSize * titleScale)
+    acknowledgementTitle.font = titleFont
     acknowledgementTitle.textAlignment = .center
     acknowledgementTitle.textColor = .white
     container.addSubview(acknowledgementTitle)
@@ -182,7 +176,7 @@ class HelpViewController: UIViewController {
 
     let openSourceLicenseTitle = UILabel()
     openSourceLicenseTitle.text = "オープンソースライセンス"
-    openSourceLicenseTitle.font = UIFont.boldSystemFont(ofSize: openSourceLicenseTitle.font.pointSize * titleScale)
+    openSourceLicenseTitle.font = titleFont
     openSourceLicenseTitle.textAlignment = .center
     openSourceLicenseTitle.textColor = .white
     container.addSubview(openSourceLicenseTitle)
@@ -530,8 +524,12 @@ SOFTWARE.
     csaInstructionTitle.frame = container.removeFromTop(csaInstructionTitle.intrinsicContentSize.height)
     container.removeFromTop(margin)
 
-    csaInstructionMessage1.frame = container.removeFromTop(measure(csaInstructionMessage1, width: container.width).height)
-    csaInstructionMessage2.frame = container.removeFromTop(csaInstructionMessage2.sizeThatFits(.init(width: container.width, height: .greatestFiniteMagnitude)).height)
+    csaInstructionMessage1.frame = container.removeFromTop(
+      csaInstructionMessage1.attributedText.boundingRect(
+        with: .init(width: container.width, height: CGFloat.greatestFiniteMagnitude),
+        options: [.usesLineFragmentOrigin],
+        context: nil
+      ).height)
     container.removeFromTop(paragraphMargin)
 
     acknowledgementTitle.frame = container.removeFromTop(acknowledgementTitle.intrinsicContentSize.height)
