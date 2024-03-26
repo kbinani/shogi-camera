@@ -367,7 +367,7 @@ struct CsaServer::Impl {
               info.reset();
             }
           }
-        } else if (line == "%TORYO") {
+        } else if (line == "%TORYO" && info) {
           sendboth("%TORYO," + info->seconds());
           sendboth("#RESIGN");
           send("#LOSE");
