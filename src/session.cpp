@@ -1137,7 +1137,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat, size_t moves) 
           stat.outlineTR.push_back(*topRight);
           stat.outlineBR.push_back(*bottomRight);
           stat.outlineBL.push_back(*bottomLeft);
-          int maxCount = moves == 0 ? Statistics::kOutlineMaxCount_ : Statistics::kOutlineMaxCountDuringGame;
+          int maxCount = moves == 0 ? Statistics::kOutlineMaxCount : Statistics::kOutlineMaxCountDuringGame;
           if (stat.outlineTL.size() > maxCount) {
             stat.outlineTL.pop_front();
           }
