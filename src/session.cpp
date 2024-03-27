@@ -1190,19 +1190,12 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat, size_t moves) 
 void CreateWarpedBoard(cv::Mat const &frameGray, cv::Mat const &frameColor, Status &s, Statistics const &stat) {
   using namespace std;
   optional<Contour> preciseOutline = s.preciseOutline;
-  if (!preciseOutline || !stat.aspectRatio || !stat.squareArea) {
+  if (!preciseOutline || !stat.aspectRatio) {
     return;
   }
-  // 台形補正. キャプチャ画像と同じ面積で, アスペクト比が Status.aspectRatio と等しいサイズとなるような台形補正済み画像を作る.
-  double area = *stat.squareArea * 81;
-  if (area > frameGray.size().area()) {
-    // キャプチャ画像より盤面が広いことはありえない.
-    return;
-  }
-  // a = w/h, w = a * h
-  // area = w * h = a * h^2, h = sqrt(area/a), w = sqrt(area * a)
-  int width = (int)round(sqrt(area * (*stat.aspectRatio)));
-  int height = (int)round(sqrt(area / (*stat.aspectRatio)));
+  float aspectRatio = *stat.aspectRatio;
+  int width = (int)round(sqrt(Statistics::kBoardArea * aspectRatio));
+  int height = (int)round(sqrt(Statistics::kBoardArea / aspectRatio));
   vector<cv::Point2f> dst({
       cv::Point2f(0, 0),
       cv::Point2f(width, 0),

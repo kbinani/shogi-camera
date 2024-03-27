@@ -1413,6 +1413,7 @@ struct Statistics {
   static int constexpr kOutlineMaxCountDuringGame = 300;
 
   static int constexpr kStableBoardCounterThreshold = 5;
+  static int constexpr kBoardArea = 74000;
 };
 
 struct PlayerConfig {
