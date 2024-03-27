@@ -200,10 +200,16 @@ struct CsaServer::Impl {
         auto ret = MoveFromCsaMove(msg, info->game.position);
         if (holds_alternative<Move>(ret)) {
           auto mv = get<Move>(ret);
-          info->game.apply(mv);
-          info->game.moves.push_back(mv);
-          sendboth(msg + "," + info->seconds());
-          info->update();
+          if (info->game.apply_(mv)) {
+            info->game.moves.push_back(mv);
+            sendboth(msg + "," + info->seconds());
+            info->update();
+          } else {
+            sendboth("#ILLEGAAL_MOVE");
+            local->peer->onmessage("#LOSE");
+            remote->send("#WIN");
+            info.reset();
+          }
         } else {
           sendboth("#ILLEGAAL_MOVE");
           local->peer->onmessage("#LOSE");
@@ -221,14 +227,20 @@ struct CsaServer::Impl {
         auto ret = MoveFromCsaMove(msg, info->game.position);
         if (holds_alternative<Move>(ret)) {
           auto mv = get<Move>(ret);
-          info->game.apply(mv);
-          info->game.moves.push_back(mv);
-          sendboth(msg + "," + info->seconds());
-          info->update();
+          if (info->game.apply_(mv)) {
+            info->game.moves.push_back(mv);
+            sendboth(msg + "," + info->seconds());
+            info->update();
+          } else {
+            sendboth("#ILLEGAAL_MOVE");
+            local->peer->onmessage("#LOSE");
+            remote->send("#WIN");
+            info.reset();
+          }
         } else {
           sendboth("#ILLEGAAL_MOVE");
-          local->peer->onmessage("#WIN");
-          remote->send("#LOSE");
+          local->peer->onmessage("#LOSE");
+          remote->send("#WIN");
           info.reset();
         }
       }
@@ -315,24 +327,27 @@ struct CsaServer::Impl {
         } else if (line.starts_with("+") && info) {
           if (info->game.moves.size() % 2 != 0) {
             sendboth("#ILLEGAL_ACTION");
+            send("#LOSE");
             if (local_) {
-              if (local_->color == Color::Black) {
-                send("#LOSE");
-                local_->peer->onmessage("#WIN");
-              } else {
-                send("#WIN");
-                local_->peer->onmessage("#LOSE");
-              }
+              local_->peer->onmessage("#WIN");
             }
             info.reset();
           } else {
             auto ret = MoveFromCsaMove(line, info->game.position);
             if (holds_alternative<Move>(ret)) {
               auto mv = get<Move>(ret);
-              info->game.apply(mv);
-              info->game.moves.push_back(mv);
-              sendboth(line + "," + info->seconds());
-              info->update();
+              if (info->game.apply_(mv)) {
+                info->game.moves.push_back(mv);
+                sendboth(line + "," + info->seconds());
+                info->update();
+              } else {
+                sendboth("#ILLEGAAL_MOVE");
+                send("#LOSE");
+                if (local_) {
+                  local_->peer->onmessage("#WIN");
+                }
+                info.reset();
+              }
             } else {
               sendboth("#ILLEGAAL_MOVE");
               send("#LOSE");
@@ -354,15 +369,23 @@ struct CsaServer::Impl {
             auto ret = MoveFromCsaMove(line, info->game.position);
             if (holds_alternative<Move>(ret)) {
               auto mv = get<Move>(ret);
-              info->game.apply(mv);
-              info->game.moves.push_back(mv);
-              sendboth(line + "," + info->seconds());
-              info->update();
+              if (info->game.apply_(mv)) {
+                info->game.moves.push_back(mv);
+                sendboth(line + "," + info->seconds());
+                info->update();
+              } else {
+                sendboth("#ILLEGAAL_MOVE");
+                send("#LOSE");
+                if (local_) {
+                  local_->peer->onmessage("#WIN");
+                }
+                info.reset();
+              }
             } else {
               sendboth("#ILLEGAAL_MOVE");
-              send("#WIN");
+              send("#LOSE");
               if (local_) {
-                local_->peer->onmessage("#LOSE");
+                local_->peer->onmessage("#WIN");
               }
               info.reset();
             }

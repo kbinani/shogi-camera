@@ -1466,7 +1466,7 @@ void Session::csaAdapterDidGetError(std::u8string const &what) {
   // TODO:
 }
 
-void Session::csaAdapterDidFinishGame(GameResult result) {
+void Session::csaAdapterDidFinishGame(GameResult result, GameResultReason reason) {
   switch (result) {
   case GameResult::BlackWin:
     resign(Color::White);

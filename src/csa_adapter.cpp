@@ -185,8 +185,19 @@ void CsaAdapter::onmessage(string const &msg) {
         auto mv = MoveFromCsaMove(msg, game.position);
         if (holds_alternative<Move>(mv)) {
           auto m = get<Move>(mv);
+          if (!game.apply_(m)) {
+            finished = true;
+            if (auto d = delegate.lock(); d && color_) {
+              if (*color_ == Color::Black) {
+                d->csaAdapterDidFinishGame(GameResult::WhiteWin, GameResultReason::IllegalAction);
+              } else {
+                d->csaAdapterDidFinishGame(GameResult::BlackWin, GameResultReason::IllegalAction);
+              }
+            }
+            cv.notify_all();
+            return;
+          }
           lock_guard<mutex> lock(mut);
-          game.apply(m);
           moves.push_back(m);
           cv.notify_all();
         } else if (holds_alternative<u8string>(mv)) {
@@ -196,27 +207,34 @@ void CsaAdapter::onmessage(string const &msg) {
       } else if (msg.starts_with("#WIN")) {
         finished = true;
         if (auto d = delegate.lock(); d && color_) {
+          GameResultReason r = reason ? *reason : GameResultReason::Resign;
           if (*color_ == Color::Black) {
-            d->csaAdapterDidFinishGame(GameResult::WhiteWin);
+            d->csaAdapterDidFinishGame(GameResult::WhiteWin, r);
           } else {
-            d->csaAdapterDidFinishGame(GameResult::BlackWin);
+            d->csaAdapterDidFinishGame(GameResult::BlackWin, r);
           }
         }
+        cv.notify_all();
       } else if (msg.starts_with("#LOSE")) {
         finished = true;
         if (auto d = delegate.lock(); d && color_) {
+          GameResultReason r = reason ? *reason : GameResultReason::Resign;
           if (*color_ == Color::Black) {
-            d->csaAdapterDidFinishGame(GameResult::BlackWin);
+            d->csaAdapterDidFinishGame(GameResult::BlackWin, r);
           } else {
-            d->csaAdapterDidFinishGame(GameResult::WhiteWin);
+            d->csaAdapterDidFinishGame(GameResult::WhiteWin, r);
           }
         }
+        cv.notify_all();
       } else if (msg.starts_with("#CHUDAN")) {
         finished = true;
         chudan = true;
         if (auto d = delegate.lock(); d) {
-          d->csaAdapterDidFinishGame(GameResult::Abort);
+          d->csaAdapterDidFinishGame(GameResult::Abort, GameResultReason::Abort);
         }
+        cv.notify_all();
+      } else if (msg.starts_with("#RESIGN") || msg.starts_with("#%TORYO,")) {
+        reason = GameResultReason::Resign;
       }
     }
   }
@@ -252,7 +270,7 @@ optional<Move> CsaAdapter::next(Position const &p, vector<Move> const &moves, de
   }
   unique_lock<mutex> lock(mut);
   cv.wait(lock, [&]() {
-    return this->moves.size() == moves.size() + 1 || stopSignal;
+    return this->moves.size() == moves.size() + 1 || stopSignal || finished || chudan;
   });
   Move mv = this->moves.back();
   lock.unlock();

@@ -4,8 +4,9 @@
 
 namespace sci {
 
-void Game::apply(Move const &mv) {
+bool Game::apply_(Move const &mv) {
   position.apply(mv, handBlack, handWhite);
+  return true;
 }
 
 void Game::Generate(Position const &position, Color color, std::deque<PieceType> const &handBlack, std::deque<PieceType> const &handWhite, std::deque<Move> &moves, bool enablePawnCheckByDrop) {

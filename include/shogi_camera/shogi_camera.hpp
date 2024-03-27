@@ -897,7 +897,7 @@ struct Game {
     position = MakePosition(Handicap::None);
   }
 
-  void apply(Move const &move);
+  bool apply_(Move const &move);
 
   std::deque<PieceType> &hand(Color color) {
     if (color == Color::Black) {
@@ -922,6 +922,12 @@ struct Game {
 enum class GameResult {
   BlackWin,
   WhiteWin,
+  Abort,
+};
+
+enum class GameResultReason {
+  Resign,
+  IllegalAction,
   Abort,
 };
 
@@ -1201,7 +1207,7 @@ public:
     virtual ~Delegate() {}
     virtual void csaAdapterDidProvidePosition(Game const &g) = 0;
     virtual void csaAdapterDidGetError(std::u8string const &what) = 0;
-    virtual void csaAdapterDidFinishGame(GameResult) = 0;
+    virtual void csaAdapterDidFinishGame(GameResult, GameResultReason) = 0;
   };
 
   explicit CsaAdapter(std::weak_ptr<CsaServer> server);
@@ -1229,9 +1235,10 @@ private:
   std::deque<std::string> stack;
   std::string current;
   bool started = false;
-  bool finished = false;
+  std::atomic_bool finished = false;
   bool rejected = false;
-  bool chudan = false;
+  std::optional<GameResultReason> reason;
+  std::atomic_bool chudan = false;
   std::map<Color, bool> resignSent;
 
   std::condition_variable cv;
@@ -1328,6 +1335,8 @@ struct Status {
   bool boardReady = false;
   // AI の示した手と違う手が指されている時に true
   bool wrongMove = false;
+  // 反則となる手が指されている時に true
+  bool illegalMove = false;
   std::shared_ptr<PieceBook> book;
   std::deque<std::map<std::pair<int, int>, std::set<std::shared_ptr<Lattice>>>> clusters;
   std::optional<Color> yourTurn;
@@ -1463,7 +1472,7 @@ public:
 
   void csaAdapterDidProvidePosition(Game const &g) override;
   void csaAdapterDidGetError(std::u8string const &what) override;
-  void csaAdapterDidFinishGame(GameResult) override;
+  void csaAdapterDidFinishGame(GameResult, GameResultReason) override;
 
 private:
   void run();

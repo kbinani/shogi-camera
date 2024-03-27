@@ -406,7 +406,11 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
   s.wrongMove = false;
   stableBoardHistory.push_back(history);
   detected.push_back(*move);
-  g.apply(*move);
+  if (!g.apply_(*move)) {
+    s.illegalMove = true;
+    cout << "反則となる手が指されている" << endl;
+    return;
+  }
   book->update(g.position, board, s);
   cout << g.moves.size() << ":" << (char const *)StringFromMoveWithOptionalLast(*move, lastMoveTo).c_str() << endl;
 }
