@@ -33,12 +33,44 @@ bool Position::isInCheck(Color color) const {
   return false;
 }
 
-void Position::apply(Move const &mv, std::deque<PieceType> &handBlack, std::deque<PieceType> &handWhite) {
+bool Position::apply(Move const &mv, std::deque<PieceType> &handBlack, std::deque<PieceType> &handWhite) {
+  auto to = pieces[mv.to.file][mv.to.rank];
+  if (mv.captured) {
+    if (to == 0) {
+      // 駒が居ないマスの駒を取ろうとしている
+      return false;
+    }
+    if (ColorFromPiece(to) == mv.color) {
+      // 自軍の駒を取っている
+      return false;
+    }
+    if (RemoveColorFromPiece(to) != *mv.captured) {
+      // 取った駒と実際に居る駒が矛盾している
+      return false;
+    }
+  } else {
+    if (to != 0) {
+      // 駒を取ったわけじゃないのに駒のいるマスに進んでいる
+      return false;
+    }
+  }
   auto &hand = mv.color == Color::Black ? handBlack : handWhite;
   if (mv.from) {
     pieces[mv.from->file][mv.from->rank] = 0;
   } else {
+    if (pieces[mv.to.file][mv.to.rank] != 0) {
+      // 既に駒の居るマスに打った
+      return false;
+    }
+    if (IsPromotedPiece(mv.piece)) {
+      // 成駒を打った
+      return false;
+    }
     PieceType type = PieceTypeFromPiece(mv.piece);
+    if (type == PieceType::King) {
+      // 玉は持ち駒にできない
+      return false;
+    }
     bool ok = false;
     for (auto it = hand.begin(); it != hand.end(); it++) {
       if (*it == type) {
@@ -48,7 +80,41 @@ void Position::apply(Move const &mv, std::deque<PieceType> &handBlack, std::dequ
       }
     }
     if (!ok) {
-      std::cout << "存在しない持ち駒を打った" << std::endl;
+      // 持ち駒に無い駒を打った
+      return false;
+    }
+    Rank minRank = Rank::Rank1;
+    Rank maxRank = Rank::Rank9;
+    switch (type) {
+    case PieceType::Pawn:
+    case PieceType::Lance:
+      if (mv.color == Color::Black) {
+        minRank = Rank::Rank2;
+      } else {
+        maxRank = Rank::Rank8;
+      }
+      break;
+    case PieceType::Knight:
+      if (mv.color == Color::Black) {
+        minRank = Rank::Rank3;
+      } else {
+        maxRank = Rank::Rank7;
+      }
+      break;
+    default:
+      break;
+    }
+    if (mv.to.rank < minRank || maxRank < mv.to.rank) {
+      // 反則となる駒打ち
+      return false;
+    }
+    if (type == PieceType::Pawn) {
+      for (int y = 0; y < 9; y++) {
+        if (pieces[mv.to.file][y] == MakePiece(mv.color, PieceType::Pawn)) {
+          // 二歩
+          return false;
+        }
+      }
     }
   }
   if (mv.promote == 1 && !IsPromotedPiece(mv.piece)) {
@@ -59,6 +125,11 @@ void Position::apply(Move const &mv, std::deque<PieceType> &handBlack, std::dequ
   if (mv.captured) {
     hand.push_back(PieceTypeFromPiece(Unpromote(*mv.captured)));
   }
+  if (isInCheck(mv.color)) {
+    // 王手放置
+    return false;
+  }
+  return true;
 }
 
 std::u8string Position::debugString() const {

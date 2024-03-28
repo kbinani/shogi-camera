@@ -241,7 +241,7 @@ struct Position {
   // 手番 color の玉に王手がかかっているかどうかを判定
   bool isInCheck(Color color) const;
 
-  void apply(Move const &, std::deque<PieceType> &handBlack, std::deque<PieceType> &handWhite);
+  bool apply(Move const &, std::deque<PieceType> &handBlack, std::deque<PieceType> &handWhite);
   std::u8string debugString() const;
 };
 

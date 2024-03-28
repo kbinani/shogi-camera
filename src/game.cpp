@@ -5,7 +5,10 @@
 namespace sci {
 
 bool Game::apply_(Move const &mv) {
-  position.apply(mv, handBlack, handWhite);
+  if (!position.apply(mv, handBlack, handWhite)) {
+    return false;
+  }
+  // TODO:
   return true;
 }
 
@@ -158,9 +161,13 @@ void Game::Generate(Position const &position, Color color, std::deque<PieceType>
     Position cp = position;
     deque<PieceType> hb = handBlack;
     deque<PieceType> hw = handWhite;
-    cp.apply(mv, hb, hw);
+    if (!cp.apply(mv, hb, hw)) {
+      all.erase(all.begin() + i);
+      continue;
+    }
     if (cp.isInCheck(color)) {
       all.erase(all.begin() + i);
+      continue;
     }
     // 打ち歩詰めになっていないか確認する
     int dy = color == Color::Black ? -1 : 1;
