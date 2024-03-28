@@ -55,5 +55,26 @@ TEST_CASE("game") {
       CHECK(g.apply(MustMove("-4252OU", g)) == Game::ApplyResult::Ok);
       CHECK(g.apply(MustMove("+4555HI", g)) == Game::ApplyResult::CheckRepetitionBlack);
     }
+    SUBCASE("王手放置") {
+      Game g;
+      CHECK(g.apply(MustMove("+9796FU", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("-9192KY", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("+8897KA", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("-1112KY", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("+9753UM", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("-1314FU", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("+5352UM", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("-6172KI", g)) == Game::ApplyResult::Illegal);
+    }
+    SUBCASE("二歩") {
+      Game g;
+      CHECK(g.apply(MustMove("+9796FU", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("-9192KY", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("+8897KA", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("-1112KY", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("+9753UM", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("-7172GI", g)) == Game::ApplyResult::Ok);
+      CHECK(g.apply(MustMove("+0056FU", g)) == Game::ApplyResult::Illegal);
+    }
   }
 }
