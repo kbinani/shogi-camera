@@ -245,6 +245,31 @@ struct Position {
   std::u8string debugString() const;
 };
 
+struct LessPosition {
+  constexpr bool operator()(Position const &a, Position const &b) const {
+    for (int x = 0; x < 9; x++) {
+      for (int y = 0; y < 9; y++) {
+        if (a.pieces[x][y] == b.pieces[x][y]) {
+          continue;
+        }
+        return a.pieces[x][y] - b.pieces[x][y];
+      }
+    }
+    return false;
+  }
+};
+
+inline bool operator==(Position const &a, Position const &b) {
+  for (int x = 0; x < 9; x++) {
+    for (int y = 0; y < 9; y++) {
+      if (a.pieces[x][y] != b.pieces[x][y]) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 // ハンデ
 enum class Handicap {
   None,
@@ -887,17 +912,35 @@ inline std::shared_ptr<PieceContour> PerspectiveTransform(std::shared_ptr<PieceC
   return PieceContour::Make(points);
 }
 
-struct Game {
-  Position position;
-  std::vector<Move> moves;
-  std::deque<PieceType> handBlack;
-  std::deque<PieceType> handWhite;
+enum class GameResult {
+  BlackWin,
+  WhiteWin,
+  Abort,
+};
 
+enum class GameResultReason {
+  Resign,
+  IllegalAction,
+  Abort,
+  Repetition,
+  CheckRepetition,
+};
+
+class Game {
+public:
   Game() {
     position = MakePosition(Handicap::None);
   }
 
-  bool apply_(Move const &move);
+  enum class ApplyResult {
+    Ok,
+    Illegal,
+    Repetition,
+    CheckRepetitionBlack,
+    CheckRepetitionWhite,
+  };
+
+  ApplyResult apply(Move const &move);
 
   std::deque<PieceType> &hand(Color color) {
     if (color == Color::Black) {
@@ -917,18 +960,17 @@ struct Game {
 
   static void Generate(Position const &p, Color color, std::deque<PieceType> const &handBlack, std::deque<PieceType> const &handWhite, std::deque<Move> &moves, bool enablePawnCheckByDrop);
   void generate(std::deque<Move> &moves) const;
-};
 
-enum class GameResult {
-  BlackWin,
-  WhiteWin,
-  Abort,
-};
+public:
+  Position position;
+  std::vector<Move> moves;
+  std::deque<PieceType> handBlack;
+  std::deque<PieceType> handWhite;
 
-enum class GameResultReason {
-  Resign,
-  IllegalAction,
-  Abort,
+private:
+  std::map<Position, size_t, LessPosition> history;
+  std::map<Position, size_t, LessPosition> blackCheckHistory;
+  std::map<Position, size_t, LessPosition> whiteCheckHistory;
 };
 
 class Player {
@@ -1335,8 +1377,7 @@ struct Status {
   bool boardReady = false;
   // AI の示した手と違う手が指されている時に true
   bool wrongMove = false;
-  // 反則となる手が指されている時に true
-  bool illegalMove = false;
+  std::optional<GameResultReason> reason;
   std::shared_ptr<PieceBook> book;
   std::deque<std::map<std::pair<int, int>, std::set<std::shared_ptr<Lattice>>>> clusters;
   std::optional<Color> yourTurn;

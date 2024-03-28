@@ -200,15 +200,45 @@ struct CsaServer::Impl {
         auto ret = MoveFromCsaMove(msg, info->game.position);
         if (holds_alternative<Move>(ret)) {
           auto mv = get<Move>(ret);
-          if (info->game.apply_(mv)) {
-            info->game.moves.push_back(mv);
-            sendboth(msg + "," + info->seconds());
-            info->update();
-          } else {
+          switch (info->game.apply(mv)) {
+          case Game::ApplyResult::Repetition:
+            sendboth("#SENNICHITE");
+            sendboth("#DRAW");
+            info.reset();
+            break;
+          case Game::ApplyResult::Illegal:
             sendboth("#ILLEGAAL_MOVE");
             local->peer->onmessage("#LOSE");
             remote->send("#WIN");
             info.reset();
+            break;
+          case Game::ApplyResult::Ok:
+            info->game.moves.push_back(mv);
+            sendboth(msg + "," + info->seconds());
+            info->update();
+            break;
+          case Game::ApplyResult::CheckRepetitionBlack:
+            sendboth("#OUTE_SENNICHITE");
+            if (local->color == Color::Black) {
+              local->peer->onmessage("#LOSE");
+              remote->send("#WIN");
+            } else {
+              local->peer->onmessage("#WIN");
+              remote->send("#LOSE");
+            }
+            info.reset();
+            break;
+          case Game::ApplyResult::CheckRepetitionWhite:
+            sendboth("#OUTE_SENNICHITE");
+            if (local->color == Color::Black) {
+              local->peer->onmessage("#WIN");
+              remote->send("#LOSE");
+            } else {
+              local->peer->onmessage("#LOSE");
+              remote->send("#WIN");
+            }
+            info.reset();
+            break;
           }
         } else {
           sendboth("#ILLEGAAL_MOVE");
@@ -227,15 +257,45 @@ struct CsaServer::Impl {
         auto ret = MoveFromCsaMove(msg, info->game.position);
         if (holds_alternative<Move>(ret)) {
           auto mv = get<Move>(ret);
-          if (info->game.apply_(mv)) {
+          switch (info->game.apply(mv)) {
+          case Game::ApplyResult::Ok:
             info->game.moves.push_back(mv);
             sendboth(msg + "," + info->seconds());
             info->update();
-          } else {
+            break;
+          case Game::ApplyResult::Illegal:
             sendboth("#ILLEGAAL_MOVE");
             local->peer->onmessage("#LOSE");
             remote->send("#WIN");
             info.reset();
+            break;
+          case Game::ApplyResult::Repetition:
+            sendboth("#SENNICHITE");
+            sendboth("#DRAW");
+            info.reset();
+            break;
+          case Game::ApplyResult::CheckRepetitionBlack:
+            sendboth("#OUTE_SENNICHITE");
+            if (local->color == Color::Black) {
+              local->peer->onmessage("#LOSE");
+              remote->send("#WIN");
+            } else {
+              local->peer->onmessage("#WIN");
+              remote->send("#LOSE");
+            }
+            info.reset();
+            break;
+          case Game::ApplyResult::CheckRepetitionWhite:
+            sendboth("#OUTE_SENNICHITE");
+            if (local->color == Color::Black) {
+              local->peer->onmessage("#WIN");
+              remote->send("#LOSE");
+            } else {
+              local->peer->onmessage("#LOSE");
+              remote->send("#WIN");
+            }
+            info.reset();
+            break;
           }
         } else {
           sendboth("#ILLEGAAL_MOVE");
@@ -336,17 +396,51 @@ struct CsaServer::Impl {
             auto ret = MoveFromCsaMove(line, info->game.position);
             if (holds_alternative<Move>(ret)) {
               auto mv = get<Move>(ret);
-              if (info->game.apply_(mv)) {
+              switch (info->game.apply(mv)) {
+              case Game::ApplyResult::Ok:
                 info->game.moves.push_back(mv);
                 sendboth(line + "," + info->seconds());
                 info->update();
-              } else {
+                break;
+              case Game::ApplyResult::Illegal:
                 sendboth("#ILLEGAAL_MOVE");
                 send("#LOSE");
                 if (local_) {
                   local_->peer->onmessage("#WIN");
                 }
                 info.reset();
+                break;
+              case Game::ApplyResult::Repetition:
+                sendboth("#SENNICHITE");
+                sendboth("#DRAW");
+                info.reset();
+                break;
+              case Game::ApplyResult::CheckRepetitionBlack:
+                sendboth("#OUTE_SENNICHITE");
+                if (local_) {
+                  if (local_->color == Color::Black) {
+                    local_->peer->onmessage("#LOSE");
+                    send("#WIN");
+                  } else {
+                    local_->peer->onmessage("#WIN");
+                    send("#LOSE");
+                  }
+                }
+                info.reset();
+                break;
+              case Game::ApplyResult::CheckRepetitionWhite:
+                sendboth("#OUTE_SENNICHITE");
+                if (local_) {
+                  if (local_->color == Color::Black) {
+                    local_->peer->onmessage("#WIN");
+                    send("#LOSE");
+                  } else {
+                    local_->peer->onmessage("#LOSE");
+                    send("#WIN");
+                  }
+                }
+                info.reset();
+                break;
               }
             } else {
               sendboth("#ILLEGAAL_MOVE");
@@ -369,17 +463,51 @@ struct CsaServer::Impl {
             auto ret = MoveFromCsaMove(line, info->game.position);
             if (holds_alternative<Move>(ret)) {
               auto mv = get<Move>(ret);
-              if (info->game.apply_(mv)) {
+              switch (info->game.apply(mv)) {
+              case Game::ApplyResult::Ok:
                 info->game.moves.push_back(mv);
                 sendboth(line + "," + info->seconds());
                 info->update();
-              } else {
+                break;
+              case Game::ApplyResult::Illegal:
                 sendboth("#ILLEGAAL_MOVE");
                 send("#LOSE");
                 if (local_) {
                   local_->peer->onmessage("#WIN");
                 }
                 info.reset();
+                break;
+              case Game::ApplyResult::Repetition:
+                sendboth("#SENNICHITE");
+                sendboth("#DRAW");
+                info.reset();
+                break;
+              case Game::ApplyResult::CheckRepetitionBlack:
+                sendboth("#OUTE_SENNICHITE");
+                if (local_) {
+                  if (local_->color == Color::Black) {
+                    local_->peer->onmessage("#LOSE");
+                    send("#WIN");
+                  } else {
+                    local_->peer->onmessage("#WIN");
+                    send("#LOSE");
+                  }
+                }
+                info.reset();
+                break;
+              case Game::ApplyResult::CheckRepetitionWhite:
+                sendboth("#OUTE_SENNICHITE");
+                if (local_) {
+                  if (local_->color == Color::Black) {
+                    local_->peer->onmessage("#WIN");
+                    send("#LOSE");
+                  } else {
+                    local_->peer->onmessage("#LOSE");
+                    send("#WIN");
+                  }
+                }
+                info.reset();
+                break;
               }
             } else {
               sendboth("#ILLEGAAL_MOVE");

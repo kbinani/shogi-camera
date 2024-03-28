@@ -406,9 +406,22 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
   s.wrongMove = false;
   stableBoardHistory.push_back(history);
   detected.push_back(*move);
-  if (!g.apply_(*move)) {
-    s.illegalMove = true;
-    cout << "反則となる手が指されている" << endl;
+  switch (g.apply(*move)) {
+  case Game::ApplyResult::Ok:
+    break;
+  case Game::ApplyResult::Illegal:
+    s.reason = GameResultReason::IllegalAction;
+    return;
+  case Game::ApplyResult::Repetition:
+    s.reason = GameResultReason::Repetition;
+    return;
+  case Game::ApplyResult::CheckRepetitionBlack:
+    s.reason = GameResultReason::CheckRepetition;
+    s.blackResign = true;
+    return;
+  case Game::ApplyResult::CheckRepetitionWhite:
+    s.reason = GameResultReason::CheckRepetition;
+    s.whiteResign = true;
     return;
   }
   book->update(g.position, board, s);

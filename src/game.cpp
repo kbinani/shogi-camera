@@ -4,12 +4,44 @@
 
 namespace sci {
 
-bool Game::apply_(Move const &mv) {
+Game::ApplyResult Game::apply(Move const &mv) {
   if (!position.apply(mv, handBlack, handWhite)) {
-    return false;
+    return ApplyResult::Illegal;
   }
-  // TODO:
-  return true;
+  auto opponent = OpponentColor(mv.color);
+  if (position.isInCheck(opponent) && !mv.from && mv.piece == MakePiece(mv.color, PieceType::Pawn)) {
+    // 打ち歩による王手. 打ち歩詰めになっていないか確かめる
+    std::deque<Move> moves;
+    Generate(position, opponent, handBlack, handWhite, moves, false);
+    if (moves.empty()) {
+      // 打ち歩詰め
+      return ApplyResult::Illegal;
+    }
+  }
+  if (position.isInCheck(OpponentColor(mv.color))) {
+    if (mv.color == Color::Black) {
+      size_t c = (blackCheckHistory[position] += 1);
+      if (c >= 4) {
+        return ApplyResult::CheckRepetitionBlack;
+      }
+    } else {
+      size_t c = (whiteCheckHistory[position] += 1);
+      if (c >= 4) {
+        return ApplyResult::CheckRepetitionWhite;
+      }
+    }
+  } else {
+    if (mv.color == Color::Black) {
+      blackCheckHistory.clear();
+    } else {
+      whiteCheckHistory.clear();
+    }
+  }
+  size_t count = (history[position] += 1);
+  if (count >= 4) {
+    return ApplyResult::Repetition;
+  }
+  return ApplyResult::Ok;
 }
 
 void Game::Generate(Position const &position, Color color, std::deque<PieceType> const &handBlack, std::deque<PieceType> const &handWhite, std::deque<Move> &moves, bool enablePawnCheckByDrop) {

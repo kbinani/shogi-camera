@@ -185,7 +185,14 @@ void CsaAdapter::onmessage(string const &msg) {
         auto mv = MoveFromCsaMove(msg, game.position);
         if (holds_alternative<Move>(mv)) {
           auto m = get<Move>(mv);
-          if (!game.apply_(m)) {
+          switch (game.apply(m)) {
+          case Game::ApplyResult::Ok: {
+            lock_guard<mutex> lock(mut);
+            moves.push_back(m);
+            cv.notify_all();
+            break;
+          }
+          case Game::ApplyResult::Illegal:
             finished = true;
             if (auto d = delegate.lock(); d && color_) {
               if (*color_ == Color::Black) {
@@ -195,11 +202,29 @@ void CsaAdapter::onmessage(string const &msg) {
               }
             }
             cv.notify_all();
-            return;
+            break;
+          case Game::ApplyResult::Repetition:
+            finished = true;
+            if (auto d = delegate.lock(); d) {
+              d->csaAdapterDidFinishGame(GameResult::Abort, GameResultReason::Repetition);
+            }
+            cv.notify_all();
+            break;
+          case Game::ApplyResult::CheckRepetitionBlack:
+            finished = true;
+            if (auto d = delegate.lock(); d) {
+              d->csaAdapterDidFinishGame(GameResult::WhiteWin, GameResultReason::CheckRepetition);
+            }
+            cv.notify_all();
+            break;
+          case Game::ApplyResult::CheckRepetitionWhite:
+            finished = true;
+            if (auto d = delegate.lock(); d) {
+              d->csaAdapterDidFinishGame(GameResult::BlackWin, GameResultReason::CheckRepetition);
+            }
+            cv.notify_all();
+            break;
           }
-          lock_guard<mutex> lock(mut);
-          moves.push_back(m);
-          cv.notify_all();
         } else if (holds_alternative<u8string>(mv)) {
           error(get<u8string>(mv));
           return;
