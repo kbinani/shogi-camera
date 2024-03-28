@@ -377,22 +377,20 @@ class Reader {
       }
     }
     var actions: [Action] = []
-    if (move.suffix & sci.SuffixType.Right.rawValue) == sci.SuffixType.Right.rawValue {
+    let suffixPosition = move.suffix & sci.SuffixType.MaskPosition.rawValue
+    let suffixAction = move.suffix & sci.SuffixType.MaskPosition.rawValue
+    if suffixPosition == sci.SuffixType.Right.rawValue {
       actions.append(.Right)
-    }
-    if (move.suffix & sci.SuffixType.Left.rawValue) == sci.SuffixType.Left.rawValue {
+    } else if suffixPosition == sci.SuffixType.Left.rawValue {
       actions.append(.Left)
-    }
-    if (move.suffix & sci.SuffixType.Nearest.rawValue) == sci.SuffixType.Nearest.rawValue {
+    } else if suffixPosition == sci.SuffixType.Nearest.rawValue {
       actions.append(.Nearest)
     }
-    if (move.suffix & sci.SuffixType.Up.rawValue) == sci.SuffixType.Up.rawValue {
+    if suffixAction == sci.SuffixType.Up.rawValue {
       actions.append(.Up)
-    }
-    if (move.suffix & sci.SuffixType.Down.rawValue) == sci.SuffixType.Down.rawValue {
+    } else if suffixAction == sci.SuffixType.Down.rawValue {
       actions.append(.Down)
-    }
-    if (move.suffix & sci.SuffixType.Sideway.rawValue) == sci.SuffixType.Sideway.rawValue {
+    } else if suffixAction == sci.SuffixType.Sideway.rawValue {
       actions.append(.Sideway)
     }
     for action in actions {
