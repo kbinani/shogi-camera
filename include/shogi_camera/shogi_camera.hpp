@@ -252,7 +252,7 @@ struct LessPosition {
         if (a.pieces[x][y] == b.pieces[x][y]) {
           continue;
         }
-        return a.pieces[x][y] - b.pieces[x][y];
+        return a.pieces[x][y] < b.pieces[x][y];
       }
     }
     return false;
