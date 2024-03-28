@@ -343,6 +343,10 @@ struct CsaServer::Impl {
           break;
         }
         string line = buffer.substr(offset, found);
+        if (line.empty()) {
+          send("");
+          continue;
+        }
         cout << "csa_server:>>> " << line << endl;
         lock_guard<recursive_mutex> lock(mut);
         if (peer->username.empty() && line.starts_with("LOGIN ")) {
