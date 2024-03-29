@@ -272,7 +272,25 @@ inline bool operator==(Position const &a, Position const &b) {
 
 // ハンデ
 enum class Handicap {
-  None,
+  平手,
+  香落ち,
+  右香落ち,
+  角落ち,
+  飛車落ち,
+  飛香落ち,
+  二枚落ち,
+  四枚落ち,
+  五枚落ち左桂,
+  五枚落ち右桂,
+  六枚落ち,
+  七枚落ち左銀,
+  七枚落ち右銀,
+  八枚落ち,
+  トンボ,
+  九枚落ち左金,
+  九枚落ち右金,
+  十枚落ち,
+  青空将棋,
 };
 
 inline Position MakePosition(Handicap h) {
@@ -929,7 +947,7 @@ enum class GameResultReason {
 class Game {
 public:
   Game() {
-    position = MakePosition(Handicap::None);
+    position = MakePosition(Handicap::平手);
   }
 
   enum class ApplyResult {

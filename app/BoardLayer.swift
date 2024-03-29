@@ -24,7 +24,7 @@ class BoardLayer: CALayer {
     }
   }
 
-  private var board: Board = .init(position: sci.MakePosition(.None), blackHand: [], whiteHand: [], move: nil, showArrow: false) {
+  private var board: Board = .init(position: sci.MakePosition(.平手), blackHand: [], whiteHand: [], move: nil, showArrow: false) {
     didSet {
       setNeedsDisplay()
     }

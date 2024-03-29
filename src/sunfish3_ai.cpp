@@ -208,7 +208,7 @@ struct Sunfish3AI::Impl {
 ▲８五歩打)";
     u8string::size_type offset = 0;
     optional<Square> last;
-    Position p = MakePosition(Handicap::None);
+    Position p = MakePosition(Handicap::平手);
     deque<PieceType> handBlack;
     deque<PieceType> handWhite;
 
