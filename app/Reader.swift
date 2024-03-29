@@ -416,9 +416,14 @@ class Reader {
     return offset
   }
 
-  func play(move: Move, last: Move?) {
-    var offset = schedule(
-      misc: move.color == .Black ? Misc.Black : Misc.White, offset: availableOffset)
+  func play(move: Move, handicap: sci.Handicap, last: Move?) {
+    let voice: Misc =
+      if handicap == sci.Handicap.平手 {
+        move.color == .Black ? .Black : .White
+      } else {
+        move.color == .Black ? .White : .Black
+      }
+    var offset = schedule(misc: voice, offset: availableOffset)
     offset = schedule(move: move, last: last, offset: offset)
     updateLatestAfter(seconds: offset)
   }

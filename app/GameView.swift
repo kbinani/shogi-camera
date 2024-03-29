@@ -291,12 +291,12 @@ class GameView: UIView {
       if let moveIndex {
         if moveIndex + 1 < status.game.moves.size() {
           let mv = status.game.moves[moveIndex + 1]
-          self.reader?.play(move: mv, last: status.game.moves[moveIndex])
+          self.reader?.play(move: mv, handicap: status.game.handicap, last: status.game.moves[moveIndex])
           self.moveIndex = moveIndex + 1
         }
       } else {
         let mv = status.game.moves[0]
-        self.reader?.play(move: mv, last: nil)
+        self.reader?.play(move: mv, handicap: status.game.handicap, last: nil)
         self.moveIndex = 0
       }
 
