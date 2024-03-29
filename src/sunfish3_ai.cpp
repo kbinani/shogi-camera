@@ -315,10 +315,10 @@ struct Sunfish3AI::Impl {
 
       searcher.setRecord(record);
       sunfish::Move move = sunfish::Move::empty();
-      bool ok = searcher.search(record.getBoard(), move);
+      bool ok = searcher.idsearch(record.getBoard(), move);
       searcher.clearRecord();
       if (!ok) {
-        cout << "searchが失敗" << endl;
+        cout << "idsearchが失敗" << endl;
         break;
       }
       last = to;
@@ -377,11 +377,11 @@ struct Sunfish3AI::Impl {
     }
     searcher.setRecord(record);
     sunfish::Move move = sunfish::Move::empty();
-    bool ok = searcher.search(record.getBoard(), move);
+    bool ok = searcher.idsearch(record.getBoard(), move);
     searcher.clearRecord();
     if (!ok) {
-      // search が失敗したら有効手の中からランダムな手を選ぶ.
-      cout << "search が false を返した" << endl;
+      // idsearch が失敗したら有効手の中からランダムな手を選ぶ.
+      cout << "idsearch が false を返した" << endl;
       return random(p, color, hand, handEnemy);
     }
     if (auto m = MoveFromSunfishMove(move, color); m) {
