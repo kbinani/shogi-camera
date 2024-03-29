@@ -7,7 +7,7 @@ static Move MustMove(std::string const &msg, Game &g) {
 TEST_CASE("game") {
   SUBCASE("apply") {
     SUBCASE("千日手") {
-      Game g;
+      Game g(Handicap::平手, false);
       CHECK(g.apply(MustMove("+2838HI", g)) == Game::ApplyResult::Ok);
       CHECK(g.apply(MustMove("-8272HI", g)) == Game::ApplyResult::Ok);
       CHECK(g.apply(MustMove("+3828HI", g)) == Game::ApplyResult::Ok);
@@ -24,7 +24,7 @@ TEST_CASE("game") {
       CHECK(g.apply(MustMove("-7282HI", g)) == Game::ApplyResult::Repetition);
     }
     SUBCASE("連続王手の千日手") {
-      Game g;
+      Game g(Handicap::平手, false);
       CHECK(g.apply(MustMove("+5756FU", g)) == Game::ApplyResult::Ok);
       CHECK(g.apply(MustMove("-5354FU", g)) == Game::ApplyResult::Ok);
       CHECK(g.apply(MustMove("+5655FU", g)) == Game::ApplyResult::Ok);
@@ -56,7 +56,7 @@ TEST_CASE("game") {
       CHECK(g.apply(MustMove("+4555HI", g)) == Game::ApplyResult::CheckRepetitionBlack);
     }
     SUBCASE("王手放置") {
-      Game g;
+      Game g(Handicap::平手, false);
       CHECK(g.apply(MustMove("+9796FU", g)) == Game::ApplyResult::Ok);
       CHECK(g.apply(MustMove("-9192KY", g)) == Game::ApplyResult::Ok);
       CHECK(g.apply(MustMove("+8897KA", g)) == Game::ApplyResult::Ok);
@@ -67,7 +67,7 @@ TEST_CASE("game") {
       CHECK(g.apply(MustMove("-6172KI", g)) == Game::ApplyResult::Illegal);
     }
     SUBCASE("二歩") {
-      Game g;
+      Game g(Handicap::平手, false);
       CHECK(g.apply(MustMove("+9796FU", g)) == Game::ApplyResult::Ok);
       CHECK(g.apply(MustMove("-9192KY", g)) == Game::ApplyResult::Ok);
       CHECK(g.apply(MustMove("+8897KA", g)) == Game::ApplyResult::Ok);

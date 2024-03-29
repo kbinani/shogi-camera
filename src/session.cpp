@@ -1222,7 +1222,7 @@ void CreateWarpedBoard(cv::Mat const &frameGray, cv::Mat const &frameColor, Stat
 
 } // namespace
 
-Session::Session() {
+Session::Session() : game(Handicap::平手, false) {
   s = std::make_shared<Status>();
   stop = false;
   std::thread th(std::bind(&Session::run, this));
@@ -1400,7 +1400,7 @@ void Session::startGame(GameStartParameter p) {
     std::weak_ptr<CsaServer> server = p.server;
     auto csa = std::make_shared<CsaAdapter>(server);
     csa->delegate = weak_from_this();
-    p.server->setLocalPeer(csa, p.userColor);
+    p.server->setLocalPeer(csa, p.userColor, p.handicap, p.hand);
     PlayerConfig::Remote remote;
     remote.csa = csa;
     config->players = remote;
@@ -1424,6 +1424,7 @@ void Session::startGame(GameStartParameter p) {
     }
     config->players = local;
   }
+  game = Game(p.handicap, p.hand);
   setPlayerConfig(config);
 }
 

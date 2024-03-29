@@ -326,22 +326,47 @@ struct Sunfish3AI::Impl {
     }
   }
 
+  static sunfish::Board SunfishBoardFromPositionAndHand(Position const &position, deque<PieceType> const &handBlack, deque<PieceType> const &handWhite, Color next) {
+    sunfish::CompactBoard cb;
+    int index = 0;
+    for (int y = 0; y < 9; y++) {
+      for (int x = 0; x < 9; x++) {
+        Piece p = position.pieces[x][y];
+        if (p == 0) {
+          continue;
+        }
+        sunfish::Square sq = SunfishSquareFromSquare(MakeSquare(x, y));
+        sunfish::Piece sp = SunfishPieceFromPiece(p);
+        uint16_t c = static_cast<uint16_t>(sp.operator uint8_t()) << sunfish::CompactBoard::PieceShift;
+        uint16_t s = static_cast<uint16_t>(sq.index());
+        cb.buf[index++] = c | s;
+      }
+    }
+    for (auto const &p : handBlack) {
+      uint8_t c = SunfishPieceKindFromPieceType(p) & ~sunfish::Piece::White;
+      cb.buf[index++] = c | sunfish::CompactBoard::Hand;
+    }
+    for (auto const &p : handWhite) {
+      uint8_t c = SunfishPieceKindFromPieceType(p) | sunfish::Piece::White;
+      cb.buf[index++] = c | sunfish::CompactBoard::Hand;
+    }
+    cb.buf[index] = sunfish::CompactBoard::End;
+    if (next == Color::Black) {
+      cb.buf[index] |= sunfish::CompactBoard::Black;
+    }
+    return sunfish::Board(cb);
+  }
+
   optional<Move> next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
     Color color = moves.size() % 2 == 0 ? Color::Black : Color::White;
 
     sunfish::Record record;
-    record.init(sunfish::Board::Handicap::Even);
-    for (auto const &m : moves) {
-      auto sm = SunfishMoveFromMove(m);
-      if (!sm) {
-        cout << "move を sunfish 形式に変換できなかった" << endl;
-        return random(p, color, hand, handEnemy);
-      }
-      if (!record.makeMove(*sm)) {
-        cout << "move を record に適用できなかった" << endl;
-        return random(p, color, hand, handEnemy);
-      }
-    }
+    record.init(
+        SunfishBoardFromPositionAndHand(
+            p,
+            color == Color::Black ? hand : handEnemy,
+            color == Color::Black ? handEnemy : hand,
+            color));
     searcher.forceInterrupt();
     unique_lock<mutex> lock(mut);
     bool stopped = searcher.wait(lock, chrono::duration<double>(10), [&]() {

@@ -71,7 +71,7 @@ std::optional<cv::Point2f> Contour::direction(float length) const {
   }
 }
 
-Status::Status() {
+Status::Status() : game(Handicap::平手, false) {
 }
 
 SessionWrapper::SessionWrapper() : ptr(std::make_shared<Session>()) {

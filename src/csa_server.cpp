@@ -44,13 +44,15 @@ struct CsaServer::Impl {
     }
   }
 
-  void setLocalPeer(shared_ptr<Peer> local, Color localColor) {
-    Local l;
+  void setLocalPeer(shared_ptr<Peer> local, Color localColor, Handicap h, bool hand) {
+    Local_ l;
     l.peer = local;
     l.color = localColor;
+    l.handicap = h;
+    l.hand = hand;
     this->local_ = l;
     if (auto remote = this->remote.lock(); remote) {
-      sendGameSummary(*local, *remote, localColor);
+      sendGameSummary(*local, *remote, localColor, h, hand);
     }
   }
 
@@ -58,11 +60,11 @@ struct CsaServer::Impl {
     local_ = nullopt;
   }
 
-  void sendGameSummary(Peer &local, Peer &remote, Color localColor) {
+  void sendGameSummary(Peer &local, Peer &remote, Color localColor, Handicap h, bool hand) {
     if (info) {
       return;
     }
-    info = make_unique<Info>();
+    info = make_unique<Info>(h, hand);
     auto sendboth = [&](string const &msg) {
       local.onmessage(msg);
       remote.send(msg);
@@ -85,17 +87,34 @@ struct CsaServer::Impl {
     }
     sendboth("To_Move:+");
     sendboth("BEGIN Position");
-    sendboth("P1-KY-KE-GI-KI-OU-KI-GI-KE-KY");
-    sendboth("P2 * -HI *  *  *  *  * -KA * ");
-    sendboth("P3-FU-FU-FU-FU-FU-FU-FU-FU-FU");
-    sendboth("P4 *  *  *  *  *  *  *  *  * ");
-    sendboth("P5 *  *  *  *  *  *  *  *  * ");
-    sendboth("P6 *  *  *  *  *  *  *  *  * ");
-    sendboth("P7+FU+FU+FU+FU+FU+FU+FU+FU+FU");
-    sendboth("P8 * +KA *  *  *  *  * +HI * ");
-    sendboth("P9+KY+KE+GI+KI+OU+KI+GI+KE+KY");
-    sendboth("P+");
-    sendboth("P-");
+    Game g(h, hand);
+    for (int y = 0; y < 9; y++) {
+      string line = "P" + to_string(y + 1);
+      for (int x = 0; x < 9; x++) {
+        Piece p = g.position.pieces[x][y];
+        Color color = ColorFromPiece(p);
+        if (auto str = CsaStringFromPiece(p, IsPromotedPiece(p) ? 1 : 0); str) {
+          line += (color == Color::Black ? "+" : "-") + *str;
+        } else {
+          line += " * ";
+        }
+      }
+      sendboth(line);
+    }
+    {
+      string line = "P+";
+      for (auto p : g.handBlack) {
+        line += "00" + *CsaStringFromPiece(static_cast<PieceUnderlyingType>(p), 0);
+      }
+      sendboth(line);
+    }
+    {
+      string line = "P-";
+      for (auto p : g.handWhite) {
+        line += "00" + *CsaStringFromPiece(static_cast<PieceUnderlyingType>(p), 0);
+      }
+      sendboth(line);
+    }
     sendboth("+");
     sendboth("END Position");
     sendboth("END Game_Summary");
@@ -356,7 +375,7 @@ struct CsaServer::Impl {
             send("LOGIN:" + name + " OK");
             peer->setName(name);
             if (local_) {
-              sendGameSummary(*local_->peer, *peer, local_->color);
+              sendGameSummary(*local_->peer, *peer, local_->color, local_->handicap, local_->hand);
             }
           }
         } else if (!peer->username.empty() && line == "LOGOUT") {
@@ -537,10 +556,12 @@ struct CsaServer::Impl {
     }
   }
 
-  void setLocal(std::shared_ptr<Peer> local, Color color) {
-    Local l;
+  void setLocal(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand) {
+    Local_ l;
     l.peer = local;
     l.color = color;
+    l.handicap = h;
+    l.hand = hand;
     this->local_ = l;
   }
 
@@ -561,16 +582,18 @@ struct CsaServer::Impl {
   atomic_bool stop;
   int socket = -1;
   int const port;
-  struct Local {
+  struct Local_ {
     shared_ptr<Peer> peer;
     Color color;
+    Handicap handicap;
+    bool hand;
   };
-  optional<Local> local_;
+  optional<Local_> local_;
   weak_ptr<RemotePeer> remote;
   std::recursive_mutex mut;
 
   struct Info {
-    Info() {
+    Info(Handicap h, bool hand) : game(h, hand) {
       gameId = "shogicamera";
       time = chrono::system_clock::now();
     }
@@ -597,8 +620,8 @@ CsaServer::CsaServer(int port) : impl(make_unique<Impl>(port)) {
 
 CsaServer::~CsaServer() {}
 
-void CsaServer::setLocalPeer(std::shared_ptr<Peer> local, Color color) {
-  impl->setLocalPeer(local, color);
+void CsaServer::setLocalPeer(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand) {
+  impl->setLocalPeer(local, color, h, hand);
 }
 
 void CsaServer::unsetLocalPeer() {

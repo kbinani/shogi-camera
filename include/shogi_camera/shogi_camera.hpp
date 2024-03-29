@@ -293,7 +293,8 @@ enum class Handicap {
   青空将棋,
 };
 
-inline Position MakePosition(Handicap h) {
+// whiteHand を指定すると駒渡しになる
+inline Position MakePosition(Handicap h, std::deque<PieceType> *whiteHand = nullptr) {
   Position p;
   for (int x = 0; x < 9; x++) {
     for (int y = 0; y < 9; y++) {
@@ -322,6 +323,142 @@ inline Position MakePosition(Handicap h) {
   p.pieces[4][8] = MakePiece(Color::Black, PieceType::King);
   p.pieces[7][7] = MakePiece(Color::Black, PieceType::Rook);
   p.pieces[1][7] = MakePiece(Color::Black, PieceType::Bishop);
+  std::deque<PieceType> tmp;
+  std::deque<PieceType> *bin = whiteHand ? whiteHand : &tmp;
+  auto drop = [&](int f, int r) {
+    bin->push_back(PieceTypeFromPiece(p.pieces[9 - f][r - 1]));
+    p.pieces[9 - (f)][(r)-1] = 0;
+  };
+  switch (h) {
+  case Handicap::平手:
+    break;
+  case Handicap::香落ち:
+    drop(9, 9);
+    break;
+  case Handicap::右香落ち:
+    drop(1, 9);
+    break;
+  case Handicap::角落ち:
+    drop(8, 8);
+    break;
+  case Handicap::飛車落ち:
+    drop(2, 8);
+    break;
+  case Handicap::飛香落ち:
+    drop(9, 9);
+    drop(2, 8);
+    break;
+  case Handicap::二枚落ち:
+    drop(8, 8);
+    drop(2, 8);
+    break;
+  case Handicap::四枚落ち:
+    drop(8, 8);
+    drop(2, 8);
+    drop(9, 9);
+    drop(1, 9);
+    break;
+  case Handicap::五枚落ち左桂:
+    drop(8, 8);
+    drop(2, 8);
+    drop(9, 9);
+    drop(1, 9);
+    drop(8, 9);
+    break;
+  case Handicap::五枚落ち右桂:
+    drop(8, 8);
+    drop(2, 8);
+    drop(9, 9);
+    drop(1, 9);
+    drop(2, 9);
+    break;
+  case Handicap::六枚落ち:
+    drop(8, 8);
+    drop(2, 8);
+    drop(9, 9);
+    drop(1, 9);
+    drop(2, 9);
+    drop(8, 9);
+    break;
+  case Handicap::七枚落ち左銀:
+    drop(8, 8);
+    drop(2, 8);
+    drop(9, 9);
+    drop(1, 9);
+    drop(2, 9);
+    drop(8, 9);
+    drop(7, 9);
+    break;
+  case Handicap::七枚落ち右銀:
+    drop(8, 8);
+    drop(2, 8);
+    drop(9, 9);
+    drop(1, 9);
+    drop(2, 9);
+    drop(8, 9);
+    drop(3, 9);
+    break;
+  case Handicap::八枚落ち:
+    drop(8, 8);
+    drop(2, 8);
+    drop(9, 9);
+    drop(1, 9);
+    drop(2, 9);
+    drop(8, 9);
+    drop(7, 9);
+    drop(3, 9);
+    break;
+  case Handicap::トンボ:
+    drop(9, 9);
+    drop(8, 9);
+    drop(7, 9);
+    drop(6, 9);
+    drop(4, 9);
+    drop(3, 9);
+    drop(2, 9);
+    drop(1, 9);
+    break;
+  case Handicap::九枚落ち左金:
+    drop(9, 9);
+    drop(8, 9);
+    drop(7, 9);
+    drop(6, 9);
+    drop(3, 9);
+    drop(2, 9);
+    drop(1, 9);
+    drop(8, 8);
+    drop(2, 8);
+    break;
+  case Handicap::九枚落ち右金:
+    drop(9, 9);
+    drop(8, 9);
+    drop(7, 9);
+    drop(4, 9);
+    drop(3, 9);
+    drop(2, 9);
+    drop(1, 9);
+    drop(8, 8);
+    drop(2, 8);
+    break;
+  case Handicap::十枚落ち:
+    drop(9, 9);
+    drop(8, 9);
+    drop(7, 9);
+    drop(6, 9);
+    drop(4, 9);
+    drop(3, 9);
+    drop(2, 9);
+    drop(1, 9);
+    drop(8, 8);
+    drop(2, 8);
+    break;
+  case Handicap::青空将棋:
+    for (int x = 0; x < 9; x++) {
+      p.pieces[x][2] = 0;
+      p.pieces[x][6] = 0;
+    }
+    break;
+  }
   return p;
 }
 
@@ -946,8 +1083,9 @@ enum class GameResultReason {
 
 class Game {
 public:
-  Game() {
-    position = MakePosition(Handicap::平手);
+  // 駒渡しにする時 hand = true
+  Game(Handicap h, bool hand) {
+    position = MakePosition(h, hand ? &handWhite : nullptr);
   }
 
   enum class ApplyResult {
@@ -1222,7 +1360,8 @@ public:
 
   explicit CsaServer(int port);
   ~CsaServer();
-  void setLocalPeer(std::shared_ptr<Peer> local, Color color);
+  // 駒渡しにする場合に hand = true
+  void setLocalPeer(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand);
   void unsetLocalPeer();
   void send(std::string const &msg);
   std::optional<int> port() const;
@@ -1503,6 +1642,8 @@ struct Players {
 
 struct GameStartParameter {
   Color userColor;
+  Handicap handicap;
+  bool hand;
   // 1~: sunfish
   // other: random
   int option;
@@ -1607,6 +1748,8 @@ public:
   void startGame(Color userColor, int option) {
     GameStartParameter p;
     p.userColor = userColor;
+    p.handicap = Handicap::平手;
+    p.hand = false;
     p.option = option;
     ptr->startGame(p);
   }
@@ -1614,6 +1757,27 @@ public:
   void startGame(Color userColor, CsaServerWrapper server) {
     GameStartParameter p;
     p.userColor = userColor;
+    p.handicap = Handicap::平手;
+    p.hand = false;
+    p.option = -1;
+    p.server = server.server;
+    ptr->startGame(p);
+  }
+
+  void startGame(Handicap h, bool hand, int option) {
+    GameStartParameter p;
+    p.userColor = Color::White;
+    p.handicap = h;
+    p.hand = hand;
+    p.option = option;
+    ptr->startGame(p);
+  }
+
+  void startGame(Handicap h, bool hand, CsaServerWrapper server) {
+    GameStartParameter p;
+    p.userColor = Color::White;
+    p.handicap = h;
+    p.hand = hand;
     p.option = -1;
     p.server = server.server;
     ptr->startGame(p);

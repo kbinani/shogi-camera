@@ -33,7 +33,7 @@ void StringValueFromPossible(string const &msg, string const &key, optional<stri
 }
 } // namespace
 
-CsaAdapter::CsaAdapter(std::weak_ptr<CsaServer> server) : server(server), stopSignal(false) {
+CsaAdapter::CsaAdapter(std::weak_ptr<CsaServer> server) : server(server), stopSignal(false), game(Handicap::平手, false) {
 }
 
 CsaAdapter::~CsaAdapter() {
@@ -371,7 +371,7 @@ optional<pair<Game, Color>> CsaPositionReceiver::validate() const {
   if (!next) {
     return nullopt;
   }
-  Game g;
+  Game g(Handicap::平手, false);
   multiset<Piece> box;
   for (auto color : {Color::Black, Color::White}) {
     for (int i = 0; i < 9; i++) {
