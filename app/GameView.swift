@@ -412,7 +412,23 @@ class GameView: UIView {
     if let endDate, let endDateString = dateTimeString(from: endDate) {
       lines.append("終了日時：" + endDateString)
     }
-    lines.append("手合割：平手")
+    if let handicap = sci.KifStringFromHandicap(status.game.handicap).value {
+      let handicapStr = sci.Utility.CFStringFromU8String(handicap).takeRetainedValue() as String
+      if status.game.handicapHand {
+        lines.append("手合割：その他")
+        lines.append("#" + handicapStr + "(駒渡し)")
+      } else {
+        lines.append("手合割：" + handicapStr)
+      }
+    } else {
+      lines.append("手合割：その他")
+      let handicapStr = sci.Utility.CFStringFromU8String(sci.StringFromHandicap(status.game.handicap)).takeRetainedValue() as String
+      if status.game.handicapHand {
+        lines.append("#" + handicapStr + "(駒渡し)")
+      } else {
+        lines.append("#" + handicapStr)
+      }
+    }
     if userColor == sci.Color.Black {
       lines.append("先手：プレイヤー")
       lines.append("後手：" + opponentPlayer)

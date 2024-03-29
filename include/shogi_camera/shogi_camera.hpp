@@ -279,6 +279,7 @@ enum class Handicap {
   飛車落ち,
   飛香落ち,
   二枚落ち,
+  三枚落ち,
   四枚落ち,
   五枚落ち左桂,
   五枚落ち右桂,
@@ -292,6 +293,77 @@ enum class Handicap {
   十枚落ち,
   青空将棋,
 };
+
+inline std::u8string StringFromHandicap(Handicap h) {
+#define RET(s)      \
+  case Handicap::s: \
+    return u8## #s;
+  switch (h) {
+    RET(平手)
+    RET(香落ち)
+    RET(右香落ち)
+    RET(角落ち)
+    RET(飛車落ち)
+    RET(飛香落ち)
+    RET(二枚落ち)
+    RET(三枚落ち)
+    RET(四枚落ち)
+    RET(五枚落ち左桂)
+    RET(五枚落ち右桂)
+    RET(六枚落ち)
+    RET(七枚落ち左銀)
+    RET(七枚落ち右銀)
+    RET(八枚落ち)
+    RET(トンボ)
+    RET(九枚落ち左金)
+    RET(九枚落ち右金)
+    RET(十枚落ち)
+    RET(青空将棋)
+  default:
+    assert(false);
+    return u8"";
+  }
+#undef RET
+}
+
+inline std::optional<std::u8string> KifStringFromHandicap(Handicap h) {
+  switch (h) {
+  case Handicap::平手:
+    return u8"平手";
+  case Handicap::香落ち:
+    return u8"香落ち";
+  case Handicap::右香落ち:
+    return u8"右香落ち";
+  case Handicap::角落ち:
+    return u8"角落ち";
+  case Handicap::飛車落ち:
+    return u8"飛車落ち";
+  case Handicap::飛香落ち:
+    return u8"飛香落ち";
+  case Handicap::二枚落ち:
+    return u8"二枚落ち";
+  case Handicap::三枚落ち:
+    return u8"三枚落ち";
+  case Handicap::四枚落ち:
+    return u8"四枚落ち";
+  case Handicap::五枚落ち右桂:
+    return u8"五枚落ち";
+  case Handicap::五枚落ち左桂:
+    return u8"左五枚落ち";
+  case Handicap::六枚落ち:
+    return u8"六枚落ち";
+  case Handicap::七枚落ち左銀:
+    return u8"左七枚落ち";
+  case Handicap::七枚落ち右銀:
+    return u8"右七枚落ち";
+  case Handicap::八枚落ち:
+    return u8"八枚落ち";
+  case Handicap::十枚落ち:
+    return u8"十枚落ち";
+  default:
+    return std::nullopt;
+  }
+}
 
 // whiteHand を指定すると駒渡しになる
 inline Position MakePosition(Handicap h, std::deque<PieceType> *whiteHand = nullptr) {
@@ -333,124 +405,129 @@ inline Position MakePosition(Handicap h, std::deque<PieceType> *whiteHand = null
   case Handicap::平手:
     break;
   case Handicap::香落ち:
-    drop(9, 9);
+    drop(1, 1);
     break;
   case Handicap::右香落ち:
-    drop(1, 9);
+    drop(9, 1);
     break;
   case Handicap::角落ち:
-    drop(8, 8);
+    drop(2, 2);
     break;
   case Handicap::飛車落ち:
-    drop(2, 8);
+    drop(8, 2);
     break;
   case Handicap::飛香落ち:
-    drop(9, 9);
-    drop(2, 8);
+    drop(1, 1);
+    drop(8, 2);
     break;
   case Handicap::二枚落ち:
-    drop(8, 8);
-    drop(2, 8);
+    drop(2, 2);
+    drop(8, 2);
+    break;
+  case Handicap::三枚落ち:
+    drop(1, 1);
+    drop(2, 2);
+    drop(8, 2);
     break;
   case Handicap::四枚落ち:
-    drop(8, 8);
-    drop(2, 8);
-    drop(9, 9);
-    drop(1, 9);
+    drop(2, 2);
+    drop(8, 2);
+    drop(1, 1);
+    drop(9, 1);
     break;
   case Handicap::五枚落ち左桂:
-    drop(8, 8);
-    drop(2, 8);
-    drop(9, 9);
-    drop(1, 9);
-    drop(8, 9);
+    drop(2, 2);
+    drop(8, 2);
+    drop(1, 1);
+    drop(9, 1);
+    drop(2, 1);
     break;
   case Handicap::五枚落ち右桂:
-    drop(8, 8);
-    drop(2, 8);
-    drop(9, 9);
-    drop(1, 9);
-    drop(2, 9);
+    drop(2, 2);
+    drop(8, 2);
+    drop(1, 1);
+    drop(9, 1);
+    drop(8, 1);
     break;
   case Handicap::六枚落ち:
-    drop(8, 8);
-    drop(2, 8);
-    drop(9, 9);
-    drop(1, 9);
-    drop(2, 9);
-    drop(8, 9);
+    drop(2, 2);
+    drop(8, 2);
+    drop(1, 1);
+    drop(9, 1);
+    drop(8, 1);
+    drop(2, 1);
     break;
   case Handicap::七枚落ち左銀:
-    drop(8, 8);
-    drop(2, 8);
-    drop(9, 9);
-    drop(1, 9);
-    drop(2, 9);
-    drop(8, 9);
-    drop(7, 9);
+    drop(2, 2);
+    drop(8, 2);
+    drop(1, 1);
+    drop(9, 1);
+    drop(8, 1);
+    drop(2, 1);
+    drop(3, 1);
     break;
   case Handicap::七枚落ち右銀:
-    drop(8, 8);
-    drop(2, 8);
-    drop(9, 9);
-    drop(1, 9);
-    drop(2, 9);
-    drop(8, 9);
-    drop(3, 9);
+    drop(2, 2);
+    drop(8, 2);
+    drop(1, 1);
+    drop(9, 1);
+    drop(8, 1);
+    drop(2, 1);
+    drop(7, 1);
     break;
   case Handicap::八枚落ち:
-    drop(8, 8);
-    drop(2, 8);
-    drop(9, 9);
-    drop(1, 9);
-    drop(2, 9);
-    drop(8, 9);
-    drop(7, 9);
-    drop(3, 9);
+    drop(2, 2);
+    drop(8, 2);
+    drop(1, 1);
+    drop(9, 1);
+    drop(8, 1);
+    drop(2, 1);
+    drop(3, 1);
+    drop(7, 1);
     break;
   case Handicap::トンボ:
-    drop(9, 9);
-    drop(8, 9);
-    drop(7, 9);
-    drop(6, 9);
-    drop(4, 9);
-    drop(3, 9);
-    drop(2, 9);
-    drop(1, 9);
+    drop(1, 1);
+    drop(2, 1);
+    drop(3, 1);
+    drop(4, 1);
+    drop(6, 1);
+    drop(7, 1);
+    drop(8, 1);
+    drop(9, 1);
     break;
   case Handicap::九枚落ち左金:
-    drop(9, 9);
-    drop(8, 9);
-    drop(7, 9);
-    drop(6, 9);
-    drop(3, 9);
-    drop(2, 9);
-    drop(1, 9);
-    drop(8, 8);
-    drop(2, 8);
+    drop(1, 1);
+    drop(2, 1);
+    drop(3, 1);
+    drop(4, 1);
+    drop(7, 1);
+    drop(8, 1);
+    drop(9, 1);
+    drop(2, 2);
+    drop(8, 2);
     break;
   case Handicap::九枚落ち右金:
-    drop(9, 9);
-    drop(8, 9);
-    drop(7, 9);
-    drop(4, 9);
-    drop(3, 9);
-    drop(2, 9);
-    drop(1, 9);
-    drop(8, 8);
-    drop(2, 8);
+    drop(1, 1);
+    drop(2, 1);
+    drop(3, 1);
+    drop(6, 1);
+    drop(7, 1);
+    drop(8, 1);
+    drop(9, 1);
+    drop(2, 2);
+    drop(8, 2);
     break;
   case Handicap::十枚落ち:
-    drop(9, 9);
-    drop(8, 9);
-    drop(7, 9);
-    drop(6, 9);
-    drop(4, 9);
-    drop(3, 9);
-    drop(2, 9);
-    drop(1, 9);
-    drop(8, 8);
-    drop(2, 8);
+    drop(1, 1);
+    drop(2, 1);
+    drop(3, 1);
+    drop(4, 1);
+    drop(6, 1);
+    drop(7, 1);
+    drop(8, 1);
+    drop(9, 1);
+    drop(2, 2);
+    drop(8, 2);
     break;
   case Handicap::青空将棋:
     for (int x = 0; x < 9; x++) {
@@ -1084,7 +1161,7 @@ enum class GameResultReason {
 class Game {
 public:
   // 駒渡しにする時 hand = true
-  Game(Handicap h, bool hand) {
+  Game(Handicap h, bool hand) : handicap(h), handicapHand(hand) {
     position = MakePosition(h, hand ? &handWhite : nullptr);
   }
 
@@ -1122,6 +1199,8 @@ public:
   std::vector<Move> moves;
   std::deque<PieceType> handBlack;
   std::deque<PieceType> handWhite;
+  Handicap handicap;
+  bool handicapHand;
 
 private:
   std::map<Position, size_t, LessPosition> history;
