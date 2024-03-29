@@ -357,9 +357,7 @@ struct Sunfish3AI::Impl {
     return sunfish::Board(cb);
   }
 
-  optional<Move> next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
-    Color color = moves.size() % 2 == 0 ? Color::Black : Color::White;
-
+  optional<Move> next(Position const &p, Color color, vector<Move> const &, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
     sunfish::Record record;
     record.init(
         SunfishBoardFromPositionAndHand(
@@ -419,7 +417,7 @@ struct Sunfish3AI::Impl {
 struct Sunfish3AI::Impl {
   Impl() {}
 
-  optional<Move> next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+  optional<Move> next(Position const &p, Color next, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
     return nullopt;
   }
 
@@ -435,8 +433,8 @@ Sunfish3AI::Sunfish3AI() : impl(make_unique<Impl>()) {
 
 Sunfish3AI::~Sunfish3AI() {}
 
-optional<Move> Sunfish3AI::next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
-  return impl->next(p, moves, hand, handEnemy);
+optional<Move> Sunfish3AI::next(Position const &p, Color next, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+  return impl->next(p, next, moves, hand, handEnemy);
 }
 
 void Sunfish3AI::stop() {

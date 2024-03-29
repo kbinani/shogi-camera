@@ -1299,13 +1299,21 @@ void Session::run() {
     if (playerConfig) {
       if (playerConfig->players.index() == 0) {
         PlayerConfig::Local local = get<0>(playerConfig->players);
-        if (local.black) {
+        if (local.black && game.handicap == Handicap::平手) {
           assert(!next);
           next = async(
               launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
-                return make_pair(Color::Black, player->next(game.position, game.moves, game.handBlack, game.handWhite));
+                return make_pair(Color::Black, player->next(game.position, Color::Black, game.moves, game.handBlack, game.handWhite));
               },
               local.black, game);
+          s->waitingMove = true;
+        } else if (local.white && game.handicap != Handicap::平手) {
+          assert(!next);
+          next = async(
+              launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
+                return make_pair(Color::White, player->next(game.position, Color::White, game.moves, game.handWhite, game.handBlack));
+              },
+              local.white, game);
           s->waitingMove = true;
         }
         auto p = make_shared<Players>();
@@ -1333,12 +1341,12 @@ void Session::run() {
     stat.push(s->boardWarpedGray, s->boardWarpedColor, *s, game, detected, players != nullptr);
     if (players) {
       if (detected.size() == game.moves.size()) {
-        if (game.moves.size() % 2 == 0) {
+        if (game.next() == Color::Black) {
           // 次が先手番
           if (players->black && !s->blackResign && !next) {
             next = async(
                 launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
-                  return make_pair(Color::Black, player->next(game.position, game.moves, game.handBlack, game.handWhite));
+                  return make_pair(Color::Black, player->next(game.position, Color::Black, game.moves, game.handBlack, game.handWhite));
                 },
                 players->black, game);
           }
@@ -1347,7 +1355,7 @@ void Session::run() {
           if (players->white && !s->whiteResign && !next) {
             next = async(
                 launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
-                  return make_pair(Color::White, player->next(game.position, game.moves, game.handWhite, game.handBlack));
+                  return make_pair(Color::White, player->next(game.position, Color::White, game.moves, game.handWhite, game.handBlack));
                 },
                 players->white, game);
           }

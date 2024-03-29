@@ -38,8 +38,8 @@ enum class PieceStatus : PieceUnderlyingType {
 };
 
 enum class Color : PieceUnderlyingType {
-  Black = 0b000000, // 先手
-  White = 0b100000, // 後手
+  Black = 0b000000, // 先手(下手)
+  White = 0b100000, // 後手(上手)
 };
 
 inline Color OpponentColor(Color color) {
@@ -48,11 +48,6 @@ inline Color OpponentColor(Color color) {
   } else {
     return Color::Black;
   }
-}
-
-// 0 を先手の最初の手として, i 番目の手がどちらの手番か.
-inline Color ColorFromIndex(size_t i) {
-  return i % 2 == 0 ? Color::Black : Color::White;
 }
 
 using Piece = PieceUnderlyingType; // PieceType | PieceStatus | Color;
@@ -293,6 +288,15 @@ enum class Handicap {
   十枚落ち,
   青空将棋,
 };
+
+// 0 を先手(上手)の最初の手として, i 番目の手がどちらの手番か.
+inline Color ColorFromIndex(size_t i, Handicap handicap) {
+  if (handicap == Handicap::平手) {
+    return i % 2 == 0 ? Color::Black : Color::White;
+  } else {
+    return i % 2 == 0 ? Color::White : Color::Black;
+  }
+}
 
 inline std::u8string StringFromHandicap(Handicap h) {
 #define RET(s)      \
@@ -1162,7 +1166,7 @@ class Game {
 public:
   // 駒渡しにする時 hand = true
   Game(Handicap h, bool hand) : handicap(h), handicapHand(hand) {
-    position = MakePosition(h, hand ? &handWhite : nullptr);
+    position = MakePosition(h, hand ? &handBlack : nullptr);
   }
 
   enum class ApplyResult {
@@ -1194,6 +1198,10 @@ public:
   static void Generate(Position const &p, Color color, std::deque<PieceType> const &handBlack, std::deque<PieceType> const &handWhite, std::deque<Move> &moves, bool enablePawnCheckByDrop);
   void generate(std::deque<Move> &moves) const;
 
+  Color next() const {
+    return ColorFromIndex(moves.size(), handicap);
+  }
+
 public:
   Position position;
   std::vector<Move> moves;
@@ -1211,7 +1219,7 @@ private:
 class Player {
 public:
   virtual ~Player() {}
-  virtual std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) = 0;
+  virtual std::optional<Move> next(Position const &p, Color next, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) = 0;
   virtual std::optional<std::u8string> name() = 0;
   virtual void stop() = 0;
 };
@@ -1219,7 +1227,7 @@ public:
 class RandomAI : public Player {
 public:
   RandomAI();
-  std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+  std::optional<Move> next(Position const &p, Color next, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   std::optional<std::u8string> name() override {
     return u8"random";
   }
@@ -1233,7 +1241,7 @@ class Sunfish3AI : public Player {
 public:
   Sunfish3AI();
   ~Sunfish3AI();
-  std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+  std::optional<Move> next(Position const &p, Color next, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   std::optional<std::u8string> name() override {
     return u8"sunfish3";
   }
@@ -1490,7 +1498,7 @@ public:
 
   explicit CsaAdapter(std::weak_ptr<CsaServer> server);
   ~CsaAdapter();
-  std::optional<Move> next(Position const &p, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+  std::optional<Move> next(Position const &p, Color next, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   std::optional<std::u8string> name() override;
   void stop() override;
   std::string name() const override { return "Player"; }
@@ -1845,7 +1853,7 @@ public:
 
   void startGame(Handicap h, bool hand, int option) {
     GameStartParameter p;
-    p.userColor = Color::White;
+    p.userColor = Color::Black;
     p.handicap = h;
     p.hand = hand;
     p.option = option;
@@ -1854,7 +1862,7 @@ public:
 
   void startGame(Handicap h, bool hand, CsaServerWrapper server) {
     GameStartParameter p;
-    p.userColor = Color::White;
+    p.userColor = Color::Black;
     p.handicap = h;
     p.hand = hand;
     p.option = -1;

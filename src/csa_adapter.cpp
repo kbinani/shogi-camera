@@ -265,7 +265,7 @@ void CsaAdapter::onmessage(string const &msg) {
   }
 }
 
-optional<Move> CsaAdapter::next(Position const &p, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+optional<Move> CsaAdapter::next(Position const &p, Color next, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
   if (!color_) {
     return nullopt;
   }

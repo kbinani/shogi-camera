@@ -220,7 +220,7 @@ void Game::Generate(Position const &position, Color color, std::deque<PieceType>
 }
 
 void Game::generate(std::deque<Move> &moves) const {
-  Color color = this->moves.size() % 2 == 0 ? Color::Black : Color::White;
+  Color color = next();
   Generate(position, color, handBlack, handWhite, moves, true);
 }
 
