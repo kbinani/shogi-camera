@@ -378,7 +378,7 @@ class Reader {
     }
     var actions: [Action] = []
     let suffixPosition = move.suffix & sci.SuffixType.MaskPosition.rawValue
-    let suffixAction = move.suffix & sci.SuffixType.MaskPosition.rawValue
+    let suffixAction = move.suffix & sci.SuffixType.MaskAction.rawValue
     if suffixPosition == sci.SuffixType.Right.rawValue {
       actions.append(.Right)
     } else if suffixPosition == sci.SuffixType.Left.rawValue {
