@@ -460,16 +460,12 @@ class GameView: UIView {
       lines.append(line)
       last = mv.to
     }
-    if status.game.moves.size() % 2 == 0 {
-      if status.blackResign {
-        lines.append("\(status.game.moves.size() + 1) 投了")
-        lines.append("まで\(status.game.moves.size())手で先手の勝ち")
-      }
-    } else {
-      if status.whiteResign {
-        lines.append("\(status.game.moves.size() + 1) 投了")
-        lines.append("まで\(status.game.moves.size())手で後手の勝ち")
-      }
+    if status.blackResign {
+      lines.append("\(status.game.moves.size() + 1) 投了")
+      lines.append("まで\(status.game.moves.size())手で先手の勝ち")
+    } else if status.whiteResign {
+      lines.append("\(status.game.moves.size() + 1) 投了")
+      lines.append("まで\(status.game.moves.size())手で後手の勝ち")
     }
     if status.aborted && !status.blackResign && !status.whiteResign {
       lines.append("\(status.game.moves.size() + 1) 中断")
