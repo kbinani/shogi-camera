@@ -115,7 +115,11 @@ struct CsaServer::Impl {
       }
       sendboth(line);
     }
-    sendboth("+");
+    if (h == Handicap::平手) {
+      sendboth("+");
+    } else {
+      sendboth("-");
+    }
     sendboth("END Position");
     sendboth("END Game_Summary");
   }
