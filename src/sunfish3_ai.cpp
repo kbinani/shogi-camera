@@ -343,11 +343,13 @@ struct Sunfish3AI::Impl {
       }
     }
     for (auto const &p : handBlack) {
-      uint8_t c = SunfishPieceKindFromPieceType(p) & ~sunfish::Piece::White;
+      sunfish::Piece sp = SunfishPieceFromPiece(MakePiece(Color::Black, p));
+      uint16_t c = static_cast<uint16_t>(sp.black().index()) << sunfish::CompactBoard::PieceShift;
       cb.buf[index++] = c | sunfish::CompactBoard::Hand;
     }
     for (auto const &p : handWhite) {
-      uint8_t c = SunfishPieceKindFromPieceType(p) | sunfish::Piece::White;
+      sunfish::Piece sp = SunfishPieceFromPiece(MakePiece(Color::White, p));
+      uint16_t c = static_cast<uint16_t>(sp.white().index()) << sunfish::CompactBoard::PieceShift;
       cb.buf[index++] = c | sunfish::CompactBoard::Hand;
     }
     cb.buf[index] = sunfish::CompactBoard::End;
