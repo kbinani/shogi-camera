@@ -607,7 +607,8 @@ struct CsaServer::Impl {
     }
 
     string seconds() const {
-      auto elapsed = chrono::duration_cast<chrono::duration<double>>(chrono::system_clock::now() - time).count();
+      auto now = chrono::system_clock::now();
+      auto elapsed = chrono::duration_cast<chrono::duration<double>>(now - time).count();
       return "T" + to_string(std::max(0, (int)floor(elapsed)));
     }
 
