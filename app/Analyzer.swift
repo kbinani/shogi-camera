@@ -24,10 +24,10 @@ class Analyzer {
   fileprivate class CaptureDelegate: NSObject {
     weak var owner: Analyzer?
     private let ciContext: CIContext = .init()
-    private var resigned: Bool = false
+    private var finished: Bool = false
 
     func reset() {
-      resigned = false
+      finished = false
     }
   }
 
@@ -140,7 +140,7 @@ class Analyzer {
 
 extension Analyzer.CaptureDelegate: AVCaptureVideoDataOutputSampleBufferDelegate {
   func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-    guard !resigned else {
+    guard !finished else {
       return
     }
     guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
@@ -159,8 +159,8 @@ extension Analyzer.CaptureDelegate: AVCaptureVideoDataOutputSampleBufferDelegate
       DispatchQueue.main.async { [weak self] in
         self?.owner?.status = status
       }
-      if status.blackResign || status.whiteResign {
-        self.resigned = true
+      if status.result.__convertToBool() {
+        self.finished = true
         self.owner?.captureSession.stopRunning()
       }
     }

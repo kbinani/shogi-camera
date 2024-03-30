@@ -30,6 +30,7 @@ class GameView: UIView {
   private var pieceBookView: UIImageView?
   private var readYourTurn = false
   private var readError = false
+  private var readReason = false
   private var server: sci.CsaServerWrapper?
   private var boardOverlay: UILabel?
 
@@ -273,13 +274,39 @@ class GameView: UIView {
       }
       last = move.to
     }
-    if status.blackResign {
-      lines.append("▲投了")
-    } else if status.whiteResign {
-      lines.append("△投了")
-    }
-    if status.aborted && !status.blackResign && !status.whiteResign {
-      lines.append("中断")
+    if let result = status.result.value {
+      switch result.result {
+      case .BlackWin:
+        switch result.reason {
+        case .Resign:
+          lines.append("△投了")
+        case .CheckRepetition, .IllegalAction:
+          lines.append("反則負け")
+        case .Abort:
+          lines.append("中断")
+        case .Repetition:
+          lines.append("千日手")
+        @unknown default:
+          break
+        }
+      case .WhiteWin:
+        switch result.reason {
+        case .Resign:
+          lines.append("▲投了")
+        case .CheckRepetition, .IllegalAction:
+          lines.append("反則負け")
+        case .Abort:
+          lines.append("中断")
+        case .Repetition:
+          lines.append("千日手")
+        @unknown default:
+          break
+        }
+      case .Abort:
+        lines.append("中断")
+      @unknown default:
+        break
+      }
     }
     let text = lines.enumerated().map({ "\($0.offset + 1): \($0.element)" }).joined(separator: "\n")
     if text != historyView.text {
@@ -326,18 +353,46 @@ class GameView: UIView {
       }
     }
     if let moveIndex {
-      if moveIndex + 1 == status.game.moves.size() {
-        if (status.blackResign || status.whiteResign) && !self.resigned {
-          self.reader?.playResign()
-          self.resigned = true
-        }
+      if moveIndex + 1 == status.game.moves.size(), !resigned, let result = status.result.value, case .Resign = result.reason {
+        self.reader?.playResign()
+        self.resigned = true
       }
     }
     if let oldValue, oldValue.waitingMove && !status.waitingMove {
       self.reader?.playNextMoveReady()
     }
-    if let oldValue, status.aborted && !oldValue.aborted {
-      self.reader?.playAborted()
+    if let result = status.result.value, !readReason {
+      readReason = true
+      switch result.reason {
+      case .Repetition:
+        reader?.playRepetition()
+      case .CheckRepetition:
+        reader?.playRepetition()
+      case .IllegalAction, .Resign, .Abort:
+        break
+      @unknown default:
+        print("Unknown enum: ", result.reason)
+      }
+      if let color = analyzer.userColor {
+        switch result.result {
+        case .BlackWin:
+          if color == sci.Color.Black {
+            reader?.playWinByIllegal()
+          } else {
+            reader?.playLoseByIllegal()
+          }
+        case .WhiteWin:
+          if color == sci.Color.White {
+            reader?.playWinByIllegal()
+          } else {
+            reader?.playLoseByIllegal()
+          }
+        case .Abort:
+          self.reader?.playAborted()
+        @unknown default:
+          print("Unknown enum: ", result.result)
+        }
+      }
     }
   }
 
@@ -477,15 +532,29 @@ class GameView: UIView {
       lines.append(line)
       last = mv.to
     }
-    if status.blackResign {
-      lines.append("\(status.game.moves.size() + 1) 投了")
-      lines.append("まで\(status.game.moves.size())手で先手の勝ち")
-    } else if status.whiteResign {
-      lines.append("\(status.game.moves.size() + 1) 投了")
-      lines.append("まで\(status.game.moves.size())手で後手の勝ち")
-    }
-    if status.aborted && !status.blackResign && !status.whiteResign {
-      lines.append("\(status.game.moves.size() + 1) 中断")
+    if let result = status.result.value {
+      switch result.reason {
+      case .Resign:
+        lines.append("\(status.game.moves.size() + 1) 投了")
+      case .Repetition, .CheckRepetition:
+        lines.append("\(status.game.moves.size() + 1) 千日手")
+      case .IllegalAction:
+        lines.append("\(status.game.moves.size() + 1) 反則負け")
+      case .Abort:
+        break
+      @unknown default:
+        print("Unknown enum: ", result.reason)
+      }
+      switch result.result {
+      case .BlackWin:
+        lines.append("まで\(status.game.moves.size())手で先手の勝ち")
+      case .WhiteWin:
+        lines.append("まで\(status.game.moves.size())手で後手の勝ち")
+      case .Abort:
+        lines.append("\(status.game.moves.size() + 1) 中断")
+      @unknown default:
+        print("Unknown enum: ", result.result)
+      }
     }
     let contents = lines.joined(separator: "\r\n")
     guard let utf8 = contents.data(using: .utf8) else {

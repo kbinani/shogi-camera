@@ -1623,20 +1623,23 @@ struct Status {
   double stableBoardMaxSimilarity;
   // 最新の stable board
   std::optional<cv::Mat> stableBoard;
-  bool blackResign = false;
-  bool whiteResign = false;
   // session.detected.size() != game.moves.size() の時 true. AI の指し手の駒を人間が動かすのを待っている時に true.
   bool waitingMove = false;
   // 盤面の画像認識が準備完了となった時 true
   bool boardReady = false;
   // AI の示した手と違う手が指されている時に true
   bool wrongMove = false;
-  std::optional<GameResultReason> reason;
+  struct Result {
+    GameResult result;
+    GameResultReason reason;
+  };
+  std::optional<Result> result;
   std::shared_ptr<PieceBook> book;
   std::deque<std::map<std::pair<int, int>, std::set<std::shared_ptr<Lattice>>>> clusters;
   std::optional<bool> yourTurnFirst;
   bool aborted = false;
   std::u8string error;
+  bool started = false;
 };
 
 // 盤面画像.

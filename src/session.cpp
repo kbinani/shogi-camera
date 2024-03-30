@@ -1389,10 +1389,20 @@ void Session::push(cv::Mat const &frame) {
 
 void Session::resign(Color color) {
   if (color == Color::Black) {
-    s->blackResign = true;
+    if (!s->result) {
+      Status::Result r;
+      r.result = GameResult::WhiteWin;
+      r.reason = GameResultReason::Resign;
+      s->result = r;
+    }
     std::cout << "先手番が投了" << std::endl;
   } else {
-    s->whiteResign = true;
+    if (!s->result) {
+      Status::Result r;
+      r.result = GameResult::BlackWin;
+      r.reason = GameResultReason::Resign;
+      s->result = r;
+    }
     std::cout << "後手番が投了" << std::endl;
   }
   if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->black); csa) {
@@ -1439,6 +1449,7 @@ void Session::startGame(GameStartParameter p) {
   s->game = game;
   setPlayerConfig(config);
   started = true;
+  s->started = true;
 }
 
 void Session::stopGame() {
@@ -1478,6 +1489,12 @@ void Session::csaAdapterDidGetError(std::u8string const &what) {
 }
 
 void Session::csaAdapterDidFinishGame(GameResult result, GameResultReason reason) {
+  if (!s->result) {
+    Status::Result r;
+    r.result = result;
+    r.reason = reason;
+    s->result = r;
+  }
   switch (result) {
   case GameResult::BlackWin:
     resign(Color::White);

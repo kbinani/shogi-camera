@@ -411,18 +411,40 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
   case Game::ApplyResult::Ok:
     break;
   case Game::ApplyResult::Illegal:
-    s.reason = GameResultReason::IllegalAction;
+    if (!s.result) {
+      Status::Result r;
+      if (move->color == Color::Black) {
+        r.result = GameResult::WhiteWin;
+      } else {
+        r.result = GameResult::BlackWin;
+      }
+      r.reason = GameResultReason::IllegalAction;
+      s.result = r;
+    }
     return;
   case Game::ApplyResult::Repetition:
-    s.reason = GameResultReason::Repetition;
+    if (!s.result) {
+      Status::Result r;
+      r.result = GameResult::Abort;
+      r.reason = GameResultReason::Repetition;
+      s.result = r;
+    }
     return;
   case Game::ApplyResult::CheckRepetitionBlack:
-    s.reason = GameResultReason::CheckRepetition;
-    s.blackResign = true;
+    if (!s.result) {
+      Status::Result r;
+      r.result = GameResult::WhiteWin;
+      r.reason = GameResultReason::CheckRepetition;
+      s.result = r;
+    }
     return;
   case Game::ApplyResult::CheckRepetitionWhite:
-    s.reason = GameResultReason::CheckRepetition;
-    s.whiteResign = true;
+    if (!s.result) {
+      Status::Result r;
+      r.result = GameResult::BlackWin;
+      r.reason = GameResultReason::CheckRepetition;
+      s.result = r;
+    }
     return;
   }
   book->update(g.position, board, s);

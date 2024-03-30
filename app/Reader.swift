@@ -269,6 +269,21 @@ class Reader {
     updateLatestAfter(seconds: offset)
   }
 
+  func playRepetition() {
+    let offset = schedule(misc: .Repetition, offset: availableOffset)
+    updateLatestAfter(seconds: offset)
+  }
+
+  func playWinByIllegal() {
+    let offset = schedule(misc: .WinByIllegal, offset: availableOffset)
+    updateLatestAfter(seconds: offset)
+  }
+
+  func playLoseByIllegal() {
+    let offset = schedule(misc: .LoseByIllegal, offset: availableOffset)
+    updateLatestAfter(seconds: offset)
+  }
+
   private func updateLatestAfter(seconds: TimeInterval) {
     latest = Date.now.addingTimeInterval(seconds)
   }
