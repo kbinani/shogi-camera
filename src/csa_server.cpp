@@ -394,6 +394,9 @@ struct CsaServer::Impl {
 
         if (!peer->username.empty() && line == "LOGOUT") {
           peer->send("LOGOUT:completed");
+          if (peer->match && peer->match->agrees > 1) {
+            peer->match->sendLocal("#CHUDAN");
+          }
           close(peer->socket);
           return;
         }
