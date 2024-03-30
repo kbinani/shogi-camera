@@ -1433,6 +1433,7 @@ void Session::startGame(GameStartParameter p) {
     config->players = local;
   }
   game = Game(p.handicap, p.hand);
+  s->game = game;
   setPlayerConfig(config);
 }
 
