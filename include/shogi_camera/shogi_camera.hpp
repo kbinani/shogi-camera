@@ -290,8 +290,8 @@ enum class Handicap {
 };
 
 // 0 を先手(上手)の最初の手として, i 番目の手がどちらの手番か.
-inline Color ColorFromIndex(size_t i, Handicap handicap) {
-  if (handicap == Handicap::平手) {
+inline Color ColorFromIndex(size_t i, Color first) {
+  if (first == Color::Black) {
     return i % 2 == 0 ? Color::Black : Color::White;
   } else {
     return i % 2 == 0 ? Color::White : Color::Black;
@@ -1165,8 +1165,11 @@ enum class GameResultReason {
 class Game {
 public:
   // 駒渡しにする時 hand = true
-  Game(Handicap h, bool hand) : handicap(h), handicapHand(hand) {
+  Game(Handicap h, bool hand) : handicap_(h), handicapHand_(hand) {
     position = MakePosition(h, hand ? &handBlack : nullptr);
+    if (h != Handicap::平手) {
+      first = Color::White;
+    }
   }
 
   enum class ApplyResult {
@@ -1199,7 +1202,7 @@ public:
   void generate(std::deque<Move> &moves) const;
 
   Color next() const {
-    return ColorFromIndex(moves.size(), handicap);
+    return ColorFromIndex(moves.size(), first);
   }
 
 public:
@@ -1207,8 +1210,9 @@ public:
   std::vector<Move> moves;
   std::deque<PieceType> handBlack;
   std::deque<PieceType> handWhite;
-  Handicap handicap;
-  bool handicapHand;
+  Color first = Color::Black;
+  Handicap handicap_;
+  bool handicapHand_;
 
 private:
   std::map<Position, size_t, LessPosition> history;
@@ -1491,7 +1495,6 @@ class CsaAdapter : public Player, public CsaServer::Peer {
 public:
   struct Delegate {
     virtual ~Delegate() {}
-    virtual void csaAdapterDidProvidePosition(Game const &g) = 0;
     virtual void csaAdapterDidGetError(std::u8string const &what) = 0;
     virtual void csaAdapterDidFinishGame(GameResult, GameResultReason) = 0;
   };
@@ -1757,7 +1760,6 @@ public:
   void resign(Color color);
   std::optional<std::u8string> name(Color color);
 
-  void csaAdapterDidProvidePosition(Game const &g) override;
   void csaAdapterDidGetError(std::u8string const &what) override;
   void csaAdapterDidFinishGame(GameResult, GameResultReason) override;
 

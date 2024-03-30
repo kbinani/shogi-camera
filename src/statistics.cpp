@@ -332,7 +332,7 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
   }
   // index 番目の手.
   size_t const index = detected.size();
-  Color const color = ColorFromIndex(index, g.handicap);
+  Color const color = ColorFromIndex(index, g.first);
   CvPointSet const &ch = changeset.front();
   optional<Move> hint;
   if (detected.size() + 1 == g.moves.size()) {
@@ -374,7 +374,7 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
     lastMoveTo = detected.back().to;
   }
   // 初手なら画像の上下どちらが先手側か判定する.
-  if (detected.empty() && ((move->to.rank < 5 && g.handicap == Handicap::平手) || (move->to.rank > 5 && g.handicap != Handicap::平手))) {
+  if (detected.empty() && ((move->to.rank < 5 && g.first == Color::Black) || (move->to.rank > 5 && g.first == Color::White))) {
     // キャプチャした画像で先手が上になっている. 以後 180 度回転して処理する.
     if (move->from) {
       move->from = move->from->rotated();

@@ -1274,6 +1274,7 @@ void Session::run() {
     s->height = frameGray.size().height;
     s->yourTurn = this->s->yourTurn;
     s->aborted = this->s->aborted;
+    s->game = this->game;
     Img::FindContours(frameGray, s->contours, s->squares, s->pieces);
     FindBoard(frameGray, *s, stat, game.moves.size());
     stat.update(*s);
@@ -1299,7 +1300,7 @@ void Session::run() {
     if (playerConfig) {
       if (playerConfig->players.index() == 0) {
         PlayerConfig::Local local = get<0>(playerConfig->players);
-        if (local.black && game.handicap == Handicap::平手) {
+        if (local.black && game.first == Color::Black) {
           assert(!next);
           next = async(
               launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
@@ -1307,7 +1308,7 @@ void Session::run() {
               },
               local.black, game);
           s->waitingMove = true;
-        } else if (local.white && game.handicap != Handicap::平手) {
+        } else if (local.white && game.first == Color::White) {
           assert(!next);
           next = async(
               launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
@@ -1465,11 +1466,6 @@ std::optional<std::u8string> Session::name(Color color) {
     }
   }
   return std::nullopt;
-}
-
-void Session::csaAdapterDidProvidePosition(Game const &g) {
-  game = g;
-  s->game = g;
 }
 
 void Session::csaAdapterDidGetError(std::u8string const &what) {

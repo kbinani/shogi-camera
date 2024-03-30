@@ -416,9 +416,9 @@ class Reader {
     return offset
   }
 
-  func play(move: Move, handicap: sci.Handicap, last: Move?) {
+  func play(move: Move, first: sci.Color, last: Move?) {
     let voice: Misc =
-      if handicap == sci.Handicap.平手 {
+      if first == sci.Color.Black {
         move.color == .Black ? .Black : .White
       } else {
         move.color == .Black ? .White : .Black

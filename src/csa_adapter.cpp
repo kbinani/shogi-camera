@@ -84,9 +84,6 @@ void CsaAdapter::onmessage(string const &msg) {
       if (auto init = positionReceiver.validate(); init) {
         this->init = init;
         game = init->first;
-        if (auto d = delegate.lock(); d) {
-          d->csaAdapterDidProvidePosition(init->first);
-        }
       }
       // TODO: 途中局面から開始の場合
     }
@@ -372,6 +369,11 @@ optional<pair<Game, Color>> CsaPositionReceiver::validate() const {
     return nullopt;
   }
   Game g(Handicap::平手, false);
+  for (int x = 0; x < 9; x++) {
+    for (int y = 0; y < 9; y++) {
+      g.position.pieces[x][y] = 0;
+    }
+  }
   multiset<Piece> box;
   for (auto color : {Color::Black, Color::White}) {
     for (int i = 0; i < 9; i++) {

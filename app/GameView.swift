@@ -287,12 +287,12 @@ class GameView: UIView {
       if let moveIndex {
         if moveIndex + 1 < status.game.moves.size() {
           let mv = status.game.moves[moveIndex + 1]
-          self.reader?.play(move: mv, handicap: status.game.handicap, last: status.game.moves[moveIndex])
+          self.reader?.play(move: mv, first: status.game.first, last: status.game.moves[moveIndex])
           self.moveIndex = moveIndex + 1
         }
       } else {
         let mv = status.game.moves[0]
-        self.reader?.play(move: mv, handicap: status.game.handicap, last: nil)
+        self.reader?.play(move: mv, first: status.game.first, last: nil)
         self.moveIndex = 0
       }
 
@@ -408,9 +408,9 @@ class GameView: UIView {
     if let endDate, let endDateString = dateTimeString(from: endDate) {
       lines.append("終了日時：" + endDateString)
     }
-    if let handicap = sci.KifStringFromHandicap(status.game.handicap).value {
+    if let handicap = sci.KifStringFromHandicap(status.game.handicap_).value {
       let handicapStr = sci.Utility.CFStringFromU8String(handicap).takeRetainedValue() as String
-      if status.game.handicapHand {
+      if status.game.handicapHand_ {
         lines.append("手合割：その他")
         lines.append("#" + handicapStr + "(駒渡し)")
       } else {
@@ -418,8 +418,8 @@ class GameView: UIView {
       }
     } else {
       lines.append("手合割：その他")
-      let handicapStr = sci.Utility.CFStringFromU8String(sci.StringFromHandicap(status.game.handicap)).takeRetainedValue() as String
-      if status.game.handicapHand {
+      let handicapStr = sci.Utility.CFStringFromU8String(sci.StringFromHandicap(status.game.handicap_)).takeRetainedValue() as String
+      if status.game.handicapHand_ {
         lines.append("#" + handicapStr + "(駒渡し)")
       } else {
         lines.append("#" + handicapStr)
