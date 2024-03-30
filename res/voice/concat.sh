@@ -11,6 +11,7 @@ voices=(
   "m_YourTurnSecond"
   "m_Aborted"
   "m_Error"
+  "m_Repetition"
 
   "sq_1_1"
   "sq_1_2"
