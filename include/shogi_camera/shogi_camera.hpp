@@ -1788,6 +1788,7 @@ private:
   std::shared_ptr<Players> players;
   std::optional<std::future<std::pair<Color, std::optional<Move>>>> next;
   std::u8string error;
+  bool started = false;
 };
 
 class Img {

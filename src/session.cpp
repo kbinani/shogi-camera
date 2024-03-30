@@ -1438,6 +1438,7 @@ void Session::startGame(GameStartParameter p) {
   game = Game(p.handicap, p.hand);
   s->game = game;
   setPlayerConfig(config);
+  started = true;
 }
 
 void Session::stopGame() {

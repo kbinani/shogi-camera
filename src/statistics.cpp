@@ -304,7 +304,7 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
   }
   if (changeset.empty() || minChange != maxChange || minChange > 2) {
     // 有効な変化が発見できなかった
-    if ((minChange > 2 || maxChange > 2) && stableBoardHistory.size() == 1 && detected.empty() && g.moves.empty()) {
+    if ((minChange > 2 || maxChange > 2) && stableBoardHistory.size() == 1 && detected.empty() && !s.started) {
       // まだ stable board が 1 個だけの場合, その stable board が間違った範囲を検出しているせいでずっとここを通過し続けてしまう可能性がある.
       stableBoardInitialResetCounter++;
       stableBoardInitialReadyCounter = 0;
