@@ -67,8 +67,8 @@ class Reader {
     case Ready
     case WrongMoveWarningLeading
     case WrongMoveWarningTrailing
-    case YourTurnBlack
-    case YourTurnWhite
+    case YourTurnFirst
+    case YourTurnSecond
     case Aborted
     case Error
   }
@@ -214,8 +214,8 @@ class Reader {
     .init(misc: Misc.Ready.rawValue, time: 2.549333),
     .init(misc: Misc.WrongMoveWarningLeading.rawValue, time: 5.888000),
     .init(misc: Misc.WrongMoveWarningTrailing.rawValue, time: 9.632000),
-    .init(misc: Misc.YourTurnBlack.rawValue, time: 10.240000),
-    .init(misc: Misc.YourTurnWhite.rawValue, time: 11.765333),
+    .init(misc: Misc.YourTurnFirst.rawValue, time: 10.240000),
+    .init(misc: Misc.YourTurnSecond.rawValue, time: 11.765333),
     .init(misc: Misc.Aborted.rawValue, time: 13.162666),
     .init(misc: Misc.Error.rawValue, time: 14.677333),
     .init(misc: UInt32.max, time: 16.533333),
@@ -243,8 +243,8 @@ class Reader {
     updateLatestAfter(seconds: offset)
   }
 
-  func playYourTurn(_ color: sci.Color) {
-    let offset = schedule(misc: color == sci.Color.Black ? .YourTurnBlack : .YourTurnWhite, offset: availableOffset)
+  func playYourTurn(_ first: Bool) {
+    let offset = schedule(misc: first ? .YourTurnFirst : .YourTurnSecond, offset: availableOffset)
     updateLatestAfter(seconds: offset)
   }
 

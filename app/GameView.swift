@@ -279,8 +279,8 @@ class GameView: UIView {
     guard let status else {
       return
     }
-    if let yourTurn = status.yourTurn.value, !readYourTurn {
-      self.reader?.playYourTurn(yourTurn)
+    if let yourTurnFirst = status.yourTurnFirst.value, !readYourTurn {
+      self.reader?.playYourTurn(yourTurnFirst)
       readYourTurn = true
     }
     if !status.game.moves.empty() {

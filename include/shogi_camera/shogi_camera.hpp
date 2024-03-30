@@ -1627,7 +1627,7 @@ struct Status {
   std::optional<GameResultReason> reason;
   std::shared_ptr<PieceBook> book;
   std::deque<std::map<std::pair<int, int>, std::set<std::shared_ptr<Lattice>>>> clusters;
-  std::optional<Color> yourTurn;
+  std::optional<bool> yourTurnFirst;
   bool aborted = false;
 };
 

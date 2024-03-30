@@ -1272,7 +1272,7 @@ void Session::run() {
     s->boardDirection = this->s->boardDirection;
     s->width = frameGray.size().width;
     s->height = frameGray.size().height;
-    s->yourTurn = this->s->yourTurn;
+    s->yourTurnFirst = this->s->yourTurnFirst;
     s->aborted = this->s->aborted;
     s->game = this->game;
     Img::FindContours(frameGray, s->contours, s->squares, s->pieces);
@@ -1298,7 +1298,7 @@ void Session::run() {
       }
     }
     if (playerConfig) {
-      if (playerConfig->players.index() == 0) {
+      if (holds_alternative<PlayerConfig::Local>(playerConfig->players)) {
         PlayerConfig::Local local = get<0>(playerConfig->players);
         if (local.black && game.first == Color::Black) {
           assert(!next);
@@ -1322,7 +1322,7 @@ void Session::run() {
         p->white = local.white;
         players = p;
         playerConfig = nullptr;
-      } else if (playerConfig->players.index() == 1) {
+      } else if (holds_alternative<PlayerConfig::Remote>(playerConfig->players)) {
         PlayerConfig::Remote remote = get<1>(playerConfig->players);
         if (remote.csa->color_) {
           auto p = make_shared<Players>();
@@ -1335,7 +1335,7 @@ void Session::run() {
           }
           players = p;
           playerConfig = nullptr;
-          s->yourTurn = OpponentColor(*remote.csa->color_);
+          s->yourTurnFirst = game.first == OpponentColor(*remote.csa->color_);
         }
       }
     }
