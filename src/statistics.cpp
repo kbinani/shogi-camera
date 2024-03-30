@@ -195,6 +195,7 @@ void AppendPromotion(Move &mv,
 } // namespace
 
 Statistics::Statistics() : book(std::make_shared<PieceBook>()), pool(std::make_unique<hwm::task_queue>(3)) {
+  pool->set_wait_before_destructed(true);
 }
 
 void Statistics::update(Status const &s) {
