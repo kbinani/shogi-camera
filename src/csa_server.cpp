@@ -85,7 +85,11 @@ struct CsaServer::Impl {
       remote.send("Your_Turn:+");
       local.onmessage("Your_Turn:-");
     }
-    sendboth("To_Move:+");
+    if (h == Handicap::平手) {
+      sendboth("To_Move:+");
+    } else {
+      sendboth("To_Move:-");
+    }
     sendboth("BEGIN Position");
     Game g(h, hand);
     for (int y = 0; y < 9; y++) {
