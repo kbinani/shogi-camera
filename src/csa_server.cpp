@@ -48,13 +48,13 @@ struct Match {
     Remote,
     Local,
   };
-  
+
   static Source OpponentSource(Source s) {
     switch (s) {
-      case Source::Remote:
-        return Source::Local;
-      case Source::Local:
-        return Source::Remote;
+    case Source::Remote:
+      return Source::Local;
+    case Source::Local:
+      return Source::Remote;
     }
   }
 
@@ -243,23 +243,16 @@ struct Match {
 
 struct RemotePeer {
   explicit RemotePeer(int socket) : socket(socket) {}
-    void send(std::string const &line) {
-      string m = line + "\x0a";
-      ::send(socket, m.c_str(), m.size(), 0);
-      cout << "csa_server:<<< " << line << endl;
-    }
-  //  string name() const override {
-  //    return username;
-  //  }
-  //  void setName(string const &n) {
-  //    username = n;
-  //  }
+  void send(std::string const &line) {
+    string m = line + "\x0a";
+    ::send(socket, m.c_str(), m.size(), 0);
+    cout << "csa_server:<<< " << line << endl;
+  }
   std::shared_ptr<Match> match;
   int socket;
   string username;
   std::recursive_mutex mut;
 };
-
 
 } // namespace
 
@@ -273,22 +266,24 @@ struct CsaServer::Impl {
     stop = true;
     close(socket);
     if (auto remote = this->remote.lock(); remote) {
-//      remote->send("#CHUDAN");
+      remote->send("#CHUDAN");
       close(remote->socket);
     }
   }
-  
-  struct Writer: public CsaServer::Writer {
-    void send(string const& msg) override {
+
+  struct Writer : public CsaServer::Writer {
+    ~Writer() override {}
+
+    void send(string const &msg) override {
       if (auto m = match.lock(); m) {
         m->handle(msg, Match::Source::Local);
       }
     }
-    
+
     weak_ptr<Match> match;
   };
 
-  shared_ptr<Writer> setLocalPeer_(shared_ptr<Peer> peer, Color localColor, Handicap h, bool hand) {
+  shared_ptr<Writer> setLocalPeer(shared_ptr<Peer> peer, Color localColor, Handicap h, bool hand) {
     if (auto remote = this->remote.lock(); remote) {
       lock_guard<recursive_mutex> lk(remote->mut);
       auto m = make_shared<Match>(peer, localColor, remote->socket, remote->username, h, hand);
@@ -373,164 +368,6 @@ struct CsaServer::Impl {
     }
   }
 
-#if 0
-  void send(string const &msg) {
-    auto remote = this->remote.lock();
-    if (!remote) {
-      return;
-    }
-    lock_guard<recursive_mutex> lock(mut);
-    if (!info) {
-      return;
-    }
-    auto local = this->local_;
-    if (!local) {
-      return;
-    }
-    auto sendboth = [local, remote](string const &msg) {
-      remote->send(msg);
-      if (local) {
-        local->peer->onmessage(msg);
-      }
-    };
-    if (msg.starts_with("AGREE")) {
-      info->agrees++;
-      if (info->agrees > 1) {
-        sendboth("START:" + info->gameId);
-        info->update();
-      }
-    } else if (msg.starts_with("+")) {
-      if (info->game.next() == Color::Black) {
-        auto ret = MoveFromCsaMove(msg, info->game.position);
-        if (holds_alternative<Move>(ret)) {
-          auto mv = get<Move>(ret);
-          switch (info->game.apply(mv)) {
-          case Game::ApplyResult::Repetition:
-            sendboth("#SENNICHITE");
-            sendboth("#DRAW");
-            info.reset();
-            break;
-          case Game::ApplyResult::Illegal:
-            sendboth("#ILLEGAAL_MOVE");
-            local->peer->onmessage("#LOSE");
-            remote->send("#WIN");
-            info.reset();
-            break;
-          case Game::ApplyResult::Ok:
-            info->game.moves.push_back(mv);
-            sendboth(msg + "," + info->seconds());
-            info->update();
-            break;
-          case Game::ApplyResult::CheckRepetitionBlack:
-            sendboth("#OUTE_SENNICHITE");
-            if (local->color == Color::Black) {
-              local->peer->onmessage("#LOSE");
-              remote->send("#WIN");
-            } else {
-              local->peer->onmessage("#WIN");
-              remote->send("#LOSE");
-            }
-            info.reset();
-            break;
-          case Game::ApplyResult::CheckRepetitionWhite:
-            sendboth("#OUTE_SENNICHITE");
-            if (local->color == Color::Black) {
-              local->peer->onmessage("#WIN");
-              remote->send("#LOSE");
-            } else {
-              local->peer->onmessage("#LOSE");
-              remote->send("#WIN");
-            }
-            info.reset();
-            break;
-          }
-        } else {
-          sendboth("#ILLEGAAL_MOVE");
-          local->peer->onmessage("#LOSE");
-          remote->send("#WIN");
-          info.reset();
-        }
-      } else {
-        sendboth("#ILLEGAL_ACTION");
-        if (local->color == Color::Black) {
-          local->peer->onmessage("#LOSE");
-          remote->send("#WIN");
-        } else {
-          local->peer->onmessage("#WIN");
-          remote->send("#LOSE");
-        }
-        info.reset();
-      }
-    } else if (msg.starts_with("-")) {
-      if (info->game.next() == Color::White) {
-        auto ret = MoveFromCsaMove(msg, info->game.position);
-        if (holds_alternative<Move>(ret)) {
-          auto mv = get<Move>(ret);
-          switch (info->game.apply(mv)) {
-          case Game::ApplyResult::Ok:
-            info->game.moves.push_back(mv);
-            sendboth(msg + "," + info->seconds());
-            info->update();
-            break;
-          case Game::ApplyResult::Illegal:
-            sendboth("#ILLEGAAL_MOVE");
-            local->peer->onmessage("#LOSE");
-            remote->send("#WIN");
-            info.reset();
-            break;
-          case Game::ApplyResult::Repetition:
-            sendboth("#SENNICHITE");
-            sendboth("#DRAW");
-            info.reset();
-            break;
-          case Game::ApplyResult::CheckRepetitionBlack:
-            sendboth("#OUTE_SENNICHITE");
-            if (local->color == Color::Black) {
-              local->peer->onmessage("#LOSE");
-              remote->send("#WIN");
-            } else {
-              local->peer->onmessage("#WIN");
-              remote->send("#LOSE");
-            }
-            info.reset();
-            break;
-          case Game::ApplyResult::CheckRepetitionWhite:
-            sendboth("#OUTE_SENNICHITE");
-            if (local->color == Color::Black) {
-              local->peer->onmessage("#WIN");
-              remote->send("#LOSE");
-            } else {
-              local->peer->onmessage("#LOSE");
-              remote->send("#WIN");
-            }
-            info.reset();
-            break;
-          }
-        } else {
-          sendboth("#ILLEGAAL_MOVE");
-          local->peer->onmessage("#LOSE");
-          remote->send("#WIN");
-          info.reset();
-        }
-      } else {
-        sendboth("#ILLEGAL_ACTION");
-        local->peer->onmessage("#LOSE");
-        remote->send("#WIN");
-        info.reset();
-      }
-    } else if (msg == "%TORYO") {
-      sendboth("%TORYO," + info->seconds());
-      sendboth("#RESIGN");
-      remote->send("#WIN");
-      local->peer->onmessage("#LOSE");
-      info.reset();
-    } else if (msg == "%CHUDAN") {
-      sendboth("#CHUDAN");
-      info.reset();
-    }
-  }
-#endif
-
   void loop(shared_ptr<RemotePeer> peer) {
     string buffer;
 
@@ -568,7 +405,8 @@ struct CsaServer::Impl {
             break;
           case Match::HandleResult::Terminate:
             peer->match.reset();
-            break;
+            close(peer->socket);
+            return;
           }
         } else {
           if (peer->username.empty() && line.starts_with("LOGIN ")) {
@@ -595,15 +433,6 @@ struct CsaServer::Impl {
     }
   }
 
-//  void setLocal(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand) {
-//    Local l;
-//    l.peer = local;
-//    l.color = color;
-//    l.handicap = h;
-//    l.hand = hand;
-//    this->local = l;
-//  }
-
   optional<int> getCurrentPort() const {
     if (socket == -1) {
       return nullopt;
@@ -612,11 +441,15 @@ struct CsaServer::Impl {
   }
 
   bool isGameReady() const {
-    if (auto r = remote.lock(); r && r->match && r->match->agrees > 1) {
-      return true;
-    } else {
+    auto r = remote.lock();
+    if (!r) {
       return false;
     }
+    lock_guard<recursive_mutex> lk(r->mut);
+    if (!r->match) {
+      return false;
+    }
+    return r->match->agrees > 1;
   }
 
   atomic_bool stop;
@@ -631,30 +464,6 @@ struct CsaServer::Impl {
   };
   optional<Local> local;
   weak_ptr<RemotePeer> remote;
-//  weak_ptr<Match> match;
-
-  //  struct Info {
-  //    Info(Handicap h, bool hand) : game(h, hand) {
-  //      gameId = "shogicamera";
-  //      time = chrono::system_clock::now();
-  //    }
-  //
-  //    string seconds() const {
-  //      auto now = chrono::system_clock::now();
-  //      auto elapsed = chrono::duration_cast<chrono::duration<double>>(now - time).count();
-  //      return "T" + to_string(std::max(0, (int)floor(elapsed)));
-  //    }
-  //
-  //    void update() {
-  //      time = chrono::system_clock::now();
-  //    }
-  //
-  //    string gameId;
-  //    Game game;
-  //    chrono::system_clock::time_point time;
-  //    int agrees = 0;
-  //  };
-  //  std::unique_ptr<Info> info;
 };
 
 CsaServer::CsaServer(int port) : impl(make_unique<Impl>(port)) {
@@ -662,8 +471,8 @@ CsaServer::CsaServer(int port) : impl(make_unique<Impl>(port)) {
 
 CsaServer::~CsaServer() {}
 
-shared_ptr<CsaServer::Writer> CsaServer::setLocalPeer_(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand) {
-  return impl->setLocalPeer_(local, color, h, hand);
+shared_ptr<CsaServer::Writer> CsaServer::setLocalPeer(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand) {
+  return impl->setLocalPeer(local, color, h, hand);
 }
 
 void CsaServer::unsetLocalPeer() {

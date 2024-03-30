@@ -1409,7 +1409,7 @@ void Session::startGame(GameStartParameter p) {
     std::weak_ptr<CsaServer> server = p.server;
     auto csa = std::make_shared<CsaAdapter>(server);
     csa->delegate = weak_from_this();
-    auto writer = p.server->setLocalPeer_(csa, p.userColor, p.handicap, p.hand);
+    auto writer = p.server->setLocalPeer(csa, p.userColor, p.handicap, p.hand);
     csa->setWriter(writer);
     PlayerConfig::Remote remote;
     remote.csa = csa;

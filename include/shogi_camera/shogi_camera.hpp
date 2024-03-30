@@ -1445,22 +1445,20 @@ public:
   public:
     virtual ~Peer() {}
     virtual void onmessage(std::string const &line) = 0;
-//    virtual void send(std::string const &line) = 0;
     virtual std::string name() const = 0;
   };
-  
+
   class Writer {
   public:
     virtual ~Writer() {}
-    virtual void send(std::string const&) = 0;
+    virtual void send(std::string const &) = 0;
   };
 
   explicit CsaServer(int port);
   ~CsaServer();
   // 駒渡しにする場合に hand = true
-  std::shared_ptr<Writer> setLocalPeer_(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand);
+  std::shared_ptr<Writer> setLocalPeer(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand);
   void unsetLocalPeer();
-//  void send(std::string const &msg);
   std::optional<int> port() const;
   bool isGameReady() const;
 
