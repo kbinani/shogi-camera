@@ -1445,16 +1445,22 @@ public:
   public:
     virtual ~Peer() {}
     virtual void onmessage(std::string const &line) = 0;
-    virtual void send(std::string const &line) = 0;
+//    virtual void send(std::string const &line) = 0;
     virtual std::string name() const = 0;
+  };
+  
+  class Writer {
+  public:
+    virtual ~Writer() {}
+    virtual void send(std::string const&) = 0;
   };
 
   explicit CsaServer(int port);
   ~CsaServer();
   // 駒渡しにする場合に hand = true
-  void setLocalPeer(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand);
+  std::shared_ptr<Writer> setLocalPeer_(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand);
   void unsetLocalPeer();
-  void send(std::string const &msg);
+//  void send(std::string const &msg);
   std::optional<int> port() const;
   bool isGameReady() const;
 
@@ -1507,9 +1513,10 @@ public:
   std::string name() const override { return "Player"; }
 
   void onmessage(std::string const &) override;
-  void send(std::string const &) override;
-  void resign(Color color);
 
+  void send(std::string const &);
+  void setWriter(std::shared_ptr<CsaServer::Writer> writer);
+  void resign(Color color);
   bool aborted() const { return chudan; }
 
 private:
@@ -1541,6 +1548,8 @@ private:
   std::optional<CsaGameSummary> summary;
   // 初期局面と手番
   std::optional<std::pair<Game, Color>> init;
+  std::shared_ptr<CsaServer::Writer> writer;
+  std::deque<std::string> bufferedCommands;
 };
 
 struct Status;

@@ -11,23 +11,257 @@ using namespace std;
 
 namespace sci {
 
-struct RemotePeer : public CsaServer::Peer {
-  explicit RemotePeer(int socket) : socket(socket) {}
-  void onmessage(std::string const &line) override {}
-  void send(std::string const &line) override {
+namespace {
+
+struct Match {
+  Match(shared_ptr<CsaServer::Peer> local, Color localColor, int remoteSocket, string remoteUsername, Handicap h, bool hand) : local(local), localColor(localColor), remoteSocket(remoteSocket), remoteUsername(remoteUsername), game(h, hand) {
+    gameId = "shogicamera";
+    time = chrono::system_clock::now();
+  }
+
+  string seconds() const {
+    auto now = chrono::system_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::duration<double>>(now - time).count();
+    return "T" + to_string(std::max(0, (int)floor(elapsed)));
+  }
+
+  void update() {
+    time = chrono::system_clock::now();
+  }
+
+  void sendBoth(string const &msg) {
+    sendLocal(msg);
+    sendRemote(msg);
+  }
+
+  void sendRemote(string const &line) {
     string m = line + "\x0a";
-    ::send(socket, m.c_str(), m.size(), 0);
+    ::send(remoteSocket, m.c_str(), m.size(), 0);
     cout << "csa_server:<<< " << line << endl;
   }
-  string name() const override {
-    return username;
+
+  void sendLocal(string const &msg) {
+    local->onmessage(msg);
   }
-  void setName(string const &n) {
-    username = n;
+
+  enum class Source {
+    Remote,
+    Local,
+  };
+  
+  static Source OpponentSource(Source s) {
+    switch (s) {
+      case Source::Remote:
+        return Source::Local;
+      case Source::Local:
+        return Source::Remote;
+    }
   }
+
+  void sendWin(Source win) {
+    switch (win) {
+    case Source::Remote:
+      sendRemote("#WIN");
+      sendLocal("#LOSE");
+      break;
+    case Source::Local:
+      sendRemote("#LOSE");
+      sendLocal("#WIN");
+      break;
+    }
+  }
+
+  void sendWin(Color color) {
+    if (color == localColor) {
+      sendLocal("#WIN");
+      sendRemote("#LOSE");
+    } else {
+      sendLocal("#LOSE");
+      sendRemote("#WIN");
+    }
+  }
+
+  enum class HandleResult {
+    Terminate,
+    Continue,
+  };
+  HandleResult handle(string const &msg, Source d) {
+    if (msg == "AGREE") {
+      agrees++;
+      if (agrees > 1) {
+        start();
+      }
+    } else if (msg == "AGREE " + gameId) {
+      agrees++;
+      if (agrees > 1) {
+        start();
+      }
+    } else if (msg == "REJECT") {
+      switch (d) {
+      case Source::Remote:
+        sendLocal("REJECT:" + gameId + " by " + remoteUsername);
+        break;
+      case Source::Local:
+        sendRemote("REJECT:" + gameId + " by " + local->name());
+        break;
+      }
+      return HandleResult::Terminate;
+    } else if (msg == "REJECT " + gameId) {
+      switch (d) {
+      case Source::Remote:
+        sendLocal("REJECT:" + gameId + " by " + remoteUsername);
+        break;
+      case Source::Local:
+        sendLocal("REJECT:" + gameId + " by " + local->name());
+        break;
+      }
+      return HandleResult::Terminate;
+    } else if (msg == "%CHUDAN") {
+      sendBoth("#CHUDAN");
+      return HandleResult::Terminate;
+    } else if (msg.starts_with("+") || msg.starts_with("-")) {
+      Color color = msg.starts_with("+") ? Color::Black : Color::White;
+      if (game.next() == color) {
+        auto ret = MoveFromCsaMove(msg, game.position);
+        if (holds_alternative<Move>(ret)) {
+          auto mv = get<Move>(ret);
+          switch (game.apply(mv)) {
+          case Game::ApplyResult::Ok:
+            game.moves.push_back(mv);
+            sendBoth(msg + "," + seconds());
+            update();
+            break;
+          case Game::ApplyResult::Illegal:
+            sendBoth("#ILLEGAAL_MOVE");
+            sendWin(OpponentSource(d));
+            return HandleResult::Terminate;
+          case Game::ApplyResult::Repetition:
+            sendBoth("#SENNICHITE");
+            sendBoth("#DRAW");
+            return HandleResult::Terminate;
+          case Game::ApplyResult::CheckRepetitionBlack:
+            sendBoth("#OUTE_SENNICHITE");
+            sendWin(Color::White);
+            return HandleResult::Terminate;
+          case Game::ApplyResult::CheckRepetitionWhite:
+            sendBoth("#OUTE_SENNICHITE");
+            sendWin(Color::Black);
+            return HandleResult::Terminate;
+          }
+        } else {
+          sendBoth("#ILLEGAAL_MOVE");
+          sendWin(OpponentSource(d));
+          return HandleResult::Terminate;
+        }
+      } else {
+        sendBoth("#ILLEGAL_ACTION");
+        sendWin(OpponentSource(d));
+        return HandleResult::Terminate;
+      }
+    } else if (msg == "%TORYO") {
+      sendBoth("%TORYO," + seconds());
+      sendBoth("#RESIGN");
+      sendWin(OpponentSource(d));
+      return HandleResult::Terminate;
+    }
+    return HandleResult::Continue;
+  }
+
+  void start() {
+    sendBoth("START:" + gameId);
+    update();
+  }
+
+  void sendGameSummary() {
+    sendBoth("BEGIN Game_Summary");
+    sendBoth("Protocol_Version:1.2");
+    sendBoth("Protocol_Mode:Server");
+    sendBoth("Format:Shogi 1.0");
+    sendBoth("Game_ID:" + gameId);
+    if (localColor == Color::Black) {
+      sendBoth("Name+:" + local->name());
+      sendBoth("Name-:" + remoteUsername);
+      sendRemote("Your_Turn:-");
+      sendLocal("Your_Turn:+");
+    } else {
+      sendBoth("Name+:" + remoteUsername);
+      sendBoth("Name-:" + local->name());
+      sendRemote("Your_Turn:+");
+      sendLocal("Your_Turn:-");
+    }
+    if (game.handicap_ == Handicap::平手) {
+      sendBoth("To_Move:+");
+    } else {
+      sendBoth("To_Move:-");
+    }
+    sendBoth("BEGIN Position");
+    for (int y = 0; y < 9; y++) {
+      string line = "P" + to_string(y + 1);
+      for (int x = 0; x < 9; x++) {
+        Piece p = game.position.pieces[x][y];
+        Color color = ColorFromPiece(p);
+        if (auto str = CsaStringFromPiece(p, IsPromotedPiece(p) ? 1 : 0); str) {
+          line += (color == Color::Black ? "+" : "-") + *str;
+        } else {
+          line += " * ";
+        }
+      }
+      sendBoth(line);
+    }
+    {
+      string line = "P+";
+      for (auto p : game.handBlack) {
+        line += "00" + *CsaStringFromPiece(static_cast<PieceUnderlyingType>(p), 0);
+      }
+      sendBoth(line);
+    }
+    {
+      string line = "P-";
+      for (auto p : game.handWhite) {
+        line += "00" + *CsaStringFromPiece(static_cast<PieceUnderlyingType>(p), 0);
+      }
+      sendBoth(line);
+    }
+    if (game.handicap_ == Handicap::平手) {
+      sendBoth("+");
+    } else {
+      sendBoth("-");
+    }
+    sendBoth("END Position");
+    sendBoth("END Game_Summary");
+  }
+
+  shared_ptr<CsaServer::Peer> const local;
+  Color const localColor;
+  int const remoteSocket;
+  string const remoteUsername;
+  string gameId;
+  Game game;
+  chrono::system_clock::time_point time;
+  int agrees = 0;
+};
+
+struct RemotePeer {
+  explicit RemotePeer(int socket) : socket(socket) {}
+    void send(std::string const &line) {
+      string m = line + "\x0a";
+      ::send(socket, m.c_str(), m.size(), 0);
+      cout << "csa_server:<<< " << line << endl;
+    }
+  //  string name() const override {
+  //    return username;
+  //  }
+  //  void setName(string const &n) {
+  //    username = n;
+  //  }
+  std::shared_ptr<Match> match;
   int socket;
   string username;
+  std::recursive_mutex mut;
 };
+
+
+} // namespace
 
 struct CsaServer::Impl {
   explicit Impl(int port) : port(port) {
@@ -39,93 +273,45 @@ struct CsaServer::Impl {
     stop = true;
     close(socket);
     if (auto remote = this->remote.lock(); remote) {
-      remote->send("#CHUDAN");
+//      remote->send("#CHUDAN");
       close(remote->socket);
     }
   }
+  
+  struct Writer: public CsaServer::Writer {
+    void send(string const& msg) override {
+      if (auto m = match.lock(); m) {
+        m->handle(msg, Match::Source::Local);
+      }
+    }
+    
+    weak_ptr<Match> match;
+  };
 
-  void setLocalPeer(shared_ptr<Peer> local, Color localColor, Handicap h, bool hand) {
-    Local_ l;
-    l.peer = local;
-    l.color = localColor;
-    l.handicap = h;
-    l.hand = hand;
-    this->local_ = l;
+  shared_ptr<Writer> setLocalPeer_(shared_ptr<Peer> peer, Color localColor, Handicap h, bool hand) {
     if (auto remote = this->remote.lock(); remote) {
-      sendGameSummary(*local, *remote, localColor, h, hand);
+      lock_guard<recursive_mutex> lk(remote->mut);
+      auto m = make_shared<Match>(peer, localColor, remote->socket, remote->username, h, hand);
+      m->sendGameSummary();
+      remote->match = m;
+      auto writer = make_shared<Writer>();
+      writer->match = m;
+      return writer;
+    } else {
+      Local l;
+      l.peer = peer;
+      l.color = localColor;
+      l.handicap = h;
+      l.hand = hand;
+      auto writer = make_shared<Writer>();
+      l.writer = writer;
+      local = l;
+      return writer;
     }
   }
 
   void unsetLocalPeer() {
-    local_ = nullopt;
-  }
-
-  void sendGameSummary(Peer &local, Peer &remote, Color localColor, Handicap h, bool hand) {
-    if (info) {
-      return;
-    }
-    info = make_unique<Info>(h, hand);
-    auto sendboth = [&](string const &msg) {
-      local.onmessage(msg);
-      remote.send(msg);
-    };
-    sendboth("BEGIN Game_Summary");
-    sendboth("Protocol_Version:1.2");
-    sendboth("Protocol_Mode:Server");
-    sendboth("Format:Shogi 1.0");
-    sendboth("Game_ID:" + info->gameId);
-    if (localColor == Color::Black) {
-      sendboth("Name+:" + local.name());
-      sendboth("Name-:" + remote.name());
-      remote.send("Your_Turn:-");
-      local.onmessage("Your_Turn:+");
-    } else {
-      sendboth("Name+:" + remote.name());
-      sendboth("Name-:" + local.name());
-      remote.send("Your_Turn:+");
-      local.onmessage("Your_Turn:-");
-    }
-    if (h == Handicap::平手) {
-      sendboth("To_Move:+");
-    } else {
-      sendboth("To_Move:-");
-    }
-    sendboth("BEGIN Position");
-    Game g(h, hand);
-    for (int y = 0; y < 9; y++) {
-      string line = "P" + to_string(y + 1);
-      for (int x = 0; x < 9; x++) {
-        Piece p = g.position.pieces[x][y];
-        Color color = ColorFromPiece(p);
-        if (auto str = CsaStringFromPiece(p, IsPromotedPiece(p) ? 1 : 0); str) {
-          line += (color == Color::Black ? "+" : "-") + *str;
-        } else {
-          line += " * ";
-        }
-      }
-      sendboth(line);
-    }
-    {
-      string line = "P+";
-      for (auto p : g.handBlack) {
-        line += "00" + *CsaStringFromPiece(static_cast<PieceUnderlyingType>(p), 0);
-      }
-      sendboth(line);
-    }
-    {
-      string line = "P-";
-      for (auto p : g.handWhite) {
-        line += "00" + *CsaStringFromPiece(static_cast<PieceUnderlyingType>(p), 0);
-      }
-      sendboth(line);
-    }
-    if (h == Handicap::平手) {
-      sendboth("+");
-    } else {
-      sendboth("-");
-    }
-    sendboth("END Position");
-    sendboth("END Game_Summary");
+    local = nullopt;
   }
 
   void run() {
@@ -187,6 +373,7 @@ struct CsaServer::Impl {
     }
   }
 
+#if 0
   void send(string const &msg) {
     auto remote = this->remote.lock();
     if (!remote) {
@@ -342,18 +529,9 @@ struct CsaServer::Impl {
       info.reset();
     }
   }
+#endif
 
   void loop(shared_ptr<RemotePeer> peer) {
-    auto send = [peer](string const &msg) {
-      peer->send(msg);
-    };
-    auto sendboth = [this, peer](string const &msg) {
-      peer->send(msg);
-      if (local_) {
-        local_->peer->onmessage(msg);
-      }
-    };
-
     string buffer;
 
     while (!stop) {
@@ -371,192 +549,45 @@ struct CsaServer::Impl {
         }
         string line = buffer.substr(offset, found);
         if (line.empty()) {
-          send("");
+          peer->send("");
           continue;
         }
         cout << "csa_server:>>> " << line << endl;
-        lock_guard<recursive_mutex> lock(mut);
-        if (peer->username.empty() && line.starts_with("LOGIN ")) {
-          auto n = line.find(' ', 6);
-          if (n != string::npos) {
-            auto name = line.substr(6, n - 6);
-            send("LOGIN:" + name + " OK");
-            peer->setName(name);
-            if (local_) {
-              sendGameSummary(*local_->peer, *peer, local_->color, local_->handicap, local_->hand);
-            }
-          }
-        } else if (!peer->username.empty() && line == "LOGOUT") {
-          send("LOGOUT:completed");
+        lock_guard<recursive_mutex> lock(peer->mut);
+
+        if (!peer->username.empty() && line == "LOGOUT") {
+          peer->send("LOGOUT:completed");
           close(peer->socket);
           return;
-        } else if (line == "AGREE" && info) {
-          info->agrees++;
-          if (info->agrees > 1) {
-            sendboth("START:" + info->gameId);
-            info->update();
+        }
+
+        auto match = peer->match;
+        if (match) {
+          switch (match->handle(line, Match::Source::Remote)) {
+          case Match::HandleResult::Continue:
+            break;
+          case Match::HandleResult::Terminate:
+            peer->match.reset();
+            break;
           }
-        } else if (info && line == "AGREE " + info->gameId) {
-          info->agrees++;
-          if (info->agrees > 1) {
-            sendboth("START:" + info->gameId);
-            info->update();
-          }
-        } else if (info && line == "REJECT") {
-          if (local_) {
-            local_->peer->onmessage("REJECT:" + info->gameId + " by " + peer->username);
-          }
-          info.reset();
-        } else if (info && line == "REJECT " + info->gameId) {
-          if (local_) {
-            local_->peer->onmessage("REJECT:" + info->gameId + " by " + peer->username);
-          }
-          info.reset();
-        } else if (line == "%CHUDAN") {
-          sendboth("#CHUDAN");
-          info.reset();
-        } else if (line.starts_with("+") && info) {
-          if (info->game.next() == Color::Black) {
-            auto ret = MoveFromCsaMove(line, info->game.position);
-            if (holds_alternative<Move>(ret)) {
-              auto mv = get<Move>(ret);
-              switch (info->game.apply(mv)) {
-              case Game::ApplyResult::Ok:
-                info->game.moves.push_back(mv);
-                sendboth(line + "," + info->seconds());
-                info->update();
-                break;
-              case Game::ApplyResult::Illegal:
-                sendboth("#ILLEGAAL_MOVE");
-                send("#LOSE");
-                if (local_) {
-                  local_->peer->onmessage("#WIN");
+        } else {
+          if (peer->username.empty() && line.starts_with("LOGIN ")) {
+            auto n = line.find(' ', 6);
+            if (n != string::npos) {
+              auto name = line.substr(6, n - 6);
+              peer->send("LOGIN:" + name + " OK");
+              peer->username = name;
+              if (local) {
+                auto m = make_shared<Match>(local->peer, local->color, peer->socket, peer->username, local->handicap, local->hand);
+                if (local->writer) {
+                  local->writer->match = m;
                 }
-                info.reset();
-                break;
-              case Game::ApplyResult::Repetition:
-                sendboth("#SENNICHITE");
-                sendboth("#DRAW");
-                info.reset();
-                break;
-              case Game::ApplyResult::CheckRepetitionBlack:
-                sendboth("#OUTE_SENNICHITE");
-                if (local_) {
-                  if (local_->color == Color::Black) {
-                    local_->peer->onmessage("#LOSE");
-                    send("#WIN");
-                  } else {
-                    local_->peer->onmessage("#WIN");
-                    send("#LOSE");
-                  }
-                }
-                info.reset();
-                break;
-              case Game::ApplyResult::CheckRepetitionWhite:
-                sendboth("#OUTE_SENNICHITE");
-                if (local_) {
-                  if (local_->color == Color::Black) {
-                    local_->peer->onmessage("#WIN");
-                    send("#LOSE");
-                  } else {
-                    local_->peer->onmessage("#LOSE");
-                    send("#WIN");
-                  }
-                }
-                info.reset();
-                break;
+                m->sendGameSummary();
+                peer->match = m;
+                local = nullopt;
               }
-            } else {
-              sendboth("#ILLEGAAL_MOVE");
-              send("#LOSE");
-              if (local_) {
-                local_->peer->onmessage("#WIN");
-              }
-              info.reset();
             }
-          } else {
-            sendboth("#ILLEGAL_ACTION");
-            send("#LOSE");
-            if (local_) {
-              local_->peer->onmessage("#WIN");
-            }
-            info.reset();
           }
-        } else if (line.starts_with("-") && info) {
-          if (info->game.next() == Color::White) {
-            auto ret = MoveFromCsaMove(line, info->game.position);
-            if (holds_alternative<Move>(ret)) {
-              auto mv = get<Move>(ret);
-              switch (info->game.apply(mv)) {
-              case Game::ApplyResult::Ok:
-                info->game.moves.push_back(mv);
-                sendboth(line + "," + info->seconds());
-                info->update();
-                break;
-              case Game::ApplyResult::Illegal:
-                sendboth("#ILLEGAAL_MOVE");
-                send("#LOSE");
-                if (local_) {
-                  local_->peer->onmessage("#WIN");
-                }
-                info.reset();
-                break;
-              case Game::ApplyResult::Repetition:
-                sendboth("#SENNICHITE");
-                sendboth("#DRAW");
-                info.reset();
-                break;
-              case Game::ApplyResult::CheckRepetitionBlack:
-                sendboth("#OUTE_SENNICHITE");
-                if (local_) {
-                  if (local_->color == Color::Black) {
-                    local_->peer->onmessage("#LOSE");
-                    send("#WIN");
-                  } else {
-                    local_->peer->onmessage("#WIN");
-                    send("#LOSE");
-                  }
-                }
-                info.reset();
-                break;
-              case Game::ApplyResult::CheckRepetitionWhite:
-                sendboth("#OUTE_SENNICHITE");
-                if (local_) {
-                  if (local_->color == Color::Black) {
-                    local_->peer->onmessage("#WIN");
-                    send("#LOSE");
-                  } else {
-                    local_->peer->onmessage("#LOSE");
-                    send("#WIN");
-                  }
-                }
-                info.reset();
-                break;
-              }
-            } else {
-              sendboth("#ILLEGAAL_MOVE");
-              send("#LOSE");
-              if (local_) {
-                local_->peer->onmessage("#WIN");
-              }
-              info.reset();
-            }
-          } else {
-            sendboth("#ILLEGAL_ACTION");
-            send("#LOSE");
-            if (local_) {
-              local_->peer->onmessage("#WIN");
-            }
-            info.reset();
-          }
-        } else if (line == "%TORYO" && info) {
-          sendboth("%TORYO," + info->seconds());
-          sendboth("#RESIGN");
-          send("#LOSE");
-          if (local_) {
-            local_->peer->onmessage("#WIN");
-          }
-          info.reset();
         }
         offset = found + 1;
       }
@@ -564,14 +595,14 @@ struct CsaServer::Impl {
     }
   }
 
-  void setLocal(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand) {
-    Local_ l;
-    l.peer = local;
-    l.color = color;
-    l.handicap = h;
-    l.hand = hand;
-    this->local_ = l;
-  }
+//  void setLocal(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand) {
+//    Local l;
+//    l.peer = local;
+//    l.color = color;
+//    l.handicap = h;
+//    l.hand = hand;
+//    this->local = l;
+//  }
 
   optional<int> getCurrentPort() const {
     if (socket == -1) {
@@ -581,47 +612,49 @@ struct CsaServer::Impl {
   }
 
   bool isGameReady() const {
-    if (!info) {
+    if (auto r = remote.lock(); r && r->match && r->match->agrees > 1) {
+      return true;
+    } else {
       return false;
     }
-    return info->agrees > 1;
   }
 
   atomic_bool stop;
   int socket = -1;
   int const port;
-  struct Local_ {
+  struct Local {
     shared_ptr<Peer> peer;
     Color color;
     Handicap handicap;
     bool hand;
+    shared_ptr<Writer> writer;
   };
-  optional<Local_> local_;
+  optional<Local> local;
   weak_ptr<RemotePeer> remote;
-  std::recursive_mutex mut;
+//  weak_ptr<Match> match;
 
-  struct Info {
-    Info(Handicap h, bool hand) : game(h, hand) {
-      gameId = "shogicamera";
-      time = chrono::system_clock::now();
-    }
-
-    string seconds() const {
-      auto now = chrono::system_clock::now();
-      auto elapsed = chrono::duration_cast<chrono::duration<double>>(now - time).count();
-      return "T" + to_string(std::max(0, (int)floor(elapsed)));
-    }
-
-    void update() {
-      time = chrono::system_clock::now();
-    }
-
-    string gameId;
-    Game game;
-    chrono::system_clock::time_point time;
-    int agrees = 0;
-  };
-  std::unique_ptr<Info> info;
+  //  struct Info {
+  //    Info(Handicap h, bool hand) : game(h, hand) {
+  //      gameId = "shogicamera";
+  //      time = chrono::system_clock::now();
+  //    }
+  //
+  //    string seconds() const {
+  //      auto now = chrono::system_clock::now();
+  //      auto elapsed = chrono::duration_cast<chrono::duration<double>>(now - time).count();
+  //      return "T" + to_string(std::max(0, (int)floor(elapsed)));
+  //    }
+  //
+  //    void update() {
+  //      time = chrono::system_clock::now();
+  //    }
+  //
+  //    string gameId;
+  //    Game game;
+  //    chrono::system_clock::time_point time;
+  //    int agrees = 0;
+  //  };
+  //  std::unique_ptr<Info> info;
 };
 
 CsaServer::CsaServer(int port) : impl(make_unique<Impl>(port)) {
@@ -629,16 +662,12 @@ CsaServer::CsaServer(int port) : impl(make_unique<Impl>(port)) {
 
 CsaServer::~CsaServer() {}
 
-void CsaServer::setLocalPeer(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand) {
-  impl->setLocalPeer(local, color, h, hand);
+shared_ptr<CsaServer::Writer> CsaServer::setLocalPeer_(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand) {
+  return impl->setLocalPeer_(local, color, h, hand);
 }
 
 void CsaServer::unsetLocalPeer() {
   impl->unsetLocalPeer();
-}
-
-void CsaServer::send(string const &msg) {
-  impl->send(msg);
 }
 
 optional<int> CsaServer::port() const {

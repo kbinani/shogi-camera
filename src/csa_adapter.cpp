@@ -40,9 +40,19 @@ CsaAdapter::~CsaAdapter() {
 }
 
 void CsaAdapter::send(std::string const &msg) {
-  if (auto server = this->server.lock(); server) {
-    server->send(msg);
+  if (writer) {
+    writer->send(msg);
+  } else {
+    bufferedCommands.push_back(msg);
   }
+}
+
+void CsaAdapter::setWriter(std::shared_ptr<CsaServer::Writer> writer) {
+  this->writer = writer;
+  for (auto const& b : bufferedCommands) {
+    writer->send(b);
+  }
+  bufferedCommands.clear();
 }
 
 std::optional<std::u8string> CsaAdapter::name() {
