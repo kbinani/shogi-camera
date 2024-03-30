@@ -1373,6 +1373,7 @@ void Session::run() {
     if (!stat.stableBoardHistory.empty()) {
       s->stableBoard = stat.stableBoardHistory.back().back().gray;
     }
+    s->error = error;
     this->s = s;
   }
 }
@@ -1470,7 +1471,9 @@ std::optional<std::u8string> Session::name(Color color) {
 }
 
 void Session::csaAdapterDidGetError(std::u8string const &what) {
-  // TODO:
+  if (error.empty()) {
+    error = what;
+  }
 }
 
 void Session::csaAdapterDidFinishGame(GameResult result, GameResultReason reason) {

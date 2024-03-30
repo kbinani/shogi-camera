@@ -1636,6 +1636,7 @@ struct Status {
   std::deque<std::map<std::pair<int, int>, std::set<std::shared_ptr<Lattice>>>> clusters;
   std::optional<bool> yourTurnFirst;
   bool aborted = false;
+  std::u8string error;
 };
 
 // 盤面画像.
@@ -1786,6 +1787,7 @@ private:
   std::shared_ptr<PlayerConfig> playerConfig;
   std::shared_ptr<Players> players;
   std::optional<std::future<std::pair<Color, std::optional<Move>>>> next;
+  std::u8string error;
 };
 
 class Img {

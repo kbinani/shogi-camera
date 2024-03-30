@@ -29,6 +29,7 @@ class GameView: UIView {
   private var stableBoardLayer: StableBoardLayer?
   private var pieceBookView: UIImageView?
   private var readYourTurn = false
+  private var readError = false
   private var server: sci.CsaServerWrapper?
   private var boardOverlay: UILabel?
 
@@ -38,15 +39,23 @@ class GameView: UIView {
         return
       }
       if case .unavailable = wifiConnectivity, server != nil {
-        reader?.playError()
-        let controller = UIAlertController(title: "エラー", message: "WiFi がオフラインになりました", preferredStyle: .alert)
-        controller.addAction(.init(title: "OK", style: .default))
-        delegate?.gameView(self, presentViewController: controller)
+        notifyError(message: "WiFi がオフラインになりました")
         server = nil
         analyzer.stopGame()
         delegate?.gameViewDidAbort(self, server: nil)
       }
     }
+  }
+
+  private func notifyError(message: String) {
+    guard !readError else {
+      return
+    }
+    readError = true
+    reader?.playError()
+    let controller = UIAlertController(title: "エラー", message: message, preferredStyle: .alert)
+    controller.addAction(.init(title: "OK", style: .default))
+    delegate?.gameView(self, presentViewController: controller)
   }
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
@@ -86,6 +95,10 @@ class GameView: UIView {
           return
         }
         guard let server else {
+          timer.invalidate()
+          return
+        }
+        guard !readError else {
           timer.invalidate()
           return
         }
@@ -277,6 +290,10 @@ class GameView: UIView {
 
   private func updateReader(_ oldValue: sci.Status?) {
     guard let status else {
+      return
+    }
+    if !status.error.empty(), !readError {
+      notifyError(message: sci.Utility.CFStringFromU8String(status.error).takeRetainedValue() as String)
       return
     }
     if let yourTurnFirst = status.yourTurnFirst.value, !readYourTurn {
