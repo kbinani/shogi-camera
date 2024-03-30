@@ -260,14 +260,10 @@ class GameView: UIView {
       }
       last = move.to
     }
-    if lines.count % 2 == 0 {
-      if status.blackResign {
-        lines.append("▲投了")
-      }
-    } else {
-      if status.whiteResign {
-        lines.append("△投了")
-      }
+    if status.blackResign {
+      lines.append("▲投了")
+    } else if status.whiteResign {
+      lines.append("△投了")
     }
     if status.aborted && !status.blackResign && !status.whiteResign {
       lines.append("中断")
