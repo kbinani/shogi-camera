@@ -12,6 +12,8 @@ voices=(
   "m_Aborted"
   "m_Error"
   "m_Repetition"
+  "m_WinByIllegal"
+  "m_LoseByIllegal"
 
   "sq_1_1"
   "sq_1_2"
