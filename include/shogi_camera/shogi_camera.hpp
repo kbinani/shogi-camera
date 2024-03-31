@@ -1293,6 +1293,10 @@ struct CsaPositionReceiver {
   std::map<int, std::string> ranks;
   std::map<std::tuple<Color, int, int>, PieceUnderlyingType> pieces;
   std::optional<Color> next;
+  std::deque<PieceType> handBlack;
+  std::deque<PieceType> handWhite;
+  bool blackAL = false;
+  bool whiteAL = false;
   bool error = false;
 
   std::optional<std::pair<Game, Color>> validate() const;

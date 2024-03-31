@@ -167,7 +167,33 @@ void CsaAdapter::onmessage(string const &msg) {
           positionReceiver.error = true;
           break;
         }
-        auto type = PieceTypeFromCsaString(m.substr(2));
+        auto typeStr = m.substr(2, 2);
+        m = m.substr(4);
+        if ((f == 0 && r != 0) || (f != 0 && r == 0)) {
+          positionReceiver.error = true;
+          break;
+        }
+        if (f != 0 && r != 0 && typeStr == "AL") {
+          positionReceiver.error = true;
+          break;
+        }
+        if (f == 0 && r == 0 && typeStr == "AL") {
+          if (color == Color::Black) {
+            positionReceiver.blackAL = true;
+          } else {
+            positionReceiver.whiteAL = true;
+          }
+          continue;
+        }
+        auto type = PieceTypeFromCsaString(typeStr);
+        if (f == 0 && r == 0) {
+          if (color == Color::Black) {
+            positionReceiver.handBlack.push_back(PieceTypeFromPiece(*type));
+          } else {
+            positionReceiver.handWhite.push_back(PieceTypeFromPiece(*type));
+          }
+          continue;
+        }
         if (!type) {
           positionReceiver.error = true;
           break;
@@ -404,26 +430,26 @@ optional<pair<Game, Color>> CsaPositionReceiver::validate() const {
       g.position.pieces[x][y] = 0;
     }
   }
-  multiset<Piece> box;
+  multiset<PieceType> box_;
   for (auto color : {Color::Black, Color::White}) {
     for (int i = 0; i < 9; i++) {
-      box.insert(MakePiece(color, PieceType::Pawn));
+      box_.insert(PieceType::Pawn);
     }
     for (int i = 0; i < 2; i++) {
-      box.insert(MakePiece(color, PieceType::Lance));
-      box.insert(MakePiece(color, PieceType::Knight));
-      box.insert(MakePiece(color, PieceType::Silver));
-      box.insert(MakePiece(color, PieceType::Gold));
+      box_.insert(PieceType::Lance);
+      box_.insert(PieceType::Knight);
+      box_.insert(PieceType::Silver);
+      box_.insert(PieceType::Gold);
     }
-    box.insert(MakePiece(color, PieceType::Rook));
-    box.insert(MakePiece(color, PieceType::Bishop));
-    box.insert(MakePiece(color, PieceType::King));
+    box_.insert(PieceType::Rook);
+    box_.insert(PieceType::Bishop);
+    box_.insert(PieceType::King);
   }
   if (i) {
     if (!i->starts_with("PI")) {
       return nullopt;
     }
-    box.clear();
+    box_.clear();
     u8string r = (char8_t const *)i->substr(2).c_str();
     while (r.size() >= 4) {
       auto p = r.substr(0, 4);
@@ -453,7 +479,7 @@ optional<pair<Game, Color>> CsaPositionReceiver::validate() const {
         return nullopt;
       }
       g.position.pieces[sq->file][sq->rank] = 0;
-      box.insert(pc);
+      box_.insert(type);
       r = r.substr(4);
     }
   } else {
@@ -488,11 +514,11 @@ optional<pair<Game, Color>> CsaPositionReceiver::validate() const {
         return nullopt;
       }
       Piece pc = static_cast<PieceUnderlyingType>(color) | static_cast<PieceUnderlyingType>(*type);
-      auto found = box.find(pc);
-      if (found == box.end()) {
+      auto found = box_.find(PieceTypeFromPiece(Unpromote(*type)));
+      if (found == box_.end()) {
         return nullopt;
       }
-      box.erase(found);
+      box_.erase(found);
       if (g.position.pieces[x][rank] != 0) {
         return nullopt;
       }
@@ -500,24 +526,8 @@ optional<pair<Game, Color>> CsaPositionReceiver::validate() const {
     }
   }
   if (!pieces.empty()) {
-    bool blackAL = false;
-    bool whiteAL = false;
     for (auto const &it : pieces) {
       auto [color, f, r] = it.first;
-      if (f == 0 && r == 0) {
-        if (color == Color::Black) {
-          if (blackAL) {
-            return nullopt;
-          }
-          blackAL = true;
-        } else {
-          if (whiteAL) {
-            return nullopt;
-          }
-          whiteAL = true;
-        }
-        continue;
-      }
       if (f < 1 || 9 < f || r < 1 || 9 < r) {
         return nullopt;
       }
@@ -525,35 +535,46 @@ optional<pair<Game, Color>> CsaPositionReceiver::validate() const {
       File file = static_cast<File>(9 - f);
       Rank rank = static_cast<Rank>(r - 1);
       Piece pc = static_cast<PieceUnderlyingType>(color) | piece;
-      auto found = box.find(Unpromote(pc));
-      if (found == box.end()) {
+      auto found = box_.find(PieceTypeFromPiece(pc));
+      if (found == box_.end()) {
         return nullopt;
       }
       if (g.position.pieces[file][rank] != 0) {
         return nullopt;
       }
       g.position.pieces[file][rank] = pc;
-      box.erase(found);
+      box_.erase(found);
     }
-    if (box.contains(MakePiece(Color::Black, PieceType::King))) {
+  }
+  if (box_.contains(PieceType::King)) {
+    return nullopt;
+  }
+  for (auto const &it : handBlack) {
+    auto found = box_.find(it);
+    if (found == box_.end()) {
       return nullopt;
     }
-    if (box.contains(MakePiece(Color::White, PieceType::King))) {
+    g.handBlack.push_back(it);
+    box_.erase(found);
+  }
+  for (auto const &it : handWhite) {
+    auto found = box_.find(it);
+    if (found == box_.end()) {
       return nullopt;
     }
-    if (blackAL) {
-      for (auto const &it : box) {
-        if (ColorFromPiece(it) == Color::Black) {
-          g.handBlack.push_back(PieceTypeFromPiece(it));
-        }
-      }
+    g.handWhite.push_back(it);
+    box_.erase(found);
+  }
+  if (blackAL && whiteAL) {
+    return nullopt;
+  }
+  if (blackAL) {
+    for (auto const &it : box_) {
+      g.handBlack.push_back(it);
     }
-    if (whiteAL) {
-      for (auto const &it : box) {
-        if (ColorFromPiece(it) == Color::White) {
-          g.handBlack.push_back(PieceTypeFromPiece(it));
-        }
-      }
+  } else if (whiteAL) {
+    for (auto const &it : box_) {
+      g.handWhite.push_back(it);
     }
   }
   return make_pair(g, *next);
