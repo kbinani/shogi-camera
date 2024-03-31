@@ -133,7 +133,7 @@ struct Match {
             update();
             break;
           case Game::ApplyResult::Illegal:
-            sendBoth("#ILLEGAAL_MOVE");
+            sendBoth("#ILLEGAL_MOVE");
             sendWin(OpponentSource(d));
             return HandleResult::Terminate;
           case Game::ApplyResult::Repetition:
@@ -150,7 +150,7 @@ struct Match {
             return HandleResult::Terminate;
           }
         } else {
-          sendBoth("#ILLEGAAL_MOVE");
+          sendBoth("#ILLEGAL_MOVE");
           sendWin(OpponentSource(d));
           return HandleResult::Terminate;
         }
