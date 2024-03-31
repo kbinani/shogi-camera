@@ -161,6 +161,7 @@ class StartView: UIView {
     handicapButton.showsMenuAsPrimaryAction = true
     handicapButton.setImage(.init(systemName: "chevron.down"), for: .normal)
     handicapButton.tintColor = .white
+    handicapButton.semanticContentAttribute = .forceRightToLeft
     handicapButton.minimumHeight = 36
     self.addSubview(handicapButton)
     self.handicapButton = handicapButton
