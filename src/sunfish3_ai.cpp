@@ -301,7 +301,6 @@ struct Sunfish3AI::Impl {
       }
       mv.decideSuffix(p);
       p.apply(mv, handBlack, handWhite);
-      cout << (char const *)backup.c_str() << " => " << (char const *)StringFromMoveWithOptionalLast(mv, last).c_str() << endl;
       auto smove = SunfishMoveFromMove(mv);
       if (!smove) {
         cout << "sunfish 形式に変換できない" << endl;
