@@ -1519,6 +1519,7 @@ public:
 
 private:
   void error(std::u8string const &what);
+  void notifyResult();
 
 public:
   std::weak_ptr<Delegate> delegate;
@@ -1529,10 +1530,10 @@ private:
   std::deque<std::string> stack;
   std::string current;
   bool started = false;
-  std::atomic_bool finished = false;
   bool rejected = false;
+  std::optional<GameResult> result;
   std::optional<GameResultReason> reason;
-  std::atomic_bool chudan = false;
+  bool resultNotified;
   std::map<Color, bool> resignSent;
 
   std::condition_variable cv;
@@ -1688,7 +1689,12 @@ struct Statistics {
 
   std::deque<BoardImage> boardHistory;
   std::deque<std::array<BoardImage, 3>> stableBoardHistory;
-  void push(cv::Mat const &boardGray, cv::Mat const &boardFullcolor, Status &s, Game &g, std::vector<Move> &detected, bool detectMove);
+  std::optional<Status::Result> push(cv::Mat const &boardGray,
+                                     cv::Mat const &boardFullcolor,
+                                     Status &s,
+                                     Game &g,
+                                     std::vector<Move> &detected,
+                                     bool detectMove);
   // 盤面画像を180度回転してから盤面認識処理すべき場合に true.
   bool rotate = false;
 

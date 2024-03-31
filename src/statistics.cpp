@@ -236,17 +236,22 @@ void Statistics::update(Status const &s) {
   }
 }
 
-void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s, Game &g, std::vector<Move> &detected, bool detectMove) {
+std::optional<Status::Result> Statistics::push(cv::Mat const &board,
+                                               cv::Mat const &fullcolor,
+                                               Status &s,
+                                               Game &g,
+                                               std::vector<Move> &detected,
+                                               bool detectMove) {
   using namespace std;
   if (board.size().area() <= 0) {
-    return;
+    return nullopt;
   }
   BoardImage bi;
   bi.gray = board;
   bi.fullcolor = fullcolor;
   boardHistory.push_back(bi);
   if (boardHistory.size() == 1) {
-    return;
+    return nullopt;
   }
   int constexpr stableThresholdFrames = 3;
   int constexpr stableThresholdMoves = 3;
@@ -267,12 +272,12 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
     boardHistory.clear();
     boardHistory.push_back(bi);
     moveCandidateHistory.clear();
-    return;
+    return nullopt;
   }
   // 直前の stable board がある場合, stable board と
   if (boardHistory.size() < stableThresholdFrames) {
     // まだ stable じゃない.
-    return;
+    return nullopt;
   }
   // stable になったと判定する. 直近 3 フレームを stableBoardHistory の候補とする.
   array<BoardImage, 3> history;
@@ -284,7 +289,7 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
     // 最初の stable board なので登録するだけ.
     stableBoardHistory.push_back(history);
     boardHistory.clear();
-    return;
+    return nullopt;
   }
   // 直前の stable board の各フレームと比較して, 変動したマス目が有るかどうか判定する.
   array<BoardImage, 3> &last = stableBoardHistory.back();
@@ -315,12 +320,12 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
         cout << "stableBoardHistoryをリセット" << endl;
       }
     }
-    return;
+    return nullopt;
   }
   // changeset 内の変化位置が全て同じ部分を指しているか確認する. 違っていれば stable とはみなせない.
   for (int i = 1; i < changeset.size(); i++) {
     if (!IsIdentical(changeset[0], changeset[i])) {
-      return;
+      return nullopt;
     }
   }
 
@@ -329,7 +334,7 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
   s.boardReady = stableBoardInitialReadyCounter > kStableBoardCounterThreshold;
 
   if (!detectMove) {
-    return;
+    return nullopt;
   }
   // index 番目の手.
   size_t const index = detected.size();
@@ -351,19 +356,19 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
                                s,
                                *pool);
   if (!move) {
-    return;
+    return nullopt;
   }
   moveCandidateHistory.push_back(*move);
   for (Move const &m : moveCandidateHistory) {
     if (m != *move) {
       moveCandidateHistory.clear();
       moveCandidateHistory.push_back(*move);
-      return;
+      return nullopt;
     }
   }
   if (moveCandidateHistory.size() < stableThresholdMoves) {
     // stable と判定するにはまだ足りない.
-    return;
+    return nullopt;
   }
 
   // move が確定した
@@ -399,7 +404,7 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
     if (*move != g.moves.back()) {
       s.wrongMove = true;
       cout << "AIの示した手と違う手が指されている" << endl;
-      return;
+      return nullopt;
     }
   } else {
     g.moves.push_back(*move);
@@ -407,6 +412,7 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
   s.wrongMove = false;
   stableBoardHistory.push_back(history);
   detected.push_back(*move);
+  optional<Status::Result> ret;
   switch (g.apply(*move)) {
   case Game::ApplyResult::Ok:
     break;
@@ -419,36 +425,37 @@ void Statistics::push(cv::Mat const &board, cv::Mat const &fullcolor, Status &s,
         r.result = GameResult::BlackWin;
       }
       r.reason = GameResultReason::IllegalAction;
-      s.result = r;
+      ret = r;
     }
-    return;
+    break;
   case Game::ApplyResult::Repetition:
     if (!s.result) {
       Status::Result r;
       r.result = GameResult::Abort;
       r.reason = GameResultReason::Repetition;
-      s.result = r;
+      ret = r;
     }
-    return;
+    break;
   case Game::ApplyResult::CheckRepetitionBlack:
     if (!s.result) {
       Status::Result r;
       r.result = GameResult::WhiteWin;
       r.reason = GameResultReason::CheckRepetition;
-      s.result = r;
+      ret = r;
     }
-    return;
+    break;
   case Game::ApplyResult::CheckRepetitionWhite:
     if (!s.result) {
       Status::Result r;
       r.result = GameResult::BlackWin;
       r.reason = GameResultReason::CheckRepetition;
-      s.result = r;
+      ret = r;
     }
-    return;
+    break;
   }
   book->update(g.position, board, s);
   cout << g.moves.size() << ":" << (char const *)StringFromMoveWithOptionalLast(*move, lastMoveTo).c_str() << endl;
+  return ret;
 }
 
 std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardBeforeColor,

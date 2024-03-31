@@ -49,7 +49,7 @@ void CsaAdapter::send(std::string const &msg) {
 
 void CsaAdapter::setWriter(std::shared_ptr<CsaServer::Writer> writer) {
   this->writer = writer;
-  for (auto const& b : bufferedCommands) {
+  for (auto const &b : bufferedCommands) {
     writer->send(b);
   }
   bufferedCommands.clear();
@@ -187,7 +187,7 @@ void CsaAdapter::onmessage(string const &msg) {
       started = true;
     } else if (auto reject = Take(msg, "REJECT"); reject) {
       rejected = true;
-    } else if (started && !finished) {
+    } else if (started && !resultNotified) {
       if ((msg.starts_with("+") || msg.starts_with("-")) && msg.size() >= 7) {
         auto mv = MoveFromCsaMove(msg, game.position);
         if (holds_alternative<Move>(mv)) {
@@ -200,35 +200,34 @@ void CsaAdapter::onmessage(string const &msg) {
             break;
           }
           case Game::ApplyResult::Illegal:
-            finished = true;
-            if (auto d = delegate.lock(); d && color_) {
+            if (color_) {
               if (*color_ == Color::Black) {
-                d->csaAdapterDidFinishGame(GameResult::WhiteWin, GameResultReason::IllegalAction);
+                result = GameResult::WhiteWin;
+                reason = GameResultReason::IllegalAction;
               } else {
-                d->csaAdapterDidFinishGame(GameResult::BlackWin, GameResultReason::IllegalAction);
+                result = GameResult::BlackWin;
+                reason = GameResultReason::IllegalAction;
               }
+              notifyResult();
             }
             cv.notify_all();
             break;
           case Game::ApplyResult::Repetition:
-            finished = true;
-            if (auto d = delegate.lock(); d) {
-              d->csaAdapterDidFinishGame(GameResult::Abort, GameResultReason::Repetition);
-            }
+            result = GameResult::Abort;
+            reason = GameResultReason::Repetition;
+            notifyResult();
             cv.notify_all();
             break;
           case Game::ApplyResult::CheckRepetitionBlack:
-            finished = true;
-            if (auto d = delegate.lock(); d) {
-              d->csaAdapterDidFinishGame(GameResult::WhiteWin, GameResultReason::CheckRepetition);
-            }
+            result = GameResult::WhiteWin;
+            reason = GameResultReason::CheckRepetition;
+            notifyResult();
             cv.notify_all();
             break;
           case Game::ApplyResult::CheckRepetitionWhite:
-            finished = true;
-            if (auto d = delegate.lock(); d) {
-              d->csaAdapterDidFinishGame(GameResult::BlackWin, GameResultReason::CheckRepetition);
-            }
+            result = GameResult::BlackWin;
+            reason = GameResultReason::CheckRepetition;
+            notifyResult();
             cv.notify_all();
             break;
           }
@@ -237,38 +236,59 @@ void CsaAdapter::onmessage(string const &msg) {
           return;
         }
       } else if (msg.starts_with("#WIN")) {
-        finished = true;
-        if (auto d = delegate.lock(); d && color_) {
-          GameResultReason r = reason ? *reason : GameResultReason::Resign;
+        if (color_) {
           if (*color_ == Color::Black) {
-            d->csaAdapterDidFinishGame(GameResult::WhiteWin, r);
+            result = GameResult::WhiteWin;
           } else {
-            d->csaAdapterDidFinishGame(GameResult::BlackWin, r);
+            result = GameResult::BlackWin;
           }
+          notifyResult();
         }
         cv.notify_all();
       } else if (msg.starts_with("#LOSE")) {
-        finished = true;
-        if (auto d = delegate.lock(); d && color_) {
-          GameResultReason r = reason ? *reason : GameResultReason::Resign;
+        if (color_) {
           if (*color_ == Color::Black) {
-            d->csaAdapterDidFinishGame(GameResult::BlackWin, r);
+            result = GameResult::BlackWin;
           } else {
-            d->csaAdapterDidFinishGame(GameResult::WhiteWin, r);
+            result = GameResult::WhiteWin;
           }
+          notifyResult();
         }
         cv.notify_all();
       } else if (msg.starts_with("#CHUDAN")) {
-        finished = true;
-        chudan = true;
-        if (auto d = delegate.lock(); d) {
-          d->csaAdapterDidFinishGame(GameResult::Abort, GameResultReason::Abort);
-        }
+        result = GameResult::Abort;
+        reason = GameResultReason::Abort;
+        notifyResult();
         cv.notify_all();
-      } else if (msg.starts_with("#RESIGN") || msg.starts_with("#%TORYO,")) {
+      } else if (msg.starts_with("#RESIGN") || msg.starts_with("%TORYO,")) {
         reason = GameResultReason::Resign;
+        notifyResult();
+      } else if (msg == "#OUTE_SENNICHITE") {
+        reason = GameResultReason::CheckRepetition;
+        notifyResult();
+      } else if (msg == "#SENNICHITE") {
+        reason = GameResultReason::Repetition;
+        notifyResult();
+      } else if (msg == "#DRAW") {
+        // TODO: GameResult::Draw
+        result = GameResult::Abort;
+        notifyResult();
+        cv.notify_all();
       }
     }
+  }
+}
+
+void CsaAdapter::notifyResult() {
+  if (resultNotified) {
+    return;
+  }
+  if (!result || !reason) {
+    return;
+  }
+  resultNotified = true;
+  if (auto d = delegate.lock(); d) {
+    d->csaAdapterDidFinishGame(*result, *reason);
   }
 }
 
@@ -302,7 +322,7 @@ optional<Move> CsaAdapter::next(Position const &p, Color next, vector<Move> cons
   }
   unique_lock<mutex> lock(mut);
   cv.wait(lock, [&]() {
-    return this->moves.size() == moves.size() + 1 || stopSignal || finished || chudan;
+    return this->moves.size() == moves.size() + 1 || stopSignal || result;
   });
   Move mv = this->moves.back();
   lock.unlock();

@@ -1265,8 +1265,7 @@ void Session::run() {
     auto s = std::make_shared<Status>();
     s->stableBoardMaxSimilarity = BoardImage::kStableBoardMaxSimilarity;
     s->stableBoardThreshold = BoardImage::kStableBoardThreshold;
-    s->blackResign = this->s->blackResign;
-    s->whiteResign = this->s->whiteResign;
+    s->result = this->s->result;
     s->boardReady = this->s->boardReady;
     s->wrongMove = this->s->wrongMove;
     s->boardDirection = this->s->boardDirection;
@@ -1287,11 +1286,6 @@ void Session::run() {
           mv->decideSuffix(game.position);
           game.moves.push_back(*mv);
         } else {
-          if (color == Color::Black) {
-            s->blackResign = true;
-          } else {
-            s->whiteResign = true;
-          }
           resign(color);
         }
         next = nullopt;
@@ -1339,12 +1333,12 @@ void Session::run() {
         }
       }
     }
-    stat.push(s->boardWarpedGray, s->boardWarpedColor, *s, game, detected, players != nullptr);
+    auto ret = stat.push(s->boardWarpedGray, s->boardWarpedColor, *s, game, detected, players != nullptr);
     if (players) {
       if (detected.size() == game.moves.size()) {
         if (game.next() == Color::Black) {
           // 次が先手番
-          if (players->black && !s->blackResign && !next) {
+          if (players->black && !s->result && !next) {
             next = async(
                 launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
                   return make_pair(Color::Black, player->next(game.position, Color::Black, game.moves, game.handBlack, game.handWhite));
@@ -1353,7 +1347,7 @@ void Session::run() {
           }
         } else {
           // 次が後手番
-          if (players->white && !s->whiteResign && !next) {
+          if (players->white && !s->result && !next) {
             next = async(
                 launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
                   return make_pair(Color::White, player->next(game.position, Color::White, game.moves, game.handWhite, game.handBlack));
@@ -1374,6 +1368,9 @@ void Session::run() {
       s->stableBoard = stat.stableBoardHistory.back().back().gray;
     }
     s->error = error;
+    if (!s->result && ret) {
+      s->result = ret;
+    }
     this->s = s;
   }
 }
@@ -1495,18 +1492,8 @@ void Session::csaAdapterDidFinishGame(GameResult result, GameResultReason reason
     r.reason = reason;
     s->result = r;
   }
-  switch (result) {
-  case GameResult::BlackWin:
-    resign(Color::White);
-    break;
-  case GameResult::WhiteWin:
-    resign(Color::Black);
-    break;
-  case GameResult::Abort:
-    stop = true;
-    cv.notify_all();
-    break;
-  }
+  stop = true;
+  cv.notify_all();
 }
 
 } // namespace sci
