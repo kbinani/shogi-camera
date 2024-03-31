@@ -192,10 +192,9 @@ void CsaAdapter::onmessage(string const &msg) {
         auto mv = MoveFromCsaMove(msg, game.position);
         if (holds_alternative<Move>(mv)) {
           auto m = get<Move>(mv);
+          lock_guard<mutex> lock(mut);
           switch (game.apply(m)) {
           case Game::ApplyResult::Ok: {
-            lock_guard<mutex> lock(mut);
-            moves.push_back(m);
             cv.notify_all();
             break;
           }

@@ -406,8 +406,6 @@ std::optional<Status::Result> Statistics::push(cv::Mat const &board,
       cout << "AIの示した手と違う手が指されている" << endl;
       return nullopt;
     }
-  } else {
-    g.moves.push_back(*move);
   }
   s.wrongMove = false;
   stableBoardHistory.push_back(history);

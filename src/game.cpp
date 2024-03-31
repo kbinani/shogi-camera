@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+using namespace std;
+
 namespace sci {
 
 Game::ApplyResult Game::apply(Move const &mv) {
@@ -14,9 +16,9 @@ Game::ApplyResult Game::apply(Move const &mv) {
   auto opponent = OpponentColor(mv.color);
   if (position.isInCheck(opponent) && !mv.from && mv.piece == MakePiece(mv.color, PieceType::Pawn)) {
     // 打ち歩による王手. 打ち歩詰めになっていないか確かめる
-    std::deque<Move> moves;
-    Generate(position, opponent, handBlack, handWhite, moves, false);
-    if (moves.empty()) {
+    deque<Move> mvs;
+    Generate(position, opponent, handBlack, handWhite, mvs, false);
+    if (mvs.empty()) {
       // 打ち歩詰め
       return ApplyResult::Illegal;
     }
@@ -45,12 +47,16 @@ Game::ApplyResult Game::apply(Move const &mv) {
   if (count >= 4) {
     return ApplyResult::Repetition;
   }
+  moves.push_back(mv);
   return ApplyResult::Ok;
 }
 
-void Game::Generate(Position const &position, Color color, std::deque<PieceType> const &handBlack, std::deque<PieceType> const &handWhite, std::deque<Move> &moves, bool enablePawnCheckByDrop) {
-  using namespace std;
-
+void Game::Generate(Position const &position,
+                    Color color,
+                    deque<PieceType> const &handBlack,
+                    deque<PieceType> const &handWhite,
+                    deque<Move> &moves,
+                    bool enablePawnCheckByDrop) {
   // 非合法手を含めた全ての手
   deque<Move> all;
 
@@ -219,7 +225,7 @@ void Game::Generate(Position const &position, Color color, std::deque<PieceType>
   moves.swap(all);
 }
 
-void Game::generate(std::deque<Move> &moves) const {
+void Game::generate(deque<Move> &moves) const {
   Color color = next();
   Generate(position, color, handBlack, handWhite, moves, true);
 }

@@ -127,7 +127,6 @@ struct Match {
           auto mv = get<Move>(ret);
           switch (game.apply(mv)) {
           case Game::ApplyResult::Ok:
-            game.moves.push_back(mv);
             sendBoth(msg + "," + seconds());
             update();
             break;
