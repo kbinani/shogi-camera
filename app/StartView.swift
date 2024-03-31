@@ -274,7 +274,6 @@ class StartView: UIView {
             self?.handicapButtonDidChangeHandicap(h)
           })
       }))
-    handicapHandSwitch.isEnabled = handicap != .平手 && handicap != .青空将棋
     let title = "手合割: " + (sci.Utility.CFStringFromU8String(sci.StringFromHandicap(handicap)).takeRetainedValue() as String)
     handicapButton.setTitle(title, for: .normal)
     if handicap == .平手 || handicap == .青空将棋 {
