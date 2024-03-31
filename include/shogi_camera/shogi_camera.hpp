@@ -1871,18 +1871,18 @@ public:
     ptr->startGame(p);
   }
 
-  void startGame(Handicap h, bool hand, int option) {
+  void startGame(Color userColor, Handicap h, bool hand, int option) {
     GameStartParameter p;
-    p.userColor = Color::Black;
+    p.userColor = userColor;
     p.handicap = h;
     p.hand = hand;
     p.option = option;
     ptr->startGame(p);
   }
 
-  void startGame(Handicap h, bool hand, CsaServerWrapper server) {
+  void startGame(Color userColor, Handicap h, bool hand, CsaServerWrapper server) {
     GameStartParameter p;
-    p.userColor = Color::Black;
+    p.userColor = userColor;
     p.handicap = h;
     p.hand = hand;
     p.option = -1;

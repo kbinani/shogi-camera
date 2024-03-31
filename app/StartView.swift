@@ -141,7 +141,6 @@ class StartView: UIView {
     videoOverlay.contentsScale = self.traitCollection.displayScale
 
     let startAsBlackButton = RoundButton(type: .custom)
-    startAsBlackButton.setTitle("先手番で対局開始", for: .normal)
     startAsBlackButton.isEnabled = false
     startAsBlackButton.addTarget(self, action: #selector(startAsBlackButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(startAsBlackButton)
@@ -153,7 +152,6 @@ class StartView: UIView {
       disabled: RoundButton.ColorSet.default.disabled,
       highlighted: .init(title: .white, background: .black)
     )
-    startAsWhiteButton.setTitle("後手番で対局開始", for: .normal)
     startAsWhiteButton.isEnabled = false
     startAsWhiteButton.addTarget(self, action: #selector(startAsWhiteButtonDidTouchUpInside(_:)), for: .touchUpInside)
     self.addSubview(startAsWhiteButton)
@@ -278,6 +276,13 @@ class StartView: UIView {
     handicapHandSwitch.isEnabled = handicap != .平手 && handicap != .青空将棋
     let title = "手合割: " + (sci.Utility.CFStringFromU8String(sci.StringFromHandicap(handicap)).takeRetainedValue() as String)
     handicapButton.setTitle(title, for: .normal)
+    if handicap == .平手 || handicap == .青空将棋 {
+      startAsBlackButton.setTitle("先手番で対局開始", for: .normal)
+      startAsWhiteButton.setTitle("後手番で対局開始", for: .normal)
+    } else {
+      startAsBlackButton.setTitle("下手番で対局開始", for: .normal)
+      startAsWhiteButton.setTitle("上手番で対局開始", for: .normal)
+    }
     setNeedsLayout()
   }
 
@@ -335,29 +340,14 @@ class StartView: UIView {
   }
 
   @objc private func startAsBlackButtonDidTouchUpInside(_ sender: UIButton) {
-    guard let analyzer else {
-      return
-    }
-    if let connection = previewLayer?.connection {
-      analyzer.captureSession.removeConnection(connection)
-    }
-    if csaSwitch.isOn, let server {
-      if handicap == .平手 {
-        analyzer.startGame(userColor: .Black, server: server)
-      } else {
-        analyzer.startGame(handicap: handicap, hand: handicapHandSwitch.isOn, server: server)
-      }
-    } else {
-      if handicap == .平手 {
-        analyzer.startGame(userColor: .Black, option: 0)
-      } else {
-        analyzer.startGame(handicap: handicap, hand: handicapHandSwitch.isOn, option: 0)
-      }
-    }
-    delegate?.startViewDidStartGame(self, with: analyzer, server: server)
+    startGame(userColor: .Black)
   }
 
   @objc private func startAsWhiteButtonDidTouchUpInside(_ sender: UIButton) {
+    startGame(userColor: .White)
+  }
+
+  private func startGame(userColor: sci.Color) {
     guard let analyzer else {
       return
     }
@@ -366,15 +356,15 @@ class StartView: UIView {
     }
     if csaSwitch.isOn, let server {
       if handicap == .平手 {
-        analyzer.startGame(userColor: .White, server: server)
+        analyzer.startGame(userColor: userColor, server: server)
       } else {
-        analyzer.startGame(handicap: handicap, hand: handicapHandSwitch.isOn, server: server)
+        analyzer.startGame(userColor: userColor, handicap: handicap, hand: handicapHandSwitch.isOn, server: server)
       }
     } else {
       if handicap == .平手 {
-        analyzer.startGame(userColor: .White, option: 0)
+        analyzer.startGame(userColor: userColor, option: 0)
       } else {
-        analyzer.startGame(handicap: handicap, hand: handicapHandSwitch.isOn, option: 0)
+        analyzer.startGame(userColor: userColor, handicap: handicap, hand: handicapHandSwitch.isOn, option: 0)
       }
     }
     delegate?.startViewDidStartGame(self, with: analyzer, server: server)
