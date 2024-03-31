@@ -1773,6 +1773,7 @@ public:
   }
   void startGame(GameStartParameter parameter);
   void stopGame();
+  void resign(Color color, Status &s);
   void resign(Color color);
   std::optional<std::u8string> name(Color color);
 

@@ -1257,24 +1257,26 @@ void Session::run() {
     }
     cv::Mat frameColor = queue.front();
     queue.pop_front();
+
+    auto s = std::make_shared<Status>();
+    s->result = this->s->result;
+    s->boardReady = this->s->boardReady;
+    s->wrongMove = this->s->wrongMove;
+    s->boardDirection = this->s->boardDirection;
+    s->yourTurnFirst = this->s->yourTurnFirst;
+    s->aborted = this->s->aborted;
+    s->game = this->game;
+    s->started = this->started;
+
     lock.unlock();
 
     cv::Mat frameGray;
     cv::cvtColor(frameColor, frameGray, cv::COLOR_RGB2GRAY);
 
-    auto s = std::make_shared<Status>();
     s->stableBoardMaxSimilarity = BoardImage::kStableBoardMaxSimilarity;
     s->stableBoardThreshold = BoardImage::kStableBoardThreshold;
-    s->result = this->s->result;
-    s->boardReady = this->s->boardReady;
-    s->wrongMove = this->s->wrongMove;
-    s->boardDirection = this->s->boardDirection;
     s->width = frameGray.size().width;
     s->height = frameGray.size().height;
-    s->yourTurnFirst = this->s->yourTurnFirst;
-    s->aborted = this->s->aborted;
-    s->game = this->game;
-    s->started = this->started;
     Img::FindContours(frameGray, s->contours, s->squares, s->pieces);
     FindBoard(frameGray, *s, stat, game.moves.size());
     stat.update(*s);
@@ -1287,7 +1289,7 @@ void Session::run() {
           mv->decideSuffix(game.position);
           game.moves.push_back(*mv);
         } else {
-          resign(color);
+          resign(color, *s);
         }
         next = nullopt;
       }
@@ -1381,20 +1383,26 @@ void Session::push(cv::Mat const &frame) {
 }
 
 void Session::resign(Color color) {
+  resign(color, *s);
+}
+
+void Session::resign(Color color, Status &s) {
+  std::lock_guard<std::mutex> lock(mut);
+
   if (color == Color::Black) {
-    if (!s->result) {
+    if (!s.result) {
       Status::Result r;
       r.result = GameResult::WhiteWin;
       r.reason = GameResultReason::Resign;
-      s->result = r;
+      s.result = r;
     }
     std::cout << "先手番が投了" << std::endl;
   } else {
-    if (!s->result) {
+    if (!s.result) {
       Status::Result r;
       r.result = GameResult::BlackWin;
       r.reason = GameResultReason::Resign;
-      s->result = r;
+      s.result = r;
     }
     std::cout << "後手番が投了" << std::endl;
   }

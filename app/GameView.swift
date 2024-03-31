@@ -368,30 +368,31 @@ class GameView: UIView {
         reader?.playRepetition()
       case .CheckRepetition:
         reader?.playRepetition()
-      case .IllegalAction, .Resign, .Abort:
+      case .IllegalAction:
+        if let color = analyzer.userColor {
+          switch result.result {
+          case .BlackWin:
+            if color == sci.Color.Black {
+              reader?.playWinByIllegal()
+            } else {
+              reader?.playLoseByIllegal()
+            }
+          case .WhiteWin:
+            if color == sci.Color.White {
+              reader?.playWinByIllegal()
+            } else {
+              reader?.playLoseByIllegal()
+            }
+          default:
+            break
+          }
+        }
+      case .Resign:
         break
+      case .Abort:
+        self.reader?.playAborted()
       @unknown default:
         print("Unknown enum: ", result.reason)
-      }
-      if let color = analyzer.userColor {
-        switch result.result {
-        case .BlackWin:
-          if color == sci.Color.Black {
-            reader?.playWinByIllegal()
-          } else {
-            reader?.playLoseByIllegal()
-          }
-        case .WhiteWin:
-          if color == sci.Color.White {
-            reader?.playWinByIllegal()
-          } else {
-            reader?.playLoseByIllegal()
-          }
-        case .Abort:
-          self.reader?.playAborted()
-        @unknown default:
-          print("Unknown enum: ", result.result)
-        }
       }
     }
   }
