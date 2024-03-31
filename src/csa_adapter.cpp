@@ -195,6 +195,7 @@ void CsaAdapter::onmessage(string const &msg) {
           lock_guard<mutex> lock(mut);
           switch (game.apply(m)) {
           case Game::ApplyResult::Ok: {
+            moves.push_back(m);
             cv.notify_all();
             break;
           }

@@ -47,7 +47,6 @@ Game::ApplyResult Game::apply(Move const &mv) {
   if (count >= 4) {
     return ApplyResult::Repetition;
   }
-  moves.push_back(mv);
   return ApplyResult::Ok;
 }
 

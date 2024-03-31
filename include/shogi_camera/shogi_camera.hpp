@@ -38,8 +38,8 @@ enum class PieceStatus : PieceUnderlyingType {
 };
 
 enum class Color : PieceUnderlyingType {
-  Black = 0b000000, // 先手(下手)
-  White = 0b100000, // 後手(上手)
+  Black = 0b1000000, // 先手(下手)
+  White = 0b0100000, // 後手(上手)
 };
 
 inline Color OpponentColor(Color color) {
@@ -57,7 +57,7 @@ inline Piece MakePiece(Color color, PieceType type, PieceStatus status = PieceSt
 }
 
 inline Color ColorFromPiece(Piece p) {
-  return static_cast<Color>(p & 0b100000);
+  return static_cast<Color>(p & 0b1100000);
 }
 
 inline PieceUnderlyingType RemoveColorFromPiece(Piece p) {
@@ -65,7 +65,7 @@ inline PieceUnderlyingType RemoveColorFromPiece(Piece p) {
 }
 
 inline Piece RemoveStatusFromPiece(Piece p) {
-  return p & 0b101111;
+  return p & 0b1101111;
 }
 
 inline PieceType PieceTypeFromPiece(Piece p) {

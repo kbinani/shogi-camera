@@ -1274,6 +1274,7 @@ void Session::run() {
     s->yourTurnFirst = this->s->yourTurnFirst;
     s->aborted = this->s->aborted;
     s->game = this->game;
+    s->started = this->started;
     Img::FindContours(frameGray, s->contours, s->squares, s->pieces);
     FindBoard(frameGray, *s, stat, game.moves.size());
     stat.update(*s);

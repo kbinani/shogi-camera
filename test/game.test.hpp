@@ -2,7 +2,9 @@ static Game::ApplyResult MustMove(std::string const &msg, Game &g) {
   auto mv = MoveFromCsaMove(msg, g.position);
   REQUIRE(std::holds_alternative<Move>(mv));
   auto m = std::get<Move>(mv);
-  return g.apply(m);
+  auto ret = g.apply(m);
+  g.moves.push_back(m);
+  return ret;
 }
 
 TEST_CASE("game") {

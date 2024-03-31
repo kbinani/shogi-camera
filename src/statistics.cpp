@@ -336,9 +336,7 @@ std::optional<Status::Result> Statistics::push(cv::Mat const &board,
   if (!detectMove) {
     return nullopt;
   }
-  // index 番目の手.
-  size_t const index = detected.size();
-  Color const color = ColorFromIndex(index, g.first);
+  Color const color = ColorFromIndex(detected.size(), g.first);
   CvPointSet const &ch = changeset.front();
   optional<Move> hint;
   if (detected.size() + 1 == g.moves.size()) {
@@ -376,30 +374,33 @@ std::optional<Status::Result> Statistics::push(cv::Mat const &board,
   boardHistory.clear();
 
   optional<Square> lastMoveTo;
-  if (!detected.empty()) {
+  if (detected.empty()) {
+    move->color = g.first;
+
+    // 初手なら画像の上下どちらが先手側か判定する.
+    if ((move->to.rank < Rank::Rank5 && g.first == Color::Black) || (move->to.rank > Rank::Rank5 && g.first == Color::White)) {
+      // キャプチャした画像で先手が上になっている. 以後 180 度回転して処理する.
+      if (move->from) {
+        move->from = move->from->rotated();
+      }
+      move->to = move->to.rotated();
+      move->piece = RemoveColorFromPiece(move->piece) | static_cast<PieceUnderlyingType>(color);
+      for (int i = 0; i < history.size(); i++) {
+        history[i].rotate();
+      }
+      for (int i = 0; i < last.size(); i++) {
+        last[i].rotate();
+      }
+      rotate = true;
+    }
+
+    book->update(g.position, board, s);
+  } else {
     lastMoveTo = detected.back().to;
   }
-  // 初手なら画像の上下どちらが先手側か判定する.
-  if (detected.empty() && ((move->to.rank < 5 && g.first == Color::Black) || (move->to.rank > 5 && g.first == Color::White))) {
-    // キャプチャした画像で先手が上になっている. 以後 180 度回転して処理する.
-    if (move->from) {
-      move->from = move->from->rotated();
-    }
-    move->to = move->to.rotated();
-    move->piece = RemoveColorFromPiece(move->piece) | static_cast<PieceUnderlyingType>(color);
-    for (int i = 0; i < history.size(); i++) {
-      history[i].rotate();
-    }
-    for (int i = 0; i < last.size(); i++) {
-      last[i].rotate();
-    }
-    rotate = true;
-  }
-  if (detected.empty()) {
-    book->update(g.position, board, s);
-  }
   move->decideSuffix(g.position);
-  if (detected.size() + 1 == g.moves.size()) {
+  bool aiHand = detected.size() + 1 == g.moves.size();
+  if (aiHand) {
     // g.moves.back() は AI が生成した手なので, それと合致しているか調べる.
     if (*move != g.moves.back()) {
       s.wrongMove = true;
@@ -413,6 +414,9 @@ std::optional<Status::Result> Statistics::push(cv::Mat const &board,
   optional<Status::Result> ret;
   switch (g.apply(*move)) {
   case Game::ApplyResult::Ok:
+    if (!aiHand) {
+      g.moves.push_back(*move);
+    }
     break;
   case Game::ApplyResult::Illegal:
     if (!s.result) {

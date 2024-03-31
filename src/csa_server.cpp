@@ -14,7 +14,8 @@ namespace sci {
 namespace {
 
 struct Match {
-  Match(shared_ptr<CsaServer::Peer> local, Color localColor, int remoteSocket, string remoteUsername, Handicap h, bool hand) : local(local), localColor(localColor), remoteSocket(remoteSocket), remoteUsername(remoteUsername), game(h, hand) {
+  Match(shared_ptr<CsaServer::Peer> local, Color localColor, int remoteSocket, string remoteUsername, Handicap h, bool hand)
+      : local(local), localColor(localColor), remoteSocket(remoteSocket), remoteUsername(remoteUsername), game(h, hand) {
     gameId = "shogicamera";
     time = chrono::system_clock::now();
   }
@@ -127,6 +128,7 @@ struct Match {
           auto mv = get<Move>(ret);
           switch (game.apply(mv)) {
           case Game::ApplyResult::Ok:
+            game.moves.push_back(mv);
             sendBoth(msg + "," + seconds());
             update();
             break;
