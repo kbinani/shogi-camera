@@ -1590,8 +1590,8 @@ struct Status {
   std::vector<std::shared_ptr<Contour>> contours;
   std::vector<std::shared_ptr<Contour>> squares;
   std::vector<std::shared_ptr<PieceContour>> pieces;
-  int width;
-  int height;
+  int width = -1;
+  int height = -1;
   // 升目の面積
   float squareArea;
   // マス目のアスペクト比. 横長の将棋盤は存在しないと仮定して, 幅/高さ.

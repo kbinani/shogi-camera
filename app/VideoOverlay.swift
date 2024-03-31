@@ -77,13 +77,16 @@ class VideoOverlay: CALayer {
     guard enableDebug, let status else {
       return
     }
+    let size = self.bounds.size
+    let width = CGFloat(status.width)
+    let height = CGFloat(status.height)
+    guard width > 0, height > 0, size.width > 0, size.height > 0 else {
+      return
+    }
     ctx.saveGState()
     defer {
       ctx.restoreGState()
     }
-    let size = self.bounds.size
-    let width = CGFloat(status.width)
-    let height = CGFloat(status.height)
     let scale = min(size.width / height, size.height / width)
     let tx = CGAffineTransform(translationX: -width * 0.5, y: -height * 0.5)
       .concatenating(.init(rotationAngle: CGFloat.pi * 0.5))
