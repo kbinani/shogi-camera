@@ -1515,7 +1515,6 @@ public:
   void send(std::string const &);
   void setWriter(std::shared_ptr<CsaServer::Writer> writer);
   void resign(Color color);
-  bool aborted() const { return chudan; }
 
 private:
   void error(std::u8string const &what);

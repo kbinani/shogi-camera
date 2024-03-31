@@ -1356,11 +1356,6 @@ void Session::run() {
           }
         }
       }
-      if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->black); csa && csa->aborted()) {
-        s->aborted = true;
-      } else if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->white); csa && csa->aborted()) {
-        s->aborted = true;
-      }
     }
     s->waitingMove = detected.size() != game.moves.size();
     s->game = game;
