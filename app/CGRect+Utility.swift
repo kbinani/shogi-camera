@@ -55,4 +55,19 @@ extension CGRect {
     self.size = .init(width: self.width, height: self.height - remove)
     return r
   }
+
+  func layoutHorizontal(views: [UIView], margin: CGFloat) {
+    guard !views.isEmpty else {
+      return
+    }
+    let width = views.reduce(CGFloat(views.count - 1) * margin) { partialResult, view in
+      partialResult + view.intrinsicContentSize.width
+    }
+    var x = self.midX - width / 2
+    for view in views {
+      let size = view.intrinsicContentSize
+      view.frame = .init(x: x, y: self.midY - size.height / 2, width: size.width, height: size.height)
+      x += size.width + margin
+    }
+  }
 }

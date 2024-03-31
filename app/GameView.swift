@@ -192,12 +192,12 @@ class GameView: UIView {
     bounds.expand(-margin, -margin)
 
     var header = bounds.removeFromTop(44)
-    self.abortButton.frame = header.removeFromLeft(self.abortButton.intrinsicContentSize.width + 2 * margin)
+    self.abortButton.frame = header.removeFromLeft(self.abortButton.intrinsicContentSize.width)
     header.removeFromLeft(margin)
     if let debugButton {
-      debugButton.frame = header.removeFromLeft(debugButton.intrinsicContentSize.width + 2 * margin)
+      debugButton.frame = header.removeFromLeft(debugButton.intrinsicContentSize.width)
     }
-    self.resignButton.frame = header.removeFromRight(self.resignButton.intrinsicContentSize.width + 2 * margin)
+    self.resignButton.frame = header.removeFromRight(self.resignButton.intrinsicContentSize.width)
 
     bounds.removeFromTop(margin)
 
@@ -208,7 +208,7 @@ class GameView: UIView {
     self.boardOverlay?.frame = boardBounds
 
     var footer = bounds.removeFromBottom(44)
-    exportKifButton.frame = footer.removeFromLeft(exportKifButton.intrinsicContentSize.width + 2 * margin)
+    exportKifButton.frame = footer.removeFromLeft(exportKifButton.intrinsicContentSize.width)
 
     bounds.removeFromTop(margin)
     bounds.removeFromBottom(margin)

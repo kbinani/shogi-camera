@@ -24,6 +24,10 @@ class StartView: UIView {
   private var csaSwitchLabel: UILabel!
   private var csaAddressLabel: UILabel!
   private var csaHelpButton: UIButton!
+  private var handicapButton: UIButton!
+  private var handicapHandSwitch: UISwitch!
+  private var handicapHandLabel: UILabel!
+
   private var server: sci.CsaServerWrapper?
   private var serverReadyWatchdogTimer: Timer?
   private var wifiConnectivity: WifiConnectivity? {
@@ -35,6 +39,11 @@ class StartView: UIView {
       if case .unavailable = wifiConnectivity, server != nil {
         server = nil
       }
+    }
+  }
+  private var handicap: sci.Handicap = .平手 {
+    didSet {
+      updateHandicapMenu()
     }
   }
 
@@ -60,7 +69,7 @@ class StartView: UIView {
       self.startAsBlackButton.isEnabled = false
       self.startAsWhiteButton.isEnabled = false
     case .waitingStableBoard:
-      self.messageLabel.text = "将棋盤全体が映る位置で固定してください"
+      self.messageLabel.text = "将棋盤全体が映る位置で\n固定してください"
       self.startAsBlackButton.isEnabled = false
       self.startAsWhiteButton.isEnabled = false
     case .ready:
@@ -150,6 +159,23 @@ class StartView: UIView {
     self.addSubview(startAsWhiteButton)
     self.startAsWhiteButton = startAsWhiteButton
 
+    let handicapButton = RoundButton(type: .custom)
+    handicapButton.showsMenuAsPrimaryAction = true
+    handicapButton.setImage(.init(systemName: "chevron.down"), for: .normal)
+    handicapButton.tintColor = .white
+    handicapButton.minimumHeight = 36
+    self.addSubview(handicapButton)
+    self.handicapButton = handicapButton
+
+    let handicapHandSwitch = UISwitch()
+    handicapHandSwitch.backgroundColor = UIColor.lightGray
+    self.addSubview(handicapHandSwitch)
+    self.handicapHandSwitch = handicapHandSwitch
+    let handicapHandLabel = UILabel()
+    handicapHandLabel.text = "駒渡し"
+    self.addSubview(handicapHandLabel)
+    self.handicapHandLabel = handicapHandLabel
+
     let csaSwitch = UISwitch()
     csaSwitch.backgroundColor = UIColor.lightGray
     csaSwitch.isOn = server != nil
@@ -202,6 +228,7 @@ class StartView: UIView {
     self.addSubview(helpButton)
     self.helpButton = helpButton
 
+    updateHandicapMenu()
     self.state = .cameraNotAvailable
     if let session = analyzer?.captureSession {
       analyzer?.delegate = self
@@ -213,6 +240,45 @@ class StartView: UIView {
 
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
+  }
+
+  private func updateHandicapMenu() {
+    let handicaps: [sci.Handicap] = [
+      .平手,
+      .香落ち,
+      .右香落ち,
+      .角落ち,
+      .飛車落ち,
+      .飛香落ち,
+      .二枚落ち,
+      .三枚落ち,
+      .四枚落ち,
+      .五枚落ち左桂,
+      .五枚落ち右桂,
+      .六枚落ち,
+      .七枚落ち左銀,
+      .七枚落ち右銀,
+      .八枚落ち,
+      .トンボ,
+      .九枚落ち左金,
+      .九枚落ち右金,
+      .十枚落ち,
+      .青空将棋,
+    ]
+    handicapButton.menu = UIMenu(
+      options: .displayInline,
+      children: handicaps.map({ h in
+        let title = sci.Utility.CFStringFromU8String(sci.StringFromHandicap(h)).takeRetainedValue() as String
+        return UIAction(
+          title: title, state: h == self.handicap ? .on : .off,
+          handler: { [weak self] _ in
+            self?.handicapButtonDidChangeHandicap(h)
+          })
+      }))
+    handicapHandSwitch.isEnabled = handicap != .平手 && handicap != .青空将棋
+    let title = "手合割: " + (sci.Utility.CFStringFromU8String(sci.StringFromHandicap(handicap)).takeRetainedValue() as String)
+    handicapButton.setTitle(title, for: .normal)
+    setNeedsLayout()
   }
 
   override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -251,29 +317,18 @@ class StartView: UIView {
 
     self.helpButton.frame = .init(x: innerBounds.maxX - helpButtonSize, y: innerBounds.minY, width: helpButtonSize, height: helpButtonSize)
 
+    bounds.removeFromBottom(margin)
     let csaRow1Height = max(csaSwitch.intrinsicContentSize.height, csaSwitchLabel.intrinsicContentSize.height, csaHelpButton.intrinsicContentSize.height)
-    let csaWidth = csaSwitch.intrinsicContentSize.width + margin + csaSwitchLabel.intrinsicContentSize.width + margin + csaHelpButton.intrinsicContentSize.width
-    let csa = bounds.removeFromBottom(csaRow1Height + margin + csaAddressLabel.intrinsicContentSize.height)
-    csaSwitch.frame = .init(
-      x: csa.midX - csaWidth / 2,
-      y: csa.minY,
-      width: csaSwitch.intrinsicContentSize.width,
-      height: csaRow1Height
-    )
+    let csa = bounds.removeFromBottom(csaRow1Height + csaAddressLabel.intrinsicContentSize.height)
+    csa.layoutHorizontal(views: [csaSwitch, csaSwitchLabel, csaHelpButton], margin: margin)
     csaSwitch.layer.cornerRadius = csaSwitch.frame.height / 2
-    csaSwitchLabel.frame = .init(
-      x: csa.midX - csaWidth / 2 + csaSwitch.intrinsicContentSize.width + margin,
-      y: csa.minY,
-      width: csaSwitchLabel.intrinsicContentSize.width,
-      height: csaRow1Height
-    )
-    csaHelpButton.frame = .init(
-      x: csa.midX + csaWidth / 2 - csaHelpButton.intrinsicContentSize.width,
-      y: csa.minY,
-      width: csaHelpButton.intrinsicContentSize.width,
-      height: csaRow1Height
-    )
     csaAddressLabel.frame = .init(x: csa.minX, y: csa.minY + csaRow1Height + margin, width: csa.width, height: csaAddressLabel.intrinsicContentSize.height)
+    bounds.removeFromBottom(margin)
+
+    let handicapHeight = max(handicapButton.intrinsicContentSize.height, handicapHandSwitch.intrinsicContentSize.height, handicapHandLabel.intrinsicContentSize.height)
+    let handicapButtons = bounds.removeFromBottom(handicapHeight)
+    handicapButtons.layoutHorizontal(views: [handicapButton, handicapHandSwitch, handicapHandLabel], margin: margin)
+    handicapHandSwitch.layer.cornerRadius = handicapHandSwitch.frame.height / 2
     bounds.removeFromBottom(margin)
 
     self.messageLabel.frame = bounds
@@ -287,9 +342,17 @@ class StartView: UIView {
       analyzer.captureSession.removeConnection(connection)
     }
     if csaSwitch.isOn, let server {
-      analyzer.startGame(userColor: .Black, server: server)
+      if handicap == .平手 {
+        analyzer.startGame(userColor: .Black, server: server)
+      } else {
+        analyzer.startGame(handicap: handicap, hand: handicapHandSwitch.isOn, server: server)
+      }
     } else {
-      analyzer.startGame(userColor: .Black, option: 0)
+      if handicap == .平手 {
+        analyzer.startGame(userColor: .Black, option: 0)
+      } else {
+        analyzer.startGame(handicap: handicap, hand: handicapHandSwitch.isOn, option: 0)
+      }
     }
     delegate?.startViewDidStartGame(self, with: analyzer, server: server)
   }
@@ -302,9 +365,17 @@ class StartView: UIView {
       analyzer.captureSession.removeConnection(connection)
     }
     if csaSwitch.isOn, let server {
-      analyzer.startGame(userColor: .White, server: server)
+      if handicap == .平手 {
+        analyzer.startGame(userColor: .White, server: server)
+      } else {
+        analyzer.startGame(handicap: handicap, hand: handicapHandSwitch.isOn, server: server)
+      }
     } else {
-      analyzer.startGame(userColor: .White, option: 0)
+      if handicap == .平手 {
+        analyzer.startGame(userColor: .White, option: 0)
+      } else {
+        analyzer.startGame(handicap: handicap, hand: handicapHandSwitch.isOn, option: 0)
+      }
     }
     delegate?.startViewDidStartGame(self, with: analyzer, server: server)
   }
@@ -368,6 +439,10 @@ class StartView: UIView {
           self.serverReadyWatchdogTimer = nil
         }
       })
+  }
+
+  private func handicapButtonDidChangeHandicap(_ handicap: sci.Handicap) {
+    self.handicap = handicap
   }
 }
 

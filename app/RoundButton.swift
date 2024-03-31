@@ -1,6 +1,12 @@
 import UIKit
 
 class RoundButton: UIButton {
+  var minimumHeight: CGFloat = 0 {
+    didSet {
+      invalidateIntrinsicContentSize()
+    }
+  }
+
   struct Color {
     let title: UIColor
     let background: UIColor
@@ -89,5 +95,11 @@ class RoundButton: UIButton {
         right: -imageTitlePadding
       )
     }
+  }
+
+  override var intrinsicContentSize: CGSize {
+    let size = super.intrinsicContentSize
+    let margin: CGFloat = 15
+    return .init(width: size.width + 2 * margin, height: max(size.height, minimumHeight))
   }
 }

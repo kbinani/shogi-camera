@@ -503,7 +503,7 @@ OpenCV
     bounds.expand(-margin, -margin)
 
     var backButton = bounds.removeFromTop(44)
-    self.backButton.frame = backButton.removeFromLeft(self.backButton.intrinsicContentSize.width + 2 * margin)
+    self.backButton.frame = backButton.removeFromLeft(self.backButton.intrinsicContentSize.width)
     bounds.removeFromTop(margin)
     scroll.frame = bounds
 
