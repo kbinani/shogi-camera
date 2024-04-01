@@ -1132,6 +1132,10 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat, size_t moves) 
             swap(topLeft, bottomRight);
             swap(topRight, bottomLeft);
           }
+          s.corners.push_back(*topLeft);
+          s.corners.push_back(*topRight);
+          s.corners.push_back(*bottomRight);
+          s.corners.push_back(*bottomLeft);
 
           stat.outlineTL.push_back(*topLeft);
           stat.outlineTR.push_back(*topRight);

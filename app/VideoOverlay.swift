@@ -180,5 +180,14 @@ class VideoOverlay: CALayer {
       ctx.setStrokeColor(UIColor.green.cgColor)
       ctx.strokePath()
     }
+
+    let colors: [UIColor] = [.red, .green, .blue, .yellow]
+    for i in 0..<min(status.corners.size(), 4) {
+      let c = status.corners[i].cgPoint
+      let color = colors[i]
+      ctx.setFillColor(color.cgColor)
+      ctx.addEllipse(in: .init(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+      ctx.fillPath()
+    }
   }
 }

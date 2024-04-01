@@ -1644,6 +1644,7 @@ struct Status {
   bool aborted = false;
   std::u8string error;
   bool started = false;
+  std::deque<cv::Point2f> corners;
 };
 
 // 盤面画像.
