@@ -50,8 +50,8 @@ void Img::Compare(BoardImage const &before, BoardImage const &after, CvPointSet 
   double sim[9][9];
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
-      cv::Mat pb = Img::PieceROI(b, x, y).clone();
-      cv::Mat pa = Img::PieceROI(a, x, y).clone();
+      cv::Mat pb = Img::PieceROI(b, x, y);
+      cv::Mat pa = Img::PieceROI(a, x, y);
       double s = cv::matchShapes(pb, pa, cv::CONTOURS_MATCH_I1, 0);
       sim[x][y] = s;
       if (similarity) {
