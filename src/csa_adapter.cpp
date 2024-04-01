@@ -178,6 +178,10 @@ void CsaAdapter::onmessage(string const &msg) {
           break;
         }
         if (f == 0 && r == 0 && typeStr == "AL") {
+          if (!m.empty()) {
+            positionReceiver.error = true;
+            break;
+          }
           if (color == Color::Black) {
             positionReceiver.blackAL = true;
           } else {
@@ -186,19 +190,19 @@ void CsaAdapter::onmessage(string const &msg) {
           continue;
         }
         auto type = PieceTypeFromCsaString(typeStr);
+        if (!type) {
+          positionReceiver.error = true;
+          break;
+        }
         if (f == 0 && r == 0) {
           if (color == Color::Black) {
             positionReceiver.handBlack.push_back(PieceTypeFromPiece(*type));
           } else {
             positionReceiver.handWhite.push_back(PieceTypeFromPiece(*type));
           }
-          continue;
+        } else {
+          positionReceiver.pieces[make_tuple(color, f, r)] = *type;
         }
-        if (!type) {
-          positionReceiver.error = true;
-          break;
-        }
-        positionReceiver.pieces[make_tuple(color, f, r)] = *type;
       }
     } else {
       auto rank = atoi(msg.substr(1, 1).c_str());
