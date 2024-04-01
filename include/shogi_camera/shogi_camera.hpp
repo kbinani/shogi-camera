@@ -1649,14 +1649,18 @@ struct Status {
 
 // 盤面画像.
 struct BoardImage {
-  cv::Mat gray;
+  cv::Mat gray_;
   cv::Mat fullcolor;
+  cv::Mat blurGray;
   static constexpr double kStableBoardMaxSimilarity = 0.02;
   static constexpr double kStableBoardThreshold = kStableBoardMaxSimilarity * 0.5;
 
+  using Pack = std::array<BoardImage, 3>;
+
   void rotate() {
-    cv::rotate(gray, gray, cv::ROTATE_180);
+    cv::rotate(gray_, gray_, cv::ROTATE_180);
     cv::rotate(fullcolor, fullcolor, cv::ROTATE_180);
+    cv::rotate(blurGray, blurGray, cv::ROTATE_180);
   }
 };
 

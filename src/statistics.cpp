@@ -192,6 +192,31 @@ void AppendPromotion(Move &mv,
   }
 }
 
+void BlurFile5(BoardImage::Pack &pack, Position const &p) {
+  // 折盤の場合五筋の盤の割れ目の線が顕著だと, Img::Compare で駒の有無の判定が偽陽性となる事がある.
+  // 五筋の空きマスの中央付近に blur を掛けて割れ目の線を弱める.
+  int const x = File::File5;
+  for (BoardImage &bi : pack) {
+    cv::Mat img = bi.gray_.clone();
+    for (int y = 0; y < 9; y++) {
+      if (p.pieces[x][y] != 0) {
+        continue;
+      }
+      auto rect = Img::PieceROIRect(img.size(), x, y);
+      int cx = rect.x + rect.width / 2;
+      int cy = rect.y + rect.height / 2;
+      int w = rect.width * 9 / 10;
+      int h = rect.height * 9 / 10;
+      cv::Rect r(cx - w / 2, cy - h / 2, w, h);
+      auto roi = img(r);
+      cv::Mat blurred;
+      cv::blur(roi, blurred, cv::Size(w, h));
+      blurred.copyTo(img(r));
+    }
+    bi.blurGray = img;
+  }
+}
+
 } // namespace
 
 Statistics::Statistics() : book(std::make_shared<PieceBook>()), pool(std::make_unique<hwm::task_queue>(3)) {
@@ -247,8 +272,9 @@ std::optional<Status::Result> Statistics::push(cv::Mat const &board,
     return nullopt;
   }
   BoardImage bi;
-  bi.gray = board;
+  bi.gray_ = board;
   bi.fullcolor = fullcolor;
+  bi.blurGray = board;
   boardHistory.push_back(bi);
   if (boardHistory.size() == 1) {
     return nullopt;
@@ -280,19 +306,20 @@ std::optional<Status::Result> Statistics::push(cv::Mat const &board,
     return nullopt;
   }
   // stable になったと判定する. 直近 3 フレームを stableBoardHistory の候補とする.
-  array<BoardImage, 3> history;
+  BoardImage::Pack history;
   for (int i = 0; i < history.size(); i++) {
     history[i] = boardHistory.back();
     boardHistory.pop_back();
   }
   if (stableBoardHistory.empty()) {
     // 最初の stable board なので登録するだけ.
+    BlurFile5(history, g.position);
     stableBoardHistory.push_back(history);
     boardHistory.clear();
     return nullopt;
   }
   // 直前の stable board の各フレームと比較して, 変動したマス目が有るかどうか判定する.
-  array<BoardImage, 3> &last = stableBoardHistory.back();
+  BoardImage::Pack &last = stableBoardHistory.back();
   int minChange = 81;
   int maxChange = -1;
   vector<CvPointSet> changeset;
@@ -316,6 +343,7 @@ std::optional<Status::Result> Statistics::push(cv::Mat const &board,
       s.boardReady = false;
       if (stableBoardInitialResetCounter > kStableBoardCounterThreshold) {
         stableBoardHistory.pop_back();
+        BlurFile5(history, g.position);
         stableBoardHistory.push_back(history);
         cout << "stableBoardHistoryをリセット" << endl;
       }
@@ -342,7 +370,7 @@ std::optional<Status::Result> Statistics::push(cv::Mat const &board,
   if (detected.size() + 1 == g.moves.size()) {
     hint = g.moves.back();
   }
-  optional<Move> move = Detect(last.back().gray, last.back().fullcolor,
+  optional<Move> move = Detect(last.back().gray_, last.back().fullcolor,
                                board, fullcolor,
                                ch,
                                g.position,
@@ -409,7 +437,6 @@ std::optional<Status::Result> Statistics::push(cv::Mat const &board,
     }
   }
   s.wrongMove = false;
-  stableBoardHistory.push_back(history);
   detected.push_back(*move);
   optional<Status::Result> ret;
   switch (g.apply(*move)) {
@@ -455,6 +482,8 @@ std::optional<Status::Result> Statistics::push(cv::Mat const &board,
     }
     break;
   }
+  BlurFile5(history, g.position);
+  stableBoardHistory.push_back(history);
   book->update(g.position, board, s);
   cout << g.moves.size() << ":" << (char const *)StringFromMoveWithOptionalLast(*move, lastMoveTo).c_str() << endl;
   return ret;

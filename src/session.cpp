@@ -1367,7 +1367,7 @@ void Session::run() {
     s->waitingMove = detected.size() != game.moves.size();
     s->game = game;
     if (!stat.stableBoardHistory.empty()) {
-      s->stableBoard = stat.stableBoardHistory.back().back().gray;
+      s->stableBoard = stat.stableBoardHistory.back().back().blurGray;
     }
     s->error = error;
     if (!s->result && ret) {
