@@ -210,7 +210,7 @@ void BlurFile5(BoardImage::Pack &pack, Position const &p) {
       cv::Rect r(cx - w / 2, cy - h / 2, w, h);
       auto roi = img(r);
       cv::Mat blurred;
-      cv::blur(roi, blurred, cv::Size(w, h));
+      cv::blur(roi, blurred, cv::Size(3, 3));
       blurred.copyTo(img(r));
     }
     bi.blurGray = img;
