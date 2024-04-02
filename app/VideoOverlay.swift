@@ -189,5 +189,21 @@ class VideoOverlay: CALayer {
       ctx.addEllipse(in: .init(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
       ctx.fillPath()
     }
+
+    #if SHOGI_CAMERA_DEBUG
+      ctx.setStrokeColor(UIColor.red.cgColor)
+      ctx.setLineWidth(1)
+      for p in status.hlines {
+        ctx.move(to: p.first.cgPoint)
+        ctx.addLine(to: p.second.cgPoint)
+        ctx.strokePath()
+      }
+      ctx.setStrokeColor(UIColor.blue.cgColor)
+      for p in status.vlines {
+        ctx.move(to: p.first.cgPoint)
+        ctx.addLine(to: p.second.cgPoint)
+        ctx.strokePath()
+      }
+    #endif
   }
 }

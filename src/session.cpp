@@ -683,7 +683,6 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
       return cv::Vec4f(cos(*angle - fit->slopeOffset), sin(*angle - fit->slopeOffset), -sin(-fit->slopeOffset) * b, cos(-fit->slopeOffset) * b);
     }
 
-  private:
     struct Fit {
       cv::Vec4f slope;
       double slopeOffset;
@@ -1054,6 +1053,40 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
       cout << "b64png(sample_" << cv::format("%04d", cnt) << "_" << index << "):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
     }
 #endif
+  }
+  {
+    cv::Vec4f top(1, 0, 0, 0);
+    cv::Vec4f bottom(1, 0, 0, s.height);
+    cv::Vec4f left(0, 1, 0, 0);
+    cv::Vec4f right(0, 1, s.width, 0);
+    for (auto const &it : hlines.lines) {
+      cv::Vec4f const &line = it.second.line;
+      auto t = Intersection(line, top);
+      auto b = Intersection(line, bottom);
+      if (t && b) {
+        s.hlines.push_back(make_pair(*t, *b));
+        continue;
+      }
+      auto l = Intersection(line, left);
+      auto r = Intersection(line, right);
+      if (l && r) {
+        s.hlines.push_back(make_pair(*l, *r));
+      }
+    }
+    for (auto const &it : vlines.lines) {
+      cv::Vec4f const &line = it.second.line;
+      auto t = Intersection(line, top);
+      auto b = Intersection(line, bottom);
+      if (t && b) {
+        s.vlines.push_back(make_pair(*t, *b));
+        continue;
+      }
+      auto l = Intersection(line, left);
+      auto r = Intersection(line, right);
+      if (l && r) {
+        s.vlines.push_back(make_pair(*l, *r));
+      }
+    }
   }
   if (!s.clusters.empty()) {
     auto const &largest = s.clusters[0];

@@ -1645,6 +1645,8 @@ struct Status {
   std::u8string error;
   bool started = false;
   std::deque<cv::Point2f> corners;
+  std::deque<std::pair<cv::Point2f, cv::Point2f>> hlines;
+  std::deque<std::pair<cv::Point2f, cv::Point2f>> vlines;
 };
 
 // 盤面画像.
