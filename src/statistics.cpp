@@ -274,7 +274,7 @@ std::optional<Status::Result> Statistics::push(cv::Mat const &board,
   BoardImage bi;
   bi.gray_ = board;
   bi.fullcolor = fullcolor;
-  bi.blurGray = board;
+  bi.blurGray = board.clone();
   boardHistory.push_back(bi);
   if (boardHistory.size() == 1) {
     return nullopt;
