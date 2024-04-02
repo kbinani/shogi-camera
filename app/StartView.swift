@@ -4,7 +4,13 @@ import ShogiCamera
 import UIKit
 
 protocol StartViewDelegate: AnyObject {
-  func startViewDidStartGame(_ view: StartView, with analyzer: Analyzer, server: sci.CsaServerWrapper?)
+  func startView(
+    _ view: StartView,
+    didStartGameWith analyzer: Analyzer,
+    server: sci.CsaServerWrapper?,
+    handicap: sci.Handicap,
+    handicapHand: Bool
+  )
   func startViewPresentHelpViewController(_ v: StartView)
   func startViewPresentViewController(_ vc: UIViewController)
 }
@@ -41,7 +47,7 @@ class StartView: UIView {
       }
     }
   }
-  private var handicap: sci.Handicap = .平手 {
+  private var handicap: sci.Handicap {
     didSet {
       updateHandicapMenu()
     }
@@ -105,7 +111,7 @@ class StartView: UIView {
     }
   }
 
-  init(analyzer reusable: Analyzer?, server: sci.CsaServerWrapper?, wifiConnectivity: WifiConnectivity?) {
+  init(analyzer reusable: Analyzer?, server: sci.CsaServerWrapper?, wifiConnectivity: WifiConnectivity?, handicap: sci.Handicap, handicapHand: Bool) {
     if let reusable {
       reusable.reset()
       self.analyzer = reusable
@@ -114,6 +120,7 @@ class StartView: UIView {
     }
     self.server = server
     self.wifiConnectivity = wifiConnectivity
+    self.handicap = handicap
     super.init(frame: .zero)
     self.server?.unsetLocalPeer()
 
@@ -168,6 +175,7 @@ class StartView: UIView {
 
     let handicapHandSwitch = UISwitch()
     handicapHandSwitch.backgroundColor = UIColor.lightGray
+    handicapHandSwitch.isOn = handicapHand
     self.addSubview(handicapHandSwitch)
     self.handicapHandSwitch = handicapHandSwitch
     let handicapHandLabel = UILabel()
@@ -367,7 +375,7 @@ class StartView: UIView {
         analyzer.startGame(userColor: userColor, handicap: handicap, hand: handicapHandSwitch.isOn, option: 0)
       }
     }
-    delegate?.startViewDidStartGame(self, with: analyzer, server: server)
+    delegate?.startView(self, didStartGameWith: analyzer, server: server, handicap: handicap, handicapHand: handicapHandSwitch.isOn)
   }
 
   @objc private func helpButtonDidTouchUpInside(_ sender: UIButton) {

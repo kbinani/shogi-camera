@@ -5,10 +5,13 @@ import UIKit
 
 protocol GameViewDelegate: AnyObject {
   func gameView(_ sender: GameView, presentViewController controller: UIViewController)
-  func gameViewDidAbort(_ sender: GameView, server: sci.CsaServerWrapper?)
+  func gameView(_ sender: GameView, didAbortGameWith server: sci.CsaServerWrapper?)
 }
 
 class GameView: UIView {
+  let handicap: sci.Handicap
+  let handicapHand: Bool
+
   weak var delegate: GameViewDelegate?
 
   let analyzer: Analyzer
@@ -43,7 +46,7 @@ class GameView: UIView {
         notifyError(message: "WiFi がオフラインになりました")
         server = nil
         analyzer.stopGame()
-        delegate?.gameViewDidAbort(self, server: nil)
+        delegate?.gameView(self, didAbortGameWith: nil)
       }
     }
   }
@@ -61,12 +64,14 @@ class GameView: UIView {
 
   private let kWrongMoveNotificationInterval: TimeInterval = 10
 
-  init(analyzer: Analyzer, server: sci.CsaServerWrapper?, wifiConnectivity: WifiConnectivity?) {
+  init(analyzer: Analyzer, server: sci.CsaServerWrapper?, wifiConnectivity: WifiConnectivity?, handicap: sci.Handicap, handicapHand: Bool) {
     self.analyzer = analyzer
     self.server = server
     self.reader = .init()
     self.startDate = Date.now
     self.wifiConnectivity = wifiConnectivity
+    self.handicap = handicap
+    self.handicapHand = handicapHand
     super.init(frame: .zero)
 
     analyzer.delegate = self
@@ -450,7 +455,7 @@ class GameView: UIView {
             analyzer.captureSession.removeConnection(connection)
           }
           analyzer.stopGame()
-          delegate?.gameViewDidAbort(self, server: server)
+          delegate?.gameView(self, didAbortGameWith: server)
         }))
     delegate?.gameView(self, presentViewController: controller)
   }

@@ -25,7 +25,7 @@ class MainViewController: UIViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    let startView = StartView(analyzer: nil, server: nil, wifiConnectivity: wifiConnectivity)
+    let startView = StartView(analyzer: nil, server: nil, wifiConnectivity: wifiConnectivity, handicap: .平手, handicapHand: false)
     startView.delegate = self
     self.current = startView
     self.view.addSubview(startView)
@@ -90,8 +90,8 @@ class MainViewController: UIViewController {
 }
 
 extension MainViewController: StartViewDelegate {
-  func startViewDidStartGame(_ view: StartView, with analyzer: Analyzer, server: sci.CsaServerWrapper?) {
-    let gameView = GameView(analyzer: analyzer, server: server, wifiConnectivity: wifiConnectivity)
+  func startView(_ view: StartView, didStartGameWith analyzer: Analyzer, server: sci.CsaServerWrapper?, handicap: sci.Handicap, handicapHand: Bool) {
+    let gameView = GameView(analyzer: analyzer, server: server, wifiConnectivity: wifiConnectivity, handicap: handicap, handicapHand: handicapHand)
     gameView.frame = .init(origin: .zero, size: self.view.bounds.size)
     gameView.delegate = self
     self.current?.removeFromSuperview()
@@ -116,8 +116,14 @@ extension MainViewController: GameViewDelegate {
     self.present(controller, animated: true)
   }
 
-  func gameViewDidAbort(_ sender: GameView, server: sci.CsaServerWrapper?) {
-    let startView = StartView(analyzer: sender.analyzer, server: server, wifiConnectivity: wifiConnectivity)
+  func gameView(_ sender: GameView, didAbortGameWith server: sci.CsaServerWrapper?) {
+    let startView = StartView(
+      analyzer: sender.analyzer,
+      server: server,
+      wifiConnectivity: wifiConnectivity,
+      handicap: sender.handicap,
+      handicapHand: sender.handicapHand
+    )
     startView.delegate = self
     self.current?.removeFromSuperview()
     self.current = startView
