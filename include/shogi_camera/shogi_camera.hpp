@@ -4,6 +4,7 @@
 #include <opencv2/core.hpp>
 
 #include <deque>
+#include <iostream>
 #include <map>
 #include <random>
 #include <set>
@@ -1588,6 +1589,23 @@ struct PieceBook {
   static constexpr int kEdgeLineWidth = 2;
 };
 
+enum class Ternary {
+  True,
+  False,
+  None,
+};
+
+inline std::u8string StringFromTernary(Ternary s) {
+  switch (s) {
+  case Ternary::True:
+    return u8"True";
+  case Ternary::False:
+    return u8"False";
+  case Ternary::None:
+    return u8"None";
+  }
+}
+
 struct Status {
   Status();
 
@@ -1640,7 +1658,7 @@ struct Status {
   std::optional<Result> result;
   std::shared_ptr<PieceBook> book;
   std::deque<std::map<std::pair<int, int>, std::set<std::shared_ptr<Lattice>>>> clusters;
-  std::optional<bool> yourTurnFirst;
+  Ternary yourTurnFirst = Ternary::None;
   bool aborted = false;
   std::u8string error;
   bool started = false;

@@ -328,7 +328,8 @@ class GameView: UIView {
       notifyError(message: sci.Utility.CFStringFromU8String(status.error).takeRetainedValue() as String)
       return
     }
-    if let yourTurnFirst = status.yourTurnFirst.value, !readYourTurn {
+    if status.yourTurnFirst != sci.Ternary.None, !readYourTurn {
+      let yourTurnFirst = status.yourTurnFirst == sci.Ternary.True
       self.reader?.playYourTurn(yourTurnFirst)
       readYourTurn = true
     }

@@ -1369,7 +1369,7 @@ void Session::run() {
           }
           players = p;
           playerConfig = nullptr;
-          s->yourTurnFirst = game.first == OpponentColor(*remote.csa->color_);
+          s->yourTurnFirst = game.first == OpponentColor(*remote.csa->color_) ? Ternary::True : Ternary::False;
         }
       }
     }
