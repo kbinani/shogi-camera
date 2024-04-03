@@ -36,6 +36,7 @@ class GameView: UIView {
   private var readReason = false
   private var server: sci.CsaServerWrapper?
   private var boardOverlay: UILabel?
+  private var resignActioned = false
 
   private var wifiConnectivity: WifiConnectivity? {
     didSet {
@@ -171,17 +172,14 @@ class GameView: UIView {
     addGestureRecognizer(tap)
   }
 
-  private var resigned: Bool = false {
+  private var result: sci.Status.Result? {
     didSet {
-      guard resigned != oldValue else {
+      guard result != nil else {
         return
       }
-      guard resigned else {
-        return
-      }
-      self.endDate = Date.now
-      self.resignButton.isEnabled = false
-      self.abortButton.setTitle("戻る", for: .normal)
+      endDate = Date.now
+      resignButton.isEnabled = false
+      abortButton.setTitle("戻る", for: .normal)
     }
   }
 
@@ -328,6 +326,57 @@ class GameView: UIView {
       notifyError(message: sci.Utility.CFStringFromU8String(status.error).takeRetainedValue() as String)
       return
     }
+    if let result = status.result.value, self.result == nil {
+      self.result = result
+      switch result.reason {
+      case .Repetition:
+        reader?.playRepetition()
+      case .CheckRepetition:
+        reader?.playRepetition()
+      case .IllegalAction:
+        if let color = analyzer.userColor {
+          switch result.result {
+          case .BlackWin:
+            if color == sci.Color.Black {
+              reader?.playWinByIllegal()
+            } else {
+              reader?.playLoseByIllegal()
+            }
+          case .WhiteWin:
+            if color == sci.Color.White {
+              reader?.playWinByIllegal()
+            } else {
+              reader?.playLoseByIllegal()
+            }
+          default:
+            break
+          }
+        }
+      case .Resign:
+        if let color = analyzer.userColor {
+          switch result.result {
+          case .BlackWin:
+            if color == sci.Color.White {
+              self.reader?.playResign()
+            }
+          case .WhiteWin:
+            if color == sci.Color.Black {
+              self.reader?.playResign()
+            }
+          default:
+            break
+          }
+        }
+      case .Abort:
+        self.reader?.playAborted()
+      @unknown default:
+        print("Unknown enum: ", result.reason)
+      }
+      return
+    }
+    guard !resignActioned else {
+      return
+    }
     if status.yourTurnFirst != sci.Ternary.None, !readYourTurn {
       let yourTurnFirst = status.yourTurnFirst == sci.Ternary.True
       self.reader?.playYourTurn(yourTurnFirst)
@@ -358,48 +407,8 @@ class GameView: UIView {
         self.wrongMoveLastNotified = nil
       }
     }
-    if let moveIndex {
-      if moveIndex + 1 == status.game.moves.size(), !resigned, let result = status.result.value, case .Resign = result.reason {
-        self.reader?.playResign()
-        self.resigned = true
-      }
-    }
     if let oldValue, oldValue.waitingMove && !status.waitingMove {
       self.reader?.playNextMoveReady()
-    }
-    if let result = status.result.value, !readReason {
-      readReason = true
-      switch result.reason {
-      case .Repetition:
-        reader?.playRepetition()
-      case .CheckRepetition:
-        reader?.playRepetition()
-      case .IllegalAction:
-        if let color = analyzer.userColor {
-          switch result.result {
-          case .BlackWin:
-            if color == sci.Color.Black {
-              reader?.playWinByIllegal()
-            } else {
-              reader?.playLoseByIllegal()
-            }
-          case .WhiteWin:
-            if color == sci.Color.White {
-              reader?.playWinByIllegal()
-            } else {
-              reader?.playLoseByIllegal()
-            }
-          default:
-            break
-          }
-        }
-      case .Resign:
-        break
-      case .Abort:
-        self.reader?.playAborted()
-      @unknown default:
-        print("Unknown enum: ", result.reason)
-      }
     }
   }
 
@@ -436,13 +445,13 @@ class GameView: UIView {
   }
 
   private func resign() {
-    self.resigned = true
-    self.analyzer.resign()
+    resignActioned = true
+    analyzer.resign()
   }
 
   @objc private func abortButtonDidTouchUpInside(_ sender: UIButton) {
-    let message = self.resigned ? "元の画面に戻りますか?" : "対局を中断しますか?"
-    let destructive = self.resigned ? "戻る" : "中断する"
+    let message = self.result == nil ? "対局を中断しますか?" : "元の画面に戻りますか?"
+    let destructive = self.result == nil ? "中断する" : "戻る"
     let controller = UIAlertController(title: nil, message: message, preferredStyle: .alert)
     controller.addAction(.init(title: "キャンセル", style: .cancel))
     controller.addAction(
