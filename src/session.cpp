@@ -1262,14 +1262,14 @@ void CreateWarpedBoard(cv::Mat const &frameGray, cv::Mat const &frameColor, Stat
 Session::Session() : game(Handicap::平手, false) {
   s = std::make_shared<Status>();
   stop = false;
-  std::thread th(std::bind(&Session::run, this));
-  this->th.swap(th);
+  std::thread runThread(std::bind(&Session::run, this));
+  this->runThread.swap(runThread);
+  std::thread playerThread(std::bind(&Session::runPlayer, this));
+  this->playerThread.swap(playerThread);
 }
 
 Session::~Session() {
   stop = true;
-  cv.notify_all();
-  th.detach();
   if (players) {
     if (players->black) {
       players->black->stop();
@@ -1278,16 +1278,17 @@ Session::~Session() {
       players->white->stop();
     }
   }
-  if (next) {
-    next->get();
-  }
+  runThreadCv.notify_all();
+  runThread.join();
+  playerThreadCv.notify_all();
+  playerThread.join();
 }
 
 void Session::run() {
   using namespace std;
   while (!stop) {
-    std::unique_lock<std::mutex> lock(mut);
-    cv.wait(lock, [this]() { return !queue.empty() || stop; });
+    unique_lock<mutex> lock(mut);
+    runThreadCv.wait(lock, [this]() { return !queue.empty() || stop; });
     if (stop) {
       lock.unlock();
       break;
@@ -1295,7 +1296,7 @@ void Session::run() {
     cv::Mat frameColor = queue.front();
     queue.pop_front();
 
-    auto s = std::make_shared<Status>();
+    auto s = make_shared<Status>();
     s->result = this->s->result;
     s->boardReady = this->s->boardReady;
     s->wrongMove = this->s->wrongMove;
@@ -1319,36 +1320,58 @@ void Session::run() {
     stat.update(*s);
     s->book = stat.book;
     CreateWarpedBoard(frameGray, frameColor, *s, stat);
-    if (next) {
-      if (next->wait_for(chrono::milliseconds(100)) == future_status::ready) {
-        auto [color, mv] = next->get();
-        if (mv) {
-          mv->decideSuffix(game.position);
-          game.moves.push_back(*mv);
-        } else {
-          resign(color, *s);
+    {
+      lock_guard<mutex> lk(mut);
+      if (nextFuture) {
+        if (nextFuture->wait_for(chrono::milliseconds(100)) == future_status::ready) {
+          auto output = nextFuture->get();
+          nextFuture.reset();
+          if (output.move) {
+            output.move->decideSuffix(game.position);
+            game.moves.push_back(*output.move);
+          } else {
+            resign(output.color, *s);
+          }
         }
-        next = nullopt;
       }
     }
     if (playerConfig) {
       if (holds_alternative<PlayerConfig::Local>(playerConfig->players)) {
         PlayerConfig::Local local = get<0>(playerConfig->players);
         if (local.black && game.first == Color::Black) {
-          assert(!next);
-          next = async(
-              launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
-                return make_pair(Color::Black, player->next(game.position, Color::Black, game.moves, game.handBlack, game.handWhite));
-              },
-              local.black, game);
-          s->waitingMove = true;
+          lock_guard<mutex> lk(mut);
+          if (!nextPromise && !nextFuture) {
+            nextPromise = make_unique<promise<Output>>();
+            nextFuture = make_unique<future<Output>>();
+            nextInput = make_unique<Input>();
+            nextInput->player = local.black;
+            nextInput->position = game.position;
+            nextInput->color = Color::Black;
+            nextInput->moves = game.moves;
+            nextInput->hand = game.handBlack;
+            nextInput->handEnemy = game.handWhite;
+            auto f = nextPromise->get_future();
+            nextFuture->swap(f);
+            playerThreadCv.notify_all();
+            s->waitingMove = true;
+          }
         } else if (local.white && game.first == Color::White) {
-          assert(!next);
-          next = async(
-              launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
-                return make_pair(Color::White, player->next(game.position, Color::White, game.moves, game.handWhite, game.handBlack));
-              },
-              local.white, game);
+          lock_guard<mutex> lk(mut);
+          if (!nextPromise && !nextFuture) {
+            nextPromise = make_unique<promise<Output>>();
+            nextFuture = make_unique<future<Output>>();
+            nextInput = make_unique<Input>();
+            nextInput->player = local.white;
+            nextInput->position = game.position;
+            nextInput->color = Color::White;
+            nextInput->moves = game.moves;
+            nextInput->hand = game.handWhite;
+            nextInput->handEnemy = game.handBlack;
+            auto f = nextPromise->get_future();
+            nextFuture->swap(f);
+            playerThreadCv.notify_all();
+            s->waitingMove = true;
+          }
           s->waitingMove = true;
         }
         auto p = make_shared<Players>();
@@ -1378,21 +1401,43 @@ void Session::run() {
       if (detected.size() == game.moves.size()) {
         if (game.next() == Color::Black) {
           // 次が先手番
-          if (players->black && !s->result && !next) {
-            next = async(
-                launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
-                  return make_pair(Color::Black, player->next(game.position, Color::Black, game.moves, game.handBlack, game.handWhite));
-                },
-                players->black, game);
+          if (players->black && !s->result) {
+            lock_guard<mutex> lk(mut);
+            if (!nextPromise && !nextFuture) {
+              nextPromise = make_unique<promise<Output>>();
+              nextFuture = make_unique<future<Output>>();
+              nextInput = make_unique<Input>();
+              nextInput->player = players->black;
+              nextInput->position = game.position;
+              nextInput->color = Color::Black;
+              nextInput->moves = game.moves;
+              nextInput->hand = game.handBlack;
+              nextInput->handEnemy = game.handWhite;
+              auto f = nextPromise->get_future();
+              nextFuture->swap(f);
+              playerThreadCv.notify_all();
+              s->waitingMove = true;
+            }
           }
         } else {
           // 次が後手番
-          if (players->white && !s->result && !next) {
-            next = async(
-                launch::async, [](shared_ptr<Player> const &player, Game game) -> pair<Color, optional<Move>> {
-                  return make_pair(Color::White, player->next(game.position, Color::White, game.moves, game.handWhite, game.handBlack));
-                },
-                players->white, game);
+          if (players->white && !s->result) {
+            lock_guard<mutex> lk(mut);
+            if (!nextPromise && !nextFuture) {
+              nextPromise = make_unique<promise<Output>>();
+              nextFuture = make_unique<future<Output>>();
+              nextInput = make_unique<Input>();
+              nextInput->player = players->white;
+              nextInput->position = game.position;
+              nextInput->color = Color::White;
+              nextInput->moves = game.moves;
+              nextInput->hand = game.handWhite;
+              nextInput->handEnemy = game.handBlack;
+              auto f = nextPromise->get_future();
+              nextFuture->swap(f);
+              playerThreadCv.notify_all();
+              s->waitingMove = true;
+            }
           }
         }
       }
@@ -1410,13 +1455,35 @@ void Session::run() {
   }
 }
 
+void Session::runPlayer() {
+  using namespace std;
+  while (!stop) {
+    unique_lock<mutex> lock(mut);
+    playerThreadCv.wait(lock, [this]() { return (nextInput && nextPromise) || stop; });
+    if (stop) {
+      lock.unlock();
+      break;
+    }
+    unique_ptr<Input> input;
+    input.swap(nextInput);
+    unique_ptr<promise<Output>> promise;
+    promise.swap(nextPromise);
+    lock.unlock();
+
+    Output output;
+    output.color = input->color;
+    output.move = input->player->next(input->position, input->color, input->moves, input->hand, input->handEnemy);
+    promise->set_value(output);
+  }
+}
+
 void Session::push(cv::Mat const &frame) {
   {
     std::lock_guard<std::mutex> lock(mut);
     queue.clear();
     queue.push_back(frame);
   }
-  cv.notify_all();
+  runThreadCv.notify_all();
 }
 
 void Session::resign(Color color) {
@@ -1534,7 +1601,8 @@ void Session::csaAdapterDidFinishGame(GameResult result, GameResultReason reason
     s->result = r;
   }
   stop = true;
-  cv.notify_all();
+  runThreadCv.notify_all();
+  playerThreadCv.notify_all();
 }
 
 } // namespace sci

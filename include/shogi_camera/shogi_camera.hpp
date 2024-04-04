@@ -1811,11 +1811,14 @@ public:
 
 private:
   void run();
+  void runPlayer();
 
 private:
-  std::thread th;
+  std::thread runThread;
+  std::condition_variable runThreadCv;
+  std::thread playerThread;
+  std::condition_variable playerThreadCv;
   std::atomic<bool> stop;
-  std::condition_variable cv;
   std::mutex mut;
   std::deque<cv::Mat> queue;
   std::shared_ptr<Status> s;
@@ -1824,7 +1827,21 @@ private:
   std::vector<Move> detected;
   std::shared_ptr<PlayerConfig> playerConfig;
   std::shared_ptr<Players> players;
-  std::optional<std::future<std::pair<Color, std::optional<Move>>>> next;
+  struct Input {
+    std::shared_ptr<Player> player;
+    Position position;
+    Color color;
+    std::vector<Move> moves;
+    std::deque<PieceType> hand;
+    std::deque<PieceType> handEnemy;
+  };
+  struct Output {
+    Color color;
+    std::optional<Move> move;
+  };
+  std::unique_ptr<Input> nextInput;
+  std::unique_ptr<std::future<Output>> nextFuture;
+  std::unique_ptr<std::promise<Output>> nextPromise;
   std::u8string error;
   bool started = false;
 };
