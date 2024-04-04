@@ -1338,6 +1338,7 @@ void Session::run() {
     if (playerConfig) {
       if (holds_alternative<PlayerConfig::Local>(playerConfig->players)) {
         PlayerConfig::Local local = get<0>(playerConfig->players);
+        bool notify = false;
         if (local.black && game.first == Color::Black) {
           lock_guard<mutex> lk(mut);
           if (!nextPromise && !nextFuture) {
@@ -1352,8 +1353,7 @@ void Session::run() {
             nextInput->handEnemy = game.handWhite;
             auto f = nextPromise->get_future();
             nextFuture->swap(f);
-            playerThreadCv.notify_all();
-            s->waitingMove = true;
+            notify = true;
           }
         } else if (local.white && game.first == Color::White) {
           lock_guard<mutex> lk(mut);
@@ -1369,10 +1369,11 @@ void Session::run() {
             nextInput->handEnemy = game.handBlack;
             auto f = nextPromise->get_future();
             nextFuture->swap(f);
-            playerThreadCv.notify_all();
-            s->waitingMove = true;
+            notify = true;
           }
-          s->waitingMove = true;
+        }
+        if (notify) {
+          playerThreadCv.notify_all();
         }
         auto p = make_shared<Players>();
         p->black = local.black;
@@ -1401,6 +1402,7 @@ void Session::run() {
       if (detected.size() == game.moves.size()) {
         if (game.next() == Color::Black) {
           // 次が先手番
+          bool notify = false;
           if (players->black && !s->result) {
             lock_guard<mutex> lk(mut);
             if (!nextPromise && !nextFuture) {
@@ -1415,12 +1417,15 @@ void Session::run() {
               nextInput->handEnemy = game.handWhite;
               auto f = nextPromise->get_future();
               nextFuture->swap(f);
-              playerThreadCv.notify_all();
-              s->waitingMove = true;
+              notify = true;
             }
+          }
+          if (notify) {
+            playerThreadCv.notify_all();
           }
         } else {
           // 次が後手番
+          bool notify = false;
           if (players->white && !s->result) {
             lock_guard<mutex> lk(mut);
             if (!nextPromise && !nextFuture) {
@@ -1435,9 +1440,11 @@ void Session::run() {
               nextInput->handEnemy = game.handBlack;
               auto f = nextPromise->get_future();
               nextFuture->swap(f);
-              playerThreadCv.notify_all();
-              s->waitingMove = true;
+              notify = true;
             }
+          }
+          if (notify) {
+            playerThreadCv.notify_all();
           }
         }
       }
