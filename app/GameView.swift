@@ -356,11 +356,11 @@ class GameView: UIView {
         if let color = analyzer.userColor {
           switch result.result {
           case .BlackWin:
-            if color == sci.Color.White {
+            if color == sci.Color.Black {
               self.reader?.playResign()
             }
           case .WhiteWin:
-            if color == sci.Color.Black {
+            if color == sci.Color.White {
               self.reader?.playResign()
             }
           default:
