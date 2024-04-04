@@ -354,6 +354,10 @@ optional<Move> CsaAdapter::next(Position const &p, Color next, vector<Move> cons
   cv.wait(lock, [&]() {
     return this->moves.size() == moves.size() + 1 || stopSignal || result;
   });
+  if (stopSignal) {
+    lock.unlock();
+    return nullopt;
+  }
   Move mv = this->moves.back();
   lock.unlock();
   return mv;
