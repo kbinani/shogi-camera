@@ -1537,7 +1537,7 @@ private:
   bool rejected = false;
   std::optional<GameResult> result;
   std::optional<GameResultReason> reason;
-  bool resultNotified;
+  bool resultNotified = false;
   std::map<Color, bool> resignSent;
 
   std::condition_variable cv;
