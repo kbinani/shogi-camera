@@ -1330,7 +1330,7 @@ void Session::run() {
             output.move->decideSuffix(game.position);
             game.moves.push_back(*output.move);
           } else {
-            resign(output.color, *s);
+            unsafeResign(output.color, *s);
           }
         }
       }
@@ -1494,12 +1494,11 @@ void Session::push(cv::Mat const &frame) {
 }
 
 void Session::resign(Color color) {
-  resign(color, *s);
+  std::lock_guard<std::mutex> lock(mut);
+  unsafeResign(color, *s);
 }
 
-void Session::resign(Color color, Status &s) {
-  std::lock_guard<std::mutex> lock(mut);
-
+void Session::unsafeResign(Color color, Status &s) {
   if (color == Color::Black) {
     if (!s.result) {
       Status::Result r;

@@ -1802,7 +1802,6 @@ public:
   }
   void startGame(GameStartParameter parameter);
   void stopGame();
-  void resign(Color color, Status &s);
   void resign(Color color);
   std::optional<std::u8string> name(Color color);
 
@@ -1812,6 +1811,7 @@ public:
 private:
   void run();
   void runPlayer();
+  void unsafeResign(Color color, Status &s);
 
 private:
   std::thread runThread;
