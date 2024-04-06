@@ -158,13 +158,15 @@ struct Sunfish3AI::Impl {
     engine = make_unique<mt19937_64>(seed_gen());
 
     sunfish::Searcher::Config config = searcher.getConfig();
-    config.maxDepth = 2;
-    config.limitSeconds = 3;
+    config.limitSeconds = kLimitSeconds;
     searcher.setConfig(config);
   }
 
   ~Impl() {
     searcher.forceInterrupt();
+    unique_lock<mutex> lock(mut);
+    searcher.wait(lock, chrono::duration<double>::max(), [&]() { return !searcher.isRunning(); });
+    lock.unlock();
   }
 
   optional<Move> next(Position const &p, Color color, vector<Move> const &, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
@@ -177,7 +179,7 @@ struct Sunfish3AI::Impl {
             color));
     searcher.forceInterrupt();
     unique_lock<mutex> lock(mut);
-    bool stopped = searcher.wait(lock, chrono::duration<double>(10), [&]() {
+    bool stopped = searcher.wait(lock, chrono::duration<double>(kLimitSeconds + 1), [&]() {
       return !searcher.isRunning();
     });
     lock.unlock();
@@ -222,6 +224,8 @@ struct Sunfish3AI::Impl {
   sunfish::Searcher searcher;
   unique_ptr<mt19937_64> engine;
   mutex mut;
+
+  static constexpr float kLimitSeconds = 30;
 };
 #else
 struct Sunfish3AI::Impl {
