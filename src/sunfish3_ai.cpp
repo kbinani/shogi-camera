@@ -1,4 +1,4 @@
-#if SHOGI_CAMERA_DEBUG
+#if SHOGI_CAMERA_ENABLE_SUNFISH
 #include "core/record/Record.h"
 #include "searcher/Searcher.h"
 #endif
@@ -11,7 +11,7 @@ using namespace std;
 
 namespace sci {
 
-#if SHOGI_CAMERA_DEBUG
+#if SHOGI_CAMERA_ENABLE_SUNFISH
 namespace {
 
 optional<PieceType> PieceTypeFromSunfishPiece(sunfish::Piece p) {

@@ -6,7 +6,19 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# add_definitions(-DSHOGI_CAMERA_DISABLE_HINT=1)
+set(SHOGI_CAMERA_DISABLE_HINT OFF)
+set(SHOGI_CAMERA_ENABLE_SUNFISH OFF)
+
+list(APPEND shogi_camera_gcc_preprocessor_definitions
+  $<IF:$<CONFIG:Debug>,SHOGI_CAMERA_DEBUG=1,SHOGI_CAMERA_RELEASE=1>
+  $<$<BOOL:${SHOGI_CAMERA_DISABLE_HINT}>:SHOGI_CAMERA_DISABLE_HINT=1>
+  $<$<BOOL:${SHOGI_CAMERA_ENABLE_SUNFISH}>:SHOGI_CAMERA_ENABLE_SUNFISH=1>
+)
+list(APPEND shogi_camera_swift_active_compilation_conditions
+  $<IF:$<CONFIG:Debug>,SHOGI_CAMERA_DEBUG,SHOGI_CAMERA_RELEASE>
+  $<$<BOOL:${SHOGI_CAMERA_DISABLE_HINT}>:SHOGI_CAMERA_DISABLE_HINT>
+  $<$<BOOL:${SHOGI_CAMERA_ENABLE_SUNFISH}>:SHOGI_CAMERA_ENABLE_SUNFISH>
+)
 
 add_subdirectory(deps/sunfish3/src/core EXCLUDE_FROM_ALL)
 target_include_directories(sunfish_core PRIVATE deps/sunfish3/src)
@@ -51,12 +63,12 @@ target_include_directories(shogi_camera PRIVATE
 set_target_properties(shogi_camera PROPERTIES
   XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++20"
   XCODE_ATTRIBUTE_SWIFT_OBJC_INTEROP_MODE "objcxx"
-  XCODE_ATTRIBUTE_GCC_PREPROCESSOR_DEFINITIONS $<IF:$<CONFIG:Debug>,SHOGI_CAMERA_DEBUG=1,SHOGI_CAMERA_RELEASE=1>
+  XCODE_ATTRIBUTE_GCC_PREPROCESSOR_DEFINITIONS "$<LIST:JOIN,${shogi_camera_gcc_preprocessor_definitions}, >"
 )
 target_link_libraries(shogi_camera
-  $<IF:$<CONFIG:Debug>,sunfish_searcher,>
-  $<IF:$<CONFIG:Debug>,sunfish_core,>
-  $<IF:$<CONFIG:Debug>,sunfish_logger,>
+  $<$<BOOL:${SHOGI_CAMERA_ENABLE_SUNFISH}>:sunfish_searcher>
+  $<$<BOOL:${SHOGI_CAMERA_ENABLE_SUNFISH}>:sunfish_core>
+  $<$<BOOL:${SHOGI_CAMERA_ENABLE_SUNFISH}>:sunfish_logger>
 )
 
 add_executable(ShogiCameraApp MACOSX_BUNDLE
@@ -106,8 +118,8 @@ set_target_properties(ShogiCameraApp PROPERTIES
   XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
   XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
   XCODE_ATTRIBUTE_SHOGI_CAMERA_PROJECT_VERSION "${CMAKE_PROJECT_VERSION}"
-  XCODE_ATTRIBUTE_GCC_PREPROCESSOR_DEFINITIONS $<IF:$<CONFIG:Debug>,SHOGI_CAMERA_DEBUG=1,SHOGI_CAMERA_RELEASE=1>
-  XCODE_ATTRIBUTE_SWIFT_ACTIVE_COMPILATION_CONDITIONS $<IF:$<CONFIG:Debug>,SHOGI_CAMERA_DEBUG,SHOGI_CAMERA_RELEASE>
+  XCODE_ATTRIBUTE_GCC_PREPROCESSOR_DEFINITIONS "$<LIST:JOIN,${shogi_camera_gcc_preprocessor_definitions}, >"
+  XCODE_ATTRIBUTE_SWIFT_ACTIVE_COMPILATION_CONDITIONS "$<LIST:JOIN,${shogi_camera_swift_active_compilation_conditions}, >"
 )
 target_link_libraries(ShogiCameraApp
   shogi_camera
