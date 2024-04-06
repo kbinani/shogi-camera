@@ -8,6 +8,8 @@
 #include <limits>
 #include <numbers>
 
+using namespace std;
+
 namespace sci {
 
 namespace {
@@ -31,7 +33,7 @@ float Normalize90To90(float a) {
   return a;
 }
 
-std::optional<float> MeanAngle(std::initializer_list<float> values) {
+optional<float> MeanAngle(initializer_list<float> values) {
   RadianAverage ra;
   for (float v : values) {
     ra.push(v);
@@ -39,8 +41,7 @@ std::optional<float> MeanAngle(std::initializer_list<float> values) {
   return ra.get();
 }
 
-std::optional<float> SquareDirection(std::vector<cv::Point2f> const &points) {
-  using namespace std;
+optional<float> SquareDirection(vector<cv::Point2f> const &points) {
   if (points.size() != 4) {
     return nullopt;
   }
@@ -60,8 +61,7 @@ std::optional<float> SquareDirection(std::vector<cv::Point2f> const &points) {
   return MeanAngle({angle0, angle1});
 }
 
-std::optional<cv::Point2d> Intersection(cv::Point2d const &p1, cv::Point2d const &p2, cv::Point2d const &q1, cv::Point2d const &q2) {
-  using namespace std;
+optional<cv::Point2d> Intersection(cv::Point2d const &p1, cv::Point2d const &p2, cv::Point2d const &q1, cv::Point2d const &q2) {
   cv::Point2d v = p2 - p1;
   cv::Point2d w = q2 - q1;
 
@@ -93,7 +93,7 @@ std::optional<cv::Point2d> Intersection(cv::Point2d const &p1, cv::Point2d const
   }
 }
 
-std::optional<cv::Point2d> Intersection(cv::Vec4f const &a, cv::Vec4f const &b) {
+optional<cv::Point2d> Intersection(cv::Vec4f const &a, cv::Vec4f const &b) {
   cv::Point2d p1(a[2], a[3]);
   cv::Point2d p2(a[2] + a[0], a[3] + a[1]);
   cv::Point2d q1(b[2], b[3]);
@@ -108,36 +108,36 @@ double Distance(cv::Vec4f const &line, cv::Point2d const &p) {
   if (auto i = Intersection(line, c); i) {
     return cv::norm(*i - p);
   } else {
-    return std::numeric_limits<double>::infinity();
+    return numeric_limits<double>::infinity();
   }
 }
 
-std::optional<cv::Vec4f> FitLine(std::vector<cv::Point2f> const &points) {
+optional<cv::Vec4f> FitLine(vector<cv::Point2f> const &points) {
   if (points.size() < 2) {
-    return std::nullopt;
+    return nullopt;
   }
   cv::Vec4f line;
   cv::fitLine(cv::Mat(points), line, cv::DIST_L2, 0, 0.01, 0.01);
   return line;
 }
 
-std::optional<cv::Point2f> PerpendicularFoot(cv::Vec4f const &line, cv::Point2f const &point) {
+optional<cv::Point2f> PerpendicularFoot(cv::Vec4f const &line, cv::Point2f const &point) {
   // point を通り line に直行する直線
   cv::Vec4f perpendicular(line[1], line[0], point.x, point.y);
   return Intersection(line, perpendicular);
 }
 
-std::optional<float> YFromX(cv::Vec4f const &line, float x) {
+optional<float> YFromX(cv::Vec4f const &line, float x) {
   // p = b + t * a
   cv::Point2f a(line[0], line[1]);
   cv::Point2f b(line[2], line[3]);
   // px = bx + t * ax
   // t = (px - bx) / ax
   float t = (x - b.x) / a.x;
-  if (t == 0 || std::isnormal(t)) {
+  if (t == 0 || isnormal(t)) {
     return b.y + t * a.y;
   } else {
-    return std::nullopt;
+    return nullopt;
   }
 }
 
@@ -178,7 +178,6 @@ bool IsAdjSquareAndSquare(Contour const &a, Contour const &b, float width, float
 }
 
 bool IsAdjSquareAndPiece(Contour const &a, PieceContour const &b, float th) {
-  using namespace std;
   // a の中心から 4 辺 4 方向に b の中心があるかどうかを調べる
   cv::Point2f centerA = a.mean();
   cv::Point2f centerB = b.center();
@@ -197,7 +196,6 @@ bool IsAdjSquareAndPiece(Contour const &a, PieceContour const &b, float th) {
 }
 
 bool IsAdjPieceAndPiece(PieceContour const &a, PieceContour const &b, float width, float height, float th) {
-  using namespace std;
   // a の中心から 90 度ごとに探索し, b の中心があるかどうか調べる
   cv::Point2f centerA = a.center();
   cv::Point2f dirA = a.direction / cv::norm(a.direction);
@@ -215,7 +213,6 @@ bool IsAdjPieceAndPiece(PieceContour const &a, PieceContour const &b, float widt
 }
 
 bool IsAdj(LatticeContent const &a, LatticeContent const &b, float width, float height, float th) {
-  using namespace std;
   if (a.index() == 0) {
     shared_ptr<Contour> sqA = get<0>(a);
     if (b.index() == 0) {
@@ -247,7 +244,6 @@ bool IsAdj(LatticeContent const &a, LatticeContent const &b, float width, float 
 }
 
 void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
-  using namespace std;
   using namespace std::numbers;
   vector<shared_ptr<Contour>> squares;
   for (auto const &square : s.squares) {
@@ -1105,8 +1101,8 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         auto [x, y] = i.first;
         int file = x - minX;
         int rank = y - minY;
-        std::shared_ptr<Contour> square;
-        std::shared_ptr<PieceContour> piece;
+        shared_ptr<Contour> square;
+        shared_ptr<PieceContour> piece;
         for (auto const &j : i.second) {
           if (j->content->index() == 0) {
             if (!square) {
@@ -1231,7 +1227,6 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
 }
 
 void CreateWarpedBoard(cv::Mat const &frameGray, cv::Mat const &frameColor, Status &s, Statistics const &stat) {
-  using namespace std;
   optional<Contour> preciseOutline = s.preciseOutline;
   if (!preciseOutline || !stat.aspectRatio) {
     return;
@@ -1266,11 +1261,11 @@ void CreateWarpedBoard(cv::Mat const &frameGray, cv::Mat const &frameColor, Stat
 } // namespace
 
 Session::Session() : game(Handicap::平手, false) {
-  s = std::make_shared<Status>();
+  s = make_shared<Status>();
   stop = false;
-  std::thread runThread(std::bind(&Session::run, this));
+  thread runThread(std::bind(&Session::run, this));
   this->runThread.swap(runThread);
-  std::thread playerThread(std::bind(&Session::runPlayer, this));
+  thread playerThread(std::bind(&Session::runPlayer, this));
   this->playerThread.swap(playerThread);
 }
 
@@ -1291,7 +1286,6 @@ Session::~Session() {
 }
 
 void Session::run() {
-  using namespace std;
   while (!stop) {
     unique_lock<mutex> lock(mut);
     runThreadCv.wait(lock, [this]() { return !queue.empty() || stop; });
@@ -1469,7 +1463,6 @@ void Session::run() {
 }
 
 void Session::runPlayer() {
-  using namespace std;
   while (!stop) {
     unique_lock<mutex> lock(mut);
     playerThreadCv.wait(lock, [this]() { return (nextInput && nextPromise) || stop; });
@@ -1492,7 +1485,7 @@ void Session::runPlayer() {
 
 void Session::push(cv::Mat const &frame) {
   {
-    std::lock_guard<std::mutex> lock(mut);
+    lock_guard<mutex> lock(mut);
     queue.clear();
     queue.push_back(frame);
   }
@@ -1500,7 +1493,7 @@ void Session::push(cv::Mat const &frame) {
 }
 
 void Session::resign(Color color) {
-  std::lock_guard<std::mutex> lock(mut);
+  lock_guard<mutex> lock(mut);
   unsafeResign(color, *s);
 }
 
@@ -1512,7 +1505,7 @@ void Session::unsafeResign(Color color, Status &s) {
       r.reason = GameResultReason::Resign;
       s.result = r;
     }
-    std::cout << "先手番が投了" << std::endl;
+    cout << "先手番が投了" << endl;
   } else {
     if (!s.result) {
       Status::Result r;
@@ -1520,7 +1513,7 @@ void Session::unsafeResign(Color color, Status &s) {
       r.reason = GameResultReason::Resign;
       s.result = r;
     }
-    std::cout << "後手番が投了" << std::endl;
+    cout << "後手番が投了" << endl;
   }
   if (auto csa = dynamic_pointer_cast<CsaAdapter>(players->black); csa) {
     csa->resign(color);
@@ -1531,11 +1524,11 @@ void Session::unsafeResign(Color color, Status &s) {
 }
 
 void Session::startGame(GameStartParameter p) {
-  auto config = std::make_shared<PlayerConfig>();
+  auto config = make_shared<PlayerConfig>();
 
   if (p.server) {
-    std::weak_ptr<CsaServer> server = p.server;
-    auto csa = std::make_shared<CsaAdapter>(server);
+    weak_ptr<CsaServer> server = p.server;
+    auto csa = make_shared<CsaAdapter>(server);
     csa->delegate = weak_from_this();
     auto writer = p.server->setLocalPeer(csa, p.userColor, p.handicap, p.hand);
     csa->setWriter(writer);
@@ -1544,16 +1537,16 @@ void Session::startGame(GameStartParameter p) {
     config->players = remote;
   } else {
     PlayerConfig::Local local;
-    std::shared_ptr<Player> ai;
+    shared_ptr<Player> ai;
     int aiLevel = p.option;
 #if SHOGI_CAMERA_DEBUG
     if (aiLevel > 0) {
-      ai = std::make_shared<Sunfish3AI>();
+      ai = make_shared<Sunfish3AI>();
     } else {
-      ai = std::make_shared<RandomAI>();
+      ai = make_shared<RandomAI>();
     }
 #else
-    ai = std::make_shared<RandomAI>();
+    ai = make_shared<RandomAI>();
 #endif
     if (p.userColor == Color::White) {
       local.black = ai;
@@ -1583,9 +1576,9 @@ void Session::stopGame() {
   }
 }
 
-std::optional<std::u8string> Session::name(Color color) {
+optional<u8string> Session::name(Color color) {
   if (!players) {
-    return std::nullopt;
+    return nullopt;
   }
   if (color == Color::Black) {
     if (players->black) {
@@ -1596,10 +1589,10 @@ std::optional<std::u8string> Session::name(Color color) {
       return players->white->name();
     }
   }
-  return std::nullopt;
+  return nullopt;
 }
 
-void Session::csaAdapterDidGetError(std::u8string const &what) {
+void Session::csaAdapterDidGetError(u8string const &what) {
   if (error.empty()) {
     error = what;
   }

@@ -6,11 +6,13 @@
 #include <iostream>
 #include <numbers>
 
+using namespace std;
+
 namespace sci {
 
-void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, std::optional<PieceShape> shape)> cb) const {
+void PieceBook::Entry::each(Color color, function<void(cv::Mat const &, optional<PieceShape> shape)> cb) const {
   cv::Mat img;
-  std::optional<PieceShape> shape;
+  optional<PieceShape> shape;
   if (sumCount > 0) {
     PieceShape ps;
     ps.apex = sumApex / (float)sumCount;
@@ -44,7 +46,7 @@ void PieceBook::Entry::each(Color color, std::function<void(cv::Mat const &, std
   }
 }
 
-void PieceBook::Entry::push(cv::Mat const &mat, std::optional<PieceShape> shape) {
+void PieceBook::Entry::push(cv::Mat const &mat, optional<PieceShape> shape) {
   if (shape) {
     sumCount++;
     sumApex += cv::Point2d(shape->apex);
@@ -63,23 +65,22 @@ void PieceBook::Entry::push(cv::Mat const &mat, std::optional<PieceShape> shape)
     }
   }
   Image img;
-  img.cut = shape != std::nullopt;
+  img.cut = shape != nullopt;
   img.rect = cv::Rect(0, 0, mat.size().width, mat.size().height);
   img.mat = mat;
   images.push_back(img);
 }
 
-void PieceBook::each(Color color, std::function<void(Piece, cv::Mat const &, std::optional<PieceShape> shape)> cb) const {
+void PieceBook::each(Color color, function<void(Piece, cv::Mat const &, optional<PieceShape> shape)> cb) const {
   for (auto const &it : store) {
     PieceUnderlyingType piece = it.first;
-    it.second.each(color, [&cb, piece, color](cv::Mat const &img, std::optional<PieceShape> shape) {
+    it.second.each(color, [&cb, piece, color](cv::Mat const &img, optional<PieceShape> shape) {
       cb(static_cast<PieceUnderlyingType>(piece) | static_cast<PieceUnderlyingType>(color), img, shape);
     });
   }
 }
 
 void PieceBook::update(Position const &position, cv::Mat const &board, Status const &s) {
-  using namespace std;
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
       Piece piece = position.pieces[x][y];
@@ -169,7 +170,6 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
 }
 
 void PieceBook::Entry::gc() {
-  using namespace std;
   if (images.size() <= kMaxNumImages) {
     return;
   }
@@ -263,12 +263,12 @@ void PieceBook::Image::resize(int width, int height) {
   mat = tmp;
 }
 
-std::string PieceBook::toPng() const {
+string PieceBook::toPng() const {
   int rows = (int)store.size();
   int w = 0;
   int h = 0;
-  std::map<Piece, int> count;
-  each(Color::Black, [&](Piece piece, cv::Mat const &img, std::optional<PieceShape> shape) {
+  map<Piece, int> count;
+  each(Color::Black, [&](Piece piece, cv::Mat const &img, optional<PieceShape> shape) {
     w = std::max(w, img.size().width);
     h = std::max(h, img.size().height);
     count[piece] += 1;
@@ -289,7 +289,7 @@ std::string PieceBook::toPng() const {
   int row = 0;
   for (auto const &it : store) {
     int column = 0;
-    it.second.each(Color::Black, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
+    it.second.each(Color::Black, [&](cv::Mat const &img, optional<PieceShape> shape) {
       int x = column * w;
       int y = row * h;
       cv::Mat color;

@@ -4,10 +4,11 @@
 
 #include <numbers>
 
+using namespace std;
+
 namespace sci {
 
-std::shared_ptr<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const &points) {
-  using namespace std;
+shared_ptr<PieceContour> PieceContour::Make(vector<cv::Point2f> const &points) {
   if (points.size() != 5) {
     return nullptr;
   }
@@ -50,7 +51,7 @@ std::shared_ptr<PieceContour> PieceContour::Make(std::vector<cv::Point2f> const 
   return ret;
 }
 
-void PieceShape::poly(cv::Point2f const &center, std::vector<cv::Point2f> &buffer, Color color) const {
+void PieceShape::poly(cv::Point2f const &center, vector<cv::Point2f> &buffer, Color color) const {
   buffer.clear();
   if (color == Color::Black) {
     buffer.push_back(apex + center);
@@ -68,7 +69,6 @@ void PieceShape::poly(cv::Point2f const &center, std::vector<cv::Point2f> &buffe
 }
 
 PieceShape PieceContour::toShape() const {
-  using namespace std;
   cv::Point2f apex = points[0];
   cv::Point2f bottom = points[3] - points[2];
   cv::Point2f mid = points[2] + bottom * 0.5f;

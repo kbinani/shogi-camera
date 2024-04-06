@@ -2,12 +2,13 @@
 
 #include <opencv2/imgproc.hpp>
 
+using namespace std;
+
 namespace sci {
 
 namespace {
 
-std::optional<cv::Point2f> PieceDirection(std::vector<cv::Point2f> const &points) {
-  using namespace std;
+optional<cv::Point2f> PieceDirection(vector<cv::Point2f> const &points) {
   if (points.size() != 5) {
     return nullopt;
   }
@@ -42,8 +43,7 @@ std::optional<cv::Point2f> PieceDirection(std::vector<cv::Point2f> const &points
 
 } // namespace
 
-std::optional<cv::Point2f> Contour::direction(float length) const {
-  using namespace std;
+optional<cv::Point2f> Contour::direction(float length) const {
   if (auto d = PieceDirection(points); d) {
     double norm = cv::norm(*d);
     return *d / norm * length;
@@ -74,7 +74,7 @@ std::optional<cv::Point2f> Contour::direction(float length) const {
 Status::Status() : game(Handicap::平手, false) {
 }
 
-SessionWrapper::SessionWrapper() : ptr(std::make_shared<Session>()) {
+SessionWrapper::SessionWrapper() : ptr(make_shared<Session>()) {
 }
 
 } // namespace sci

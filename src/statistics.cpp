@@ -6,12 +6,14 @@
 #include <iostream>
 #include <numbers>
 
+using namespace std;
+
 namespace sci {
 
 namespace {
 
 template <class T, class L>
-bool IsIdentical(std::set<T, L> const &a, std::set<T, L> const &b) {
+bool IsIdentical(set<T, L> const &a, set<T, L> const &b) {
   if (a.size() != b.size()) {
     return false;
   }
@@ -30,10 +32,9 @@ void AppendPromotion(Move &mv,
                      cv::Mat const &boardBefore, cv::Mat const &boardBeforeColor,
                      cv::Mat const &boardAfter, cv::Mat const &boardAfterColor,
                      PieceBook &book,
-                     std::optional<Move> hint,
+                     optional<Move> hint,
                      Status const &s,
                      hwm::task_queue &pool) {
-  using namespace std;
   if (!mv.from || IsPromotedPiece(mv.piece)) {
     return;
   }
@@ -70,7 +71,7 @@ void AppendPromotion(Move &mv,
     vector<float> simUnpromoteBefore;
     double maxSimUnpromoteAfter = 0;
     double maxSimUnpromoteBefore = 0;
-    entry.each(mv.color, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
+    entry.each(mv.color, [&](cv::Mat const &img, optional<PieceShape> shape) {
       auto [sb, imgB] = Img::ComparePiece(boardBefore, mv.from->file, mv.from->rank, img, mv.color, shape, pool, cacheB);
       auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool, cacheA);
       simUnpromoteBefore.push_back(sb);
@@ -99,7 +100,7 @@ void AppendPromotion(Move &mv,
   if (auto entry = book.store.find(static_cast<PieceUnderlyingType>(Promote(RemoveColorFromPiece(mv.piece)))); entry != book.store.end() && !entry->second.images.empty()) {
     vector<float> simPromoteAfter;
     double maxSimPromoteAfter = 0;
-    entry->second.each(mv.color, [&](cv::Mat const &img, std::optional<PieceShape> shape) {
+    entry->second.each(mv.color, [&](cv::Mat const &img, optional<PieceShape> shape) {
       auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool, cacheA);
       simPromoteAfter.push_back(sa);
     });
@@ -219,7 +220,7 @@ void BlurFile5(BoardImage::Pack &pack, Position const &p) {
 
 } // namespace
 
-Statistics::Statistics() : book(std::make_shared<PieceBook>()), pool(std::make_unique<hwm::task_queue>(3)) {
+Statistics::Statistics() : book(make_shared<PieceBook>()), pool(make_unique<hwm::task_queue>(3)) {
   pool->set_wait_before_destructed(true);
 }
 
@@ -261,13 +262,12 @@ void Statistics::update(Status const &s) {
   }
 }
 
-std::optional<Status::Result> Statistics::push(cv::Mat const &board,
-                                               cv::Mat const &fullcolor,
-                                               Status &s,
-                                               Game &g,
-                                               std::vector<Move> &detected,
-                                               bool detectMove) {
-  using namespace std;
+optional<Status::Result> Statistics::push(cv::Mat const &board,
+                                          cv::Mat const &fullcolor,
+                                          Status &s,
+                                          Game &g,
+                                          vector<Move> &detected,
+                                          bool detectMove) {
   if (board.size().area() <= 0) {
     return nullopt;
   }
@@ -489,18 +489,17 @@ std::optional<Status::Result> Statistics::push(cv::Mat const &board,
   return ret;
 }
 
-std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardBeforeColor,
-                                       cv::Mat const &boardAfter, cv::Mat const &boardAfterColor,
-                                       CvPointSet const &changes,
-                                       Position const &position,
-                                       std::vector<Move> const &moves,
-                                       Color const &color,
-                                       std::deque<PieceType> const &hand,
-                                       PieceBook &book,
-                                       std::optional<Move> hint,
-                                       Status const &s,
-                                       hwm::task_queue &pool) {
-  using namespace std;
+optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardBeforeColor,
+                                  cv::Mat const &boardAfter, cv::Mat const &boardAfterColor,
+                                  CvPointSet const &changes,
+                                  Position const &position,
+                                  vector<Move> const &moves,
+                                  Color const &color,
+                                  deque<PieceType> const &hand,
+                                  PieceBook &book,
+                                  optional<Move> hint,
+                                  Status const &s,
+                                  hwm::task_queue &pool) {
   optional<Move> move;
   auto [before, after] = Img::Equalize(boardBefore, boardAfter);
   auto [beforeColor, afterColor] = Img::Equalize(boardBeforeColor, boardAfterColor);
@@ -521,7 +520,7 @@ std::optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const
       } else {
         double maxSim = 0;
         cv::Mat roi = Img::PieceROI(boardAfter, ch.x, ch.y);
-        std::optional<Piece> maxSimPiece;
+        optional<Piece> maxSimPiece;
         map<PieceType, pair<double, cv::Mat>> maxSimStat;
         Img::ComparePieceCache cache;
         book.each(color, [&](Piece piece, cv::Mat const &pi, optional<PieceShape> shape) {

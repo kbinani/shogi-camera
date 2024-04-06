@@ -2,10 +2,11 @@
 
 #include <iostream>
 
+using namespace std;
+
 namespace sci {
 
 void Move::decideSuffix(Position const &p) {
-  using namespace std;
   // this->to に効いている自軍の this->piece の一覧.
   vector<Square> candidates;
   Piece search = promote == 1 ? RemoveStatusFromPiece(piece) : piece;
@@ -148,7 +149,6 @@ void Move::decideSuffix(Position const &p) {
 }
 
 bool Move::CanMove(Position const &position, Square from, Square to) {
-  using namespace std;
   Piece pieceFrom = position.pieces[from.file][from.rank];
   if (pieceFrom == 0) {
     return false;

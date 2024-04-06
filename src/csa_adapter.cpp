@@ -33,13 +33,13 @@ void StringValueFromPossible(string const &msg, string const &key, optional<stri
 }
 } // namespace
 
-CsaAdapter::CsaAdapter(std::weak_ptr<CsaServer> server) : server(server), stopSignal(false), game(Handicap::平手, false) {
+CsaAdapter::CsaAdapter(weak_ptr<CsaServer> server) : server(server), stopSignal(false), game(Handicap::平手, false) {
 }
 
 CsaAdapter::~CsaAdapter() {
 }
 
-void CsaAdapter::send(std::string const &msg) {
+void CsaAdapter::send(string const &msg) {
   if (writer) {
     writer->send(msg);
   } else {
@@ -47,7 +47,7 @@ void CsaAdapter::send(std::string const &msg) {
   }
 }
 
-void CsaAdapter::setWriter(std::shared_ptr<CsaServer::Writer> writer) {
+void CsaAdapter::setWriter(shared_ptr<CsaServer::Writer> writer) {
   this->writer = writer;
   for (auto const &b : bufferedCommands) {
     writer->send(b);
@@ -55,17 +55,17 @@ void CsaAdapter::setWriter(std::shared_ptr<CsaServer::Writer> writer) {
   bufferedCommands.clear();
 }
 
-std::optional<std::u8string> CsaAdapter::name() {
+optional<u8string> CsaAdapter::name() {
   if (!summary) {
-    return std::nullopt;
+    return nullopt;
   }
   if (!color_) {
-    return std::nullopt;
+    return nullopt;
   }
   if (*color_ == Color::White) {
-    return std::u8string((char8_t const *)summary->playerNameWhite.c_str());
+    return u8string((char8_t const *)summary->playerNameWhite.c_str());
   } else {
-    return std::u8string((char8_t const *)summary->playerNameBlack.c_str());
+    return u8string((char8_t const *)summary->playerNameBlack.c_str());
   }
 }
 
@@ -366,7 +366,7 @@ optional<Move> CsaAdapter::next(Position const &p, Color next, vector<Move> cons
   return mv;
 }
 
-void CsaAdapter::error(std::u8string const &what) {
+void CsaAdapter::error(u8string const &what) {
   if (auto d = delegate.lock(); d) {
     d->csaAdapterDidGetError(what);
   }

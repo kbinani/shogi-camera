@@ -2,11 +2,13 @@
 
 #include <iostream>
 
+using namespace std;
+
 namespace sci {
 
 bool Position::isInCheck(Color color) const {
   Piece search = MakePiece(color, PieceType::King);
-  std::optional<Square> king;
+  optional<Square> king;
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
       if (search == pieces[x][y]) {
@@ -33,7 +35,7 @@ bool Position::isInCheck(Color color) const {
   return false;
 }
 
-bool Position::apply(Move const &mv, std::deque<PieceType> &handBlack, std::deque<PieceType> &handWhite) {
+bool Position::apply(Move const &mv, deque<PieceType> &handBlack, deque<PieceType> &handWhite) {
   auto to = pieces[mv.to.file][mv.to.rank];
   if (mv.captured) {
     if (to == 0) {
@@ -132,8 +134,7 @@ bool Position::apply(Move const &mv, std::deque<PieceType> &handBlack, std::dequ
   return true;
 }
 
-std::u8string Position::debugString() const {
-  using namespace std;
+u8string Position::debugString() const {
   u8string ret;
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {

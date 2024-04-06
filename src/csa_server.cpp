@@ -244,15 +244,15 @@ struct Match {
 
 struct RemotePeer {
   explicit RemotePeer(int socket) : socket(socket) {}
-  void send(std::string const &line) {
+  void send(string const &line) {
     string m = line + "\x0a";
     ::send(socket, m.c_str(), m.size(), 0);
     cout << "csa_server:<<< " << line << endl;
   }
-  std::shared_ptr<Match> match;
+  shared_ptr<Match> match;
   int socket;
   string username;
-  std::recursive_mutex mut;
+  recursive_mutex mut;
 };
 
 } // namespace
@@ -475,7 +475,7 @@ CsaServer::CsaServer(int port) : impl(make_unique<Impl>(port)) {
 
 CsaServer::~CsaServer() {}
 
-shared_ptr<CsaServer::Writer> CsaServer::setLocalPeer(std::shared_ptr<Peer> local, Color color, Handicap h, bool hand) {
+shared_ptr<CsaServer::Writer> CsaServer::setLocalPeer(shared_ptr<Peer> local, Color color, Handicap h, bool hand) {
   return impl->setLocalPeer(local, color, h, hand);
 }
 

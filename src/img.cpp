@@ -6,6 +6,8 @@
 #include "base64.hpp"
 #include <iostream>
 
+using namespace std;
+
 namespace sci {
 
 namespace {
@@ -39,8 +41,6 @@ cv::Mat Img::PieceROI(cv::Mat const &board, int x, int y) {
 }
 
 void Img::Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9]) {
-  using namespace std;
-
   // 2 枚の盤面画像を比較する. 変動が検出された升目を buffer に格納する.
 
   buffer.clear();
@@ -69,8 +69,7 @@ void Img::Compare(BoardImage const &before, BoardImage const &after, CvPointSet 
   }
 }
 
-std::pair<cv::Mat, cv::Mat> Img::Equalize(cv::Mat const &a, cv::Mat const &b) {
-  using namespace std;
+pair<cv::Mat, cv::Mat> Img::Equalize(cv::Mat const &a, cv::Mat const &b) {
   if (a.size() == b.size()) {
     return make_pair(a.clone(), b.clone());
   }
@@ -87,8 +86,6 @@ std::pair<cv::Mat, cv::Mat> Img::Equalize(cv::Mat const &a, cv::Mat const &b) {
 double Img::Similarity(cv::Mat const &before, cv::Mat const &after, int x, int y) {
   constexpr int degrees = 5;
   constexpr float translationRatio = 0.1f;
-
-  using namespace std;
 
   cv::Mat a = Img::PieceROI(after, x, y).clone();
   Bin(a, a);
@@ -139,14 +136,13 @@ double Img::Similarity(cv::Mat const &before, cv::Mat const &after, int x, int y
   return maxSim;
 }
 
-std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
-                                             int x, int y,
-                                             cv::Mat const &tmpl,
-                                             Color targetColor,
-                                             std::optional<PieceShape> shape,
-                                             hwm::task_queue &pool,
-                                             ComparePieceCache &cache) {
-  using namespace std;
+pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
+                                        int x, int y,
+                                        cv::Mat const &tmpl,
+                                        Color targetColor,
+                                        optional<PieceShape> shape,
+                                        hwm::task_queue &pool,
+                                        ComparePieceCache &cache) {
   constexpr int degrees = 10;
   constexpr float translationRatio = 0.2f;
 
@@ -236,8 +232,7 @@ std::pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
   return make_pair(maxSim, maxImg);
 }
 
-std::string Img::EncodeToPng(cv::Mat const &image) {
-  using namespace std;
+string Img::EncodeToPng(cv::Mat const &image) {
   vector<uchar> buffer;
   cv::imencode(".png", image, buffer);
   string cbuffer;
@@ -252,8 +247,7 @@ void Img::Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y) {
   cv::warpAffine(src, dst, cv::Mat(2, 3, CV_32F, t), dst.size(), cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
 }
 
-void Img::FindContours(cv::Mat const &image, std::vector<std::shared_ptr<Contour>> &contours, std::vector<std::shared_ptr<Contour>> &squares, std::vector<std::shared_ptr<PieceContour>> &pieces) {
-  using namespace std;
+void Img::FindContours(cv::Mat const &image, vector<shared_ptr<Contour>> &contours, vector<shared_ptr<Contour>> &squares, vector<shared_ptr<PieceContour>> &pieces) {
   int const N = 11;
   int const thresh = 50;
 
