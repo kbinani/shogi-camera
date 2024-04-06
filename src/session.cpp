@@ -1160,32 +1160,38 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           cv::Point2f midBottom = (*bottomRight + *bottomLeft) * 0.5f;
           cv::Point2f midTop = (*topRight + *topLeft) * 0.5f;
           double direction = Angle(midBottom - midTop);
-          if (cos(direction - s.boardDirection) < 0) {
-            // 前回の boardDirection から 90 度以上違っていたら反転させる
-            swap(topLeft, bottomRight);
-            swap(topRight, bottomLeft);
-          }
-          s.corners.push_back(*topLeft);
-          s.corners.push_back(*topRight);
-          s.corners.push_back(*bottomRight);
-          s.corners.push_back(*bottomLeft);
-
-          stat.outlineTL.push_back(*topLeft);
-          stat.outlineTR.push_back(*topRight);
-          stat.outlineBR.push_back(*bottomRight);
-          stat.outlineBL.push_back(*bottomLeft);
+          // boardDirection との違いが 30 度以上(前後に15度ずつ)の場合は無視する
+          double cosDiffThreshold = cos(15.0 / 180.0 * pi);
+          double cosDiffDirection = cos(direction - s.boardDirection);
           int maxCount = s.started ? Statistics::kOutlineMaxCountDuringGame : Statistics::kOutlineMaxCount;
-          if (stat.outlineTL.size() > maxCount) {
-            stat.outlineTL.pop_front();
-          }
-          if (stat.outlineTR.size() > maxCount) {
-            stat.outlineTR.pop_front();
-          }
-          if (stat.outlineBR.size() > maxCount) {
-            stat.outlineBR.pop_front();
-          }
-          if (stat.outlineBL.size() > maxCount) {
-            stat.outlineBL.pop_front();
+          int count = (int)std::min({stat.outlineTL.size(), stat.outlineTR.size(), stat.outlineBL.size(), stat.outlineBR.size()});
+          if (count < maxCount || abs(cosDiffDirection) > cosDiffThreshold) {
+            if (cosDiffDirection < 0) {
+              // 前回の boardDirection から 90 度以上違っていたら反転させる
+              swap(topLeft, bottomRight);
+              swap(topRight, bottomLeft);
+            }
+            s.corners.push_back(*topLeft);
+            s.corners.push_back(*topRight);
+            s.corners.push_back(*bottomRight);
+            s.corners.push_back(*bottomLeft);
+
+            stat.outlineTL.push_back(*topLeft);
+            stat.outlineTR.push_back(*topRight);
+            stat.outlineBR.push_back(*bottomRight);
+            stat.outlineBL.push_back(*bottomLeft);
+            if (stat.outlineTL.size() > maxCount) {
+              stat.outlineTL.pop_front();
+            }
+            if (stat.outlineTR.size() > maxCount) {
+              stat.outlineTR.pop_front();
+            }
+            if (stat.outlineBR.size() > maxCount) {
+              stat.outlineBR.pop_front();
+            }
+            if (stat.outlineBL.size() > maxCount) {
+              stat.outlineBL.pop_front();
+            }
           }
         }
       }
