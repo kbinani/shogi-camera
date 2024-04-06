@@ -225,6 +225,7 @@ void CsaAdapter::onmessage(string const &msg) {
           lock_guard<mutex> lock(mut);
           switch (game.apply(m)) {
           case Game::ApplyResult::Ok: {
+            game.moves.push_back(m);
             moves.push_back(m);
             cv.notify_all();
             break;
@@ -322,7 +323,7 @@ void CsaAdapter::notifyResult() {
   }
 }
 
-optional<Move> CsaAdapter::next(Position const &p, Color next, vector<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+optional<Move> CsaAdapter::next(Position const &p, Color next, deque<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
   if (!color_) {
     return nullopt;
   }

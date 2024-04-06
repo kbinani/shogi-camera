@@ -435,15 +435,14 @@ optional<Status::Result> Statistics::push(cv::Mat const &board,
       cout << "AIの示した手と違う手が指されている" << endl;
       return nullopt;
     }
+    g.moves.pop_back();
   }
   s.wrongMove = false;
   detected.push_back(*move);
   optional<Status::Result> ret;
   switch (g.apply(*move)) {
   case Game::ApplyResult::Ok:
-    if (!aiHand) {
-      g.moves.push_back(*move);
-    }
+    g.moves.push_back(*move);
     break;
   case Game::ApplyResult::Illegal:
     if (!s.result) {

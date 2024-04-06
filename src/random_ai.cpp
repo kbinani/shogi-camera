@@ -9,7 +9,7 @@ RandomAI::RandomAI() {
   engine = make_unique<mt19937_64>(seed_gen());
 }
 
-optional<Move> RandomAI::next(Position const &p, Color next, vector<Move> const &, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+optional<Move> RandomAI::next(Position const &p, Color next, deque<Move> const &, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
   deque<Move> moves;
   Game::Generate(p, next, next == Color::Black ? hand : handEnemy, next == Color::Black ? handEnemy : hand, moves, true);
   if (moves.empty()) {

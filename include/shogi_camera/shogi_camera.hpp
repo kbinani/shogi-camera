@@ -1208,7 +1208,7 @@ public:
 
 public:
   Position position;
-  std::vector<Move> moves;
+  std::deque<Move> moves;
   std::deque<PieceType> handBlack;
   std::deque<PieceType> handWhite;
   Color first = Color::Black;
@@ -1224,7 +1224,7 @@ private:
 class Player {
 public:
   virtual ~Player() {}
-  virtual std::optional<Move> next(Position const &p, Color next, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) = 0;
+  virtual std::optional<Move> next(Position const &p, Color next, std::deque<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) = 0;
   virtual std::optional<std::u8string> name() = 0;
   virtual void stop() = 0;
 };
@@ -1232,7 +1232,7 @@ public:
 class RandomAI : public Player {
 public:
   RandomAI();
-  std::optional<Move> next(Position const &p, Color next, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+  std::optional<Move> next(Position const &p, Color next, std::deque<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   std::optional<std::u8string> name() override {
     return u8"random";
   }
@@ -1246,7 +1246,7 @@ class Sunfish3AI : public Player {
 public:
   Sunfish3AI();
   ~Sunfish3AI();
-  std::optional<Move> next(Position const &p, Color next, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+  std::optional<Move> next(Position const &p, Color next, std::deque<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   std::optional<std::u8string> name() override {
     return u8"sunfish3";
   }
@@ -1508,7 +1508,7 @@ public:
 
   explicit CsaAdapter(std::weak_ptr<CsaServer> server);
   ~CsaAdapter();
-  std::optional<Move> next(Position const &p, Color next, std::vector<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
+  std::optional<Move> next(Position const &p, Color next, std::deque<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   std::optional<std::u8string> name() override;
   void stop() override;
   std::string name() const override { return "Player"; }
@@ -1825,12 +1825,20 @@ private:
   std::shared_ptr<PlayerConfig> playerConfig;
   std::shared_ptr<Players> players;
   struct Input {
-    std::shared_ptr<Player> player;
-    Position position;
-    Color color;
-    std::vector<Move> moves;
-    std::deque<PieceType> hand;
-    std::deque<PieceType> handEnemy;
+    Input(std::shared_ptr<Player> player,
+          Position position,
+          Color color,
+          std::deque<Move> moves,
+          std::deque<PieceType> hand,
+          std::deque<PieceType> handEnemy) : player(player), position(position), color(color), moves(moves), hand(hand), handEnemy(handEnemy) {
+    }
+
+    std::shared_ptr<Player> const player;
+    Position const position;
+    Color const color;
+    std::deque<Move> const moves;
+    std::deque<PieceType> const hand;
+    std::deque<PieceType> const handEnemy;
   };
   struct Output {
     Color color;

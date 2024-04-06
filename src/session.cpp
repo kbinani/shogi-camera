@@ -1353,13 +1353,7 @@ void Session::run() {
           if (!nextPromise && !nextFuture) {
             nextPromise = make_unique<promise<Output>>();
             nextFuture = make_unique<future<Output>>();
-            nextInput = make_unique<Input>();
-            nextInput->player = local.black;
-            nextInput->position = game.position;
-            nextInput->color = Color::Black;
-            nextInput->moves = game.moves;
-            nextInput->hand = game.handBlack;
-            nextInput->handEnemy = game.handWhite;
+            nextInput = make_unique<Input>(local.black, game.position, Color::Black, game.moves, game.handBlack, game.handWhite);
             auto f = nextPromise->get_future();
             nextFuture->swap(f);
             notify = true;
@@ -1369,13 +1363,7 @@ void Session::run() {
           if (!nextPromise && !nextFuture) {
             nextPromise = make_unique<promise<Output>>();
             nextFuture = make_unique<future<Output>>();
-            nextInput = make_unique<Input>();
-            nextInput->player = local.white;
-            nextInput->position = game.position;
-            nextInput->color = Color::White;
-            nextInput->moves = game.moves;
-            nextInput->hand = game.handWhite;
-            nextInput->handEnemy = game.handBlack;
+            nextInput = make_unique<Input>(local.white, game.position, Color::White, game.moves, game.handWhite, game.handBlack);
             auto f = nextPromise->get_future();
             nextFuture->swap(f);
             notify = true;
@@ -1417,13 +1405,7 @@ void Session::run() {
             if (!nextPromise && !nextFuture) {
               nextPromise = make_unique<promise<Output>>();
               nextFuture = make_unique<future<Output>>();
-              nextInput = make_unique<Input>();
-              nextInput->player = players->black;
-              nextInput->position = game.position;
-              nextInput->color = Color::Black;
-              nextInput->moves = game.moves;
-              nextInput->hand = game.handBlack;
-              nextInput->handEnemy = game.handWhite;
+              nextInput = make_unique<Input>(players->black, game.position, Color::Black, game.moves, game.handBlack, game.handWhite);
               auto f = nextPromise->get_future();
               nextFuture->swap(f);
               notify = true;
@@ -1440,13 +1422,7 @@ void Session::run() {
             if (!nextPromise && !nextFuture) {
               nextPromise = make_unique<promise<Output>>();
               nextFuture = make_unique<future<Output>>();
-              nextInput = make_unique<Input>();
-              nextInput->player = players->white;
-              nextInput->position = game.position;
-              nextInput->color = Color::White;
-              nextInput->moves = game.moves;
-              nextInput->hand = game.handWhite;
-              nextInput->handEnemy = game.handBlack;
+              nextInput = make_unique<Input>(players->white, game.position, Color::White, game.moves, game.handWhite, game.handBlack);
               auto f = nextPromise->get_future();
               nextFuture->swap(f);
               notify = true;
