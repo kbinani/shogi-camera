@@ -1328,6 +1328,15 @@ void Session::run() {
           nextFuture.reset();
           if (output.move) {
             output.move->decideSuffix(game.position);
+            if (game.moves.empty()) {
+              if (game.first != output.move->color) {
+                unsafeResign(output.color, *s);
+              }
+            } else {
+              if (game.moves.back().color == output.move->color) {
+                unsafeResign(output.color, *s);
+              }
+            }
             game.moves.push_back(*output.move);
           } else {
             unsafeResign(output.color, *s);

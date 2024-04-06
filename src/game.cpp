@@ -8,7 +8,16 @@ namespace sci {
 
 Game::ApplyResult Game::apply(Move const &mv) {
   if (moves.empty()) {
+    if (first != mv.color) {
+      // 二手指し(手番間違い)
+      return ApplyResult::Illegal;
+    }
     history[position] = 1;
+  } else {
+    if (moves.back().color == mv.color) {
+      // 二手指し
+      return ApplyResult::Illegal;
+    }
   }
   if (!position.apply(mv, handBlack, handWhite)) {
     return ApplyResult::Illegal;
