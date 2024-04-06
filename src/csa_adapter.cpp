@@ -92,10 +92,10 @@ void CsaAdapter::onmessage(string const &msg) {
       }
     } else if (type == "Position") {
       if (auto init = positionReceiver.validate(); init) {
-        this->init = init;
-        game = init->first;
+        game = *init;
+      } else {
+        error(u8"初期局面の読み込みに失敗しました");
       }
-      // TODO: 途中局面から開始の場合
     }
     stack.pop_back();
     if (stack.empty()) {
@@ -425,7 +425,7 @@ optional<CsaGameSummary> CsaGameSummary::Receiver::validate() const {
   return r;
 }
 
-optional<pair<Game, Color>> CsaPositionReceiver::validate() const {
+optional<Game> CsaPositionReceiver::validate() const {
   if (error) {
     return nullopt;
   }
@@ -436,6 +436,7 @@ optional<pair<Game, Color>> CsaPositionReceiver::validate() const {
     return nullopt;
   }
   Game g(Handicap::平手, false);
+  g.first = *next;
   for (int x = 0; x < 9; x++) {
     for (int y = 0; y < 9; y++) {
       g.position.pieces[x][y] = 0;
@@ -588,7 +589,7 @@ optional<pair<Game, Color>> CsaPositionReceiver::validate() const {
       g.handWhite.push_back(it);
     }
   }
-  return make_pair(g, *next);
+  return g;
 }
 
 } // namespace sci

@@ -1298,7 +1298,7 @@ struct CsaPositionReceiver {
   bool whiteAL = false;
   bool error = false;
 
-  std::optional<std::pair<Game, Color>> validate() const;
+  std::optional<Game> validate() const;
 };
 
 inline std::optional<PieceUnderlyingType> PieceTypeFromCsaString(std::string const &p) {
@@ -1547,8 +1547,6 @@ private:
   CsaPositionReceiver positionReceiver;
   CsaGameSummary::Receiver summaryReceiver;
   std::optional<CsaGameSummary> summary;
-  // 初期局面と手番
-  std::optional<std::pair<Game, Color>> init;
   std::shared_ptr<CsaServer::Writer> writer;
   std::deque<std::string> bufferedCommands;
 };
