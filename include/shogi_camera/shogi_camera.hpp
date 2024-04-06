@@ -1252,8 +1252,6 @@ public:
   }
   void stop() override;
 
-  static void RunTests();
-
 private:
   struct Impl;
   std::unique_ptr<Impl> impl;

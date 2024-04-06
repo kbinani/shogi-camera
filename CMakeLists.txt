@@ -47,7 +47,6 @@ add_library(shogi_camera STATIC
   src/csa_server.cpp
   test/doctest_main.cpp
   test/move.test.hpp
-  test/sunfish3.test.hpp
   test/game.test.hpp
 )
 target_include_directories(shogi_camera PUBLIC

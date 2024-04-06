@@ -9,7 +9,6 @@ using namespace sci;
 
 #include "game.test.hpp"
 #include "move.test.hpp"
-#include "sunfish3.test.hpp"
 
 namespace sci {
 
