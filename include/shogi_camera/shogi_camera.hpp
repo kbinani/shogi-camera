@@ -1717,6 +1717,7 @@ struct Statistics {
 
   std::deque<BoardImage> boardHistory;
   std::deque<std::array<BoardImage, 3>> stableBoardHistory;
+  static constexpr size_t kMaxStableBoardLength = 8;
   std::optional<Status::Result> push(cv::Mat const &boardGray,
                                      cv::Mat const &boardFullcolor,
                                      Status &s,

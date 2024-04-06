@@ -484,6 +484,9 @@ optional<Status::Result> Statistics::push(cv::Mat const &board,
   }
   BlurFile5(history, g.position);
   stableBoardHistory.push_back(history);
+  if (stableBoardHistory.size() > kMaxStableBoardLength) {
+    stableBoardHistory.pop_front();
+  }
   book->update(g.position, board, s);
   cout << g.moves.size() << ":" << (char const *)StringFromMoveWithOptionalLast(*move, lastMoveTo).c_str() << endl;
   return ret;
