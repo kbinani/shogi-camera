@@ -22,7 +22,11 @@ void Move::decideSuffix(Position const &p) {
     }
   }
   if (candidates.size() < 2) {
-    suffix = static_cast<SuffixUnderlyingType>(SuffixType::None);
+    if (!from && candidates.size() == 1) {
+      suffix = static_cast<SuffixUnderlyingType>(SuffixType::Drop);
+    } else {
+      suffix = static_cast<SuffixUnderlyingType>(SuffixType::None);
+    }
   } else if (!from) {
     // candidates.size によらず, drop を指定するだけで手を特定できる
     suffix = static_cast<SuffixUnderlyingType>(SuffixType::Drop);

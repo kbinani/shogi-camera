@@ -352,5 +352,18 @@ TEST_CASE("Move::decideSuffix") {
       m.decideSuffix(p);
       CHECK(m.suffix == static_cast<SuffixUnderlyingType>(SuffixType::Down));
     }
+    SUBCASE("20240408_021600_shogicamera_Player_electronshogi.kif") {
+      Position p = EmptyPosition();
+      p.pieces[File::File8][Rank::Rank6] = MakePiece(Color::White, PieceType::Bishop);
+      p.pieces[File::File6][Rank::Rank9] = MakePiece(Color::Black, PieceType::Silver);
+      p.pieces[File::File5][Rank::Rank9] = MakePiece(Color::Black, PieceType::King);
+      Move m;
+      m.color = Color::Black;
+      m.piece = silver;
+      m.from = std::nullopt;
+      m.to = MakeSquare(File::File6, Rank::Rank8);
+      m.decideSuffix(p);
+      CHECK(m.suffix == static_cast<SuffixUnderlyingType>(SuffixType::Drop));
+    }
   }
 }
