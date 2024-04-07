@@ -1671,7 +1671,7 @@ struct BoardImage {
   cv::Mat gray_;
   cv::Mat fullcolor;
   cv::Mat blurGray;
-  static constexpr double kPieceDetectThreshold = 0.3;
+  static constexpr double kPieceDetectThreshold = 0.2;
 
   using Pack = std::array<BoardImage, 3>;
 
