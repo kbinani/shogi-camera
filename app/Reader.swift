@@ -413,6 +413,8 @@ class Reader {
       actions.append(.Down)
     } else if suffixAction == sci.SuffixType.Sideway.rawValue {
       actions.append(.Sideway)
+    } else if suffixAction == sci.SuffixType.Drop.rawValue {
+      actions.append(.Drop)
     }
     for action in actions {
       var startAction: TimeInterval?
