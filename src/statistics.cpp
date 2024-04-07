@@ -287,11 +287,11 @@ optional<Status::Result> Statistics::push(cv::Mat const &board,
   BoardImage const &before = boardHistory[boardHistory.size() - 2];
   BoardImage const &after = boardHistory[boardHistory.size() - 1];
   CvPointSet changes;
-  Img::Compare(before, after, changes, s.similarity);
+  Img::DetectBoardChange(before, after, changes, s.similarity);
   if (!stableBoardHistory.empty()) {
     auto const &last = stableBoardHistory.back();
     CvPointSet tmp;
-    Img::Compare(last[2], bi, tmp, s.similarityAgainstStableBoard);
+    Img::DetectBoardChange(last[2], bi, tmp, s.similarityAgainstStableBoard);
   }
   if (!changes.empty()) {
     // 変動したマス目が検出されているので, 最新のフレームだけ残して捨てる.
@@ -328,7 +328,7 @@ optional<Status::Result> Statistics::push(cv::Mat const &board,
       auto const &before = last[i];
       auto const &after = history[j];
       changes.clear();
-      Img::Compare(before, after, changes);
+      Img::DetectBoardChange(before, after, changes);
       minChange = min(minChange, (int)changes.size());
       maxChange = max(maxChange, (int)changes.size());
       changeset.push_back(changes);

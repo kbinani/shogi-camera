@@ -20,7 +20,27 @@ double Angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) {
   return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
 }
 
-void DetectPiece(cv::Mat const &img, uint8_t board[9][9], double similarity[9][9]) {
+} // namespace
+
+cv::Rect Img::PieceROIRect(cv::Size const &size, int x, int y) {
+  int w = size.width;
+  int h = size.height;
+  double sw = w / 9.0;
+  double sh = h / 9.0;
+  double cx = sw * (x + 0.5);
+  double cy = sh * (y + 0.5);
+  int x0 = (int)round(cx - sw * 0.5);
+  int y0 = (int)round(cy - sh * 0.5);
+  int x1 = std::min(w, (int)round(cx + sw * 0.5));
+  int y1 = std::min(h, (int)round(cy + sh * 0.5));
+  return cv::Rect(x0, y0, x1 - x0, y1 - y0);
+}
+
+cv::Mat Img::PieceROI(cv::Mat const &board, int x, int y) {
+  return cv::Mat(board, PieceROIRect(board.size(), x, y));
+}
+
+void Img::DetectPiece(cv::Mat const &img, uint8_t board[9][9], double similarity[9][9]) {
   double sim[9][9];
   double minimum = numeric_limits<double>::max();
   double maximum = numeric_limits<double>::lowest();
@@ -59,26 +79,6 @@ void DetectPiece(cv::Mat const &img, uint8_t board[9][9], double similarity[9][9
       }
     }
   }
-}
-
-} // namespace
-
-cv::Rect Img::PieceROIRect(cv::Size const &size, int x, int y) {
-  int w = size.width;
-  int h = size.height;
-  double sw = w / 9.0;
-  double sh = h / 9.0;
-  double cx = sw * (x + 0.5);
-  double cy = sh * (y + 0.5);
-  int x0 = (int)round(cx - sw * 0.5);
-  int y0 = (int)round(cy - sh * 0.5);
-  int x1 = std::min(w, (int)round(cx + sw * 0.5));
-  int y1 = std::min(h, (int)round(cy + sh * 0.5));
-  return cv::Rect(x0, y0, x1 - x0, y1 - y0);
-}
-
-cv::Mat Img::PieceROI(cv::Mat const &board, int x, int y) {
-  return cv::Mat(board, PieceROIRect(board.size(), x, y));
 }
 
 void Img::DetectBoardChange(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9]) {

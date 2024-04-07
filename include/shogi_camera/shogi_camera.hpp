@@ -1859,6 +1859,7 @@ class Img {
 public:
   static cv::Rect PieceROIRect(cv::Size const &size, int x, int y);
   static cv::Mat PieceROI(cv::Mat const &board, int x, int y);
+  static void DetectPiece(cv::Mat const &img, uint8_t board[9][9], double similarity[9][9]);
   static void DetectBoardChange(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9] = nullptr);
   // 2 つの画像を同じサイズになるよう変形する
   static std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b);
