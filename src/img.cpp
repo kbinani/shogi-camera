@@ -20,6 +20,47 @@ double Angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) {
   return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
 }
 
+void DetectPiece(cv::Mat const &img, uint8_t board[9][9], double similarity[9][9]) {
+  double sim[9][9];
+  double minimum = numeric_limits<double>::max();
+  double maximum = numeric_limits<double>::lowest();
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      board[x][y] = 0;
+      cv::Mat roi;
+      Img::PieceROI(img, x, y).convertTo(roi, CV_32F);
+      int w = roi.size().width - 2;
+      int h = roi.size().height - 2;
+      cv::Mat part = roi(cv::Rect(1, 1, w, h));
+      cv::Mat vsum = cv::Mat::zeros(cv::Size(w, h), CV_32F);
+      cv::Mat diff = cv::Mat::zeros(cv::Size(w, h), CV_32F);
+      for (cv::Point delta : {cv::Point(1, 0), cv::Point(0, 1), cv::Point(-1, 0), cv::Point(0, -1)}) {
+        int dx = delta.x;
+        int dy = delta.y;
+        cv::absdiff(part, roi(cv::Rect(1 + dx, 1 + dy, w, h)), diff);
+        vsum += diff;
+      }
+      double sum = cv::sum(vsum)[0];
+      double s = sum / (255.0 * 4 * w * h);
+      sim[x][y] = s;
+      minimum = std::min(minimum, s);
+      maximum = std::max(maximum, s);
+    }
+  }
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      double s = sim[x][y];
+      double v = (s - minimum) / (maximum - minimum);
+      if (similarity) {
+        similarity[x][y] = v;
+      }
+      if (v > BoardImage::kPieceDetectThreshold) {
+        board[x][y] = 1;
+      }
+    }
+  }
+}
+
 } // namespace
 
 cv::Rect Img::PieceROIRect(cv::Size const &size, int x, int y) {
@@ -40,29 +81,18 @@ cv::Mat Img::PieceROI(cv::Mat const &board, int x, int y) {
   return cv::Mat(board, PieceROIRect(board.size(), x, y));
 }
 
-void Img::Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9]) {
+void Img::DetectBoardChange(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9]) {
   // 2 枚の盤面画像を比較する. 変動が検出された升目を buffer に格納する.
 
   buffer.clear();
-  auto [b, a] = Equalize(before.blurGray, after.blurGray);
-  Bin(b, b);
-  Bin(a, a);
-  double sim[9][9];
+
+  uint8_t boardBefore[9][9];
+  uint8_t boardAfter[9][9];
+  DetectPiece(before.blurGray, boardBefore, nullptr);
+  DetectPiece(after.blurGray, boardAfter, similarity);
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
-      cv::Mat pb = Img::PieceROI(b, x, y);
-      cv::Mat pa = Img::PieceROI(a, x, y);
-      double s = cv::matchShapes(pb, pa, cv::CONTOURS_MATCH_I1, 0);
-      sim[x][y] = s;
-      if (similarity) {
-        similarity[x][y] = s;
-      }
-    }
-  }
-  for (int y = 0; y < 9; y++) {
-    for (int x = 0; x < 9; x++) {
-      double s = sim[x][y];
-      if (s > BoardImage::kStableBoardThreshold) {
+      if (boardBefore[x][y] != boardAfter[x][y]) {
         buffer.insert(cv::Point(x, y));
       }
     }
@@ -247,7 +277,10 @@ void Img::Bitblt(cv::Mat const &src, cv::Mat &dst, int x, int y) {
   cv::warpAffine(src, dst, cv::Mat(2, 3, CV_32F, t), dst.size(), cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
 }
 
-void Img::FindContours(cv::Mat const &image, vector<shared_ptr<Contour>> &contours, vector<shared_ptr<Contour>> &squares, vector<shared_ptr<PieceContour>> &pieces) {
+void Img::FindContours(cv::Mat const &image,
+                       vector<shared_ptr<Contour>> &contours,
+                       vector<shared_ptr<Contour>> &squares,
+                       vector<shared_ptr<PieceContour>> &pieces) {
   int const N = 11;
   int const thresh = 50;
 

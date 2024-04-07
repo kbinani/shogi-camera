@@ -1671,8 +1671,7 @@ struct BoardImage {
   cv::Mat gray_;
   cv::Mat fullcolor;
   cv::Mat blurGray;
-  static constexpr double kStableBoardMaxSimilarity = 0.02;
-  static constexpr double kStableBoardThreshold = kStableBoardMaxSimilarity * 0.5;
+  static constexpr double kPieceDetectThreshold = 0.3;
 
   using Pack = std::array<BoardImage, 3>;
 
@@ -1860,7 +1859,7 @@ class Img {
 public:
   static cv::Rect PieceROIRect(cv::Size const &size, int x, int y);
   static cv::Mat PieceROI(cv::Mat const &board, int x, int y);
-  static void Compare(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9] = nullptr);
+  static void DetectBoardChange(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9] = nullptr);
   // 2 つの画像を同じサイズになるよう変形する
   static std::pair<cv::Mat, cv::Mat> Equalize(cv::Mat const &a, cv::Mat const &b);
   struct ComparePieceCache {

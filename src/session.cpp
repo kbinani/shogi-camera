@@ -1311,8 +1311,6 @@ void Session::run() {
     cv::Mat frameGray;
     cv::cvtColor(frameColor, frameGray, cv::COLOR_RGB2GRAY);
 
-    s->stableBoardMaxSimilarity = BoardImage::kStableBoardMaxSimilarity;
-    s->stableBoardThreshold = BoardImage::kStableBoardThreshold;
     s->width = frameGray.size().width;
     s->height = frameGray.size().height;
     Img::FindContours(frameGray, s->contours, s->squares, s->pieces);
