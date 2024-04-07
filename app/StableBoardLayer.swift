@@ -46,30 +46,29 @@ class StableBoardLayer: CALayer {
     ctx.translateBy(x: rect.minX, y: rect.minY)
     ctx.scaleBy(x: scale, y: scale)
 
-    let minSim: CGFloat = 0
-    let maxSim: CGFloat = status.stableBoardMaxSimilarity
+    var minSim: CGFloat = 1
+    var maxSim: CGFloat = 0
+    for y in 0..<9 {
+      for x in 0..<9 {
+        let similarityAgainstStableBoard = Mirror(reflecting: Mirror(reflecting: status.similarityAgainstStableBoard).children[AnyIndex(x)].value).children[AnyIndex(y)].value as! Double
+        minSim = min(minSim, similarityAgainstStableBoard)
+        maxSim = max(maxSim, similarityAgainstStableBoard)
+      }
+    }
     for y in 0..<9 {
       for x in 0..<9 {
         let pw = image.size.width / 9
         let ph = image.size.height / 9
         let px = pw * CGFloat(x)
         let py = ph * CGFloat(y)
-        let similarity = Mirror(reflecting: Mirror(reflecting: status.similarity).children[AnyIndex(x)].value).children[AnyIndex(y)].value as! Double
         let similarityAgainstStableBoard = Mirror(reflecting: Mirror(reflecting: status.similarityAgainstStableBoard).children[AnyIndex(x)].value).children[AnyIndex(y)].value as! Double
-        let bar = min((similarity - minSim) / (maxSim - minSim), 1) * ph
-        let sbar = min((similarityAgainstStableBoard - minSim) / (maxSim - minSim), 1) * ph
 
-        let r = CGRect(x: px, y: py + ph - bar, width: pw * 0.5, height: bar)
-        ctx.setFillColor(UIColor.red.withAlphaComponent(0.2).cgColor)
+        let c = sci.ColorFromColormap(Float((similarityAgainstStableBoard - minSim) / (maxSim - minSim)))
+        let color = UIColor(red: c.r, green: c.g, blue: c.b, alpha: 1)
+
+        ctx.setFillColor(color.cgColor)
+        let r = CGRect(x: px, y: py, width: pw, height: ph)
         ctx.fill([r])
-        ctx.setStrokeColor(UIColor.red.cgColor)
-        ctx.stroke(r)
-
-        let r2 = CGRect(x: px + pw * 0.5, y: py + ph - sbar, width: pw * 0.5, height: sbar)
-        ctx.setFillColor(UIColor.blue.withAlphaComponent(0.2).cgColor)
-        ctx.fill([r2])
-        ctx.setStrokeColor(UIColor.blue.cgColor)
-        ctx.stroke(r2)
       }
     }
 
