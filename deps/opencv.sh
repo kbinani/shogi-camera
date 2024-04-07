@@ -6,6 +6,10 @@ set -ue
   if [ ! -f "${OPENCV_VERSION}.zip" ]; then
     wget https://github.com/opencv/opencv/archive/refs/tags/${OPENCV_VERSION}.zip
   fi
+  if [ -d "opencv-${OPENCV_VERSION}" ]; then
+    echo "Directory 'opencv-${OPENCV_VERSION}' already exists"
+    exit 1;
+  fi
   rm -rf "opencv-${OPENCV_VERSION}"
   unzip "${OPENCV_VERSION}.zip"
   ln -sf opencv-${OPENCV_VERSION} opencv
