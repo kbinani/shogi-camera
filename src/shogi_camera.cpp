@@ -72,6 +72,11 @@ optional<cv::Point2f> Contour::direction(float length) const {
 }
 
 Status::Status() : game(Handicap::平手, false) {
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      similarity[x][y] = 0;
+    }
+  }
 }
 
 SessionWrapper::SessionWrapper() : ptr(make_shared<Session>()) {
