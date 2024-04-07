@@ -172,11 +172,11 @@ void AppendPromotion(Move &mv,
   count++;
   auto bp = Img::PieceROI(boardBefore, mv.from->file, mv.from->rank);
   auto ap = Img::PieceROI(boardAfter, mv.to.file, mv.to.rank);
-  cout << "b64png(promote_" << count << "_before_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(bp)) << endl;
-  cout << "b64png(promote_" << count << "_after_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(ap)) << endl;
-  cout << "b64png(promote_" << count << "_book_promote=" << promote << "):" << base64::to_base64(book.toPng()) << endl;
-  cout << "b64png(promote_" << count << "_maxbefore_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(maxImgUnpromoteBefore)) << endl;
-  cout << "b64png(promote_" << count << "_maxafter_promote=" << promote << "):" << base64::to_base64(Img::EncodeToPng(maxImgUnpromoteAfter)) << endl;
+  LogPng(bp) << "promote_" << count << "_before_promote=" << promote;
+  LogPng(ap) << "promote_" << count << "_after_promote=" << promote;
+  LogPng(book.toPng()) << "promote_" << count << "_book_promote=" << promote;
+  LogPng(maxImgUnpromoteBefore) << "promote_" << count << "_maxbefore_promote=" << promote;
+  LogPng(maxImgUnpromoteAfter) << "promote_" << count << "_maxafter_promote=" << promote;
 #endif
 
 #if SHOGI_CAMERA_DEBUG
@@ -556,7 +556,7 @@ optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boa
         int i = 0;
         for (auto const &it : maxSimStat) {
           i++;
-          cout << "b64png(drop_" << cnt << "_" << i << "_" << (char const *)ShortStringFromPieceTypeAndStatus(static_cast<PieceUnderlyingType>(it.first)).c_str() << "):" << base64::to_base64(Img::EncodeToPng(it.second.second)) << endl;
+          LogPng(it.second.second) << "drop_" << cnt << "_" << i << "_" << (char const *)ShortStringFromPieceTypeAndStatus(static_cast<PieceUnderlyingType>(it.first)).c_str();
         }
 #endif
         if (maxSimPiece) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <base64.hpp>
 #include <hwm/task/task_queue.hpp>
 #include <opencv2/core.hpp>
 
@@ -8,6 +9,7 @@
 #include <map>
 #include <random>
 #include <set>
+#include <sstream>
 #include <string>
 #include <thread>
 
@@ -1959,5 +1961,58 @@ private:
 };
 
 void RunTests();
+
+class PngLogger {
+  struct Data {
+    explicit Data(cv::Mat const &img) : pngData(img.empty() ? "" : Img::EncodeToPng(img)) {}
+    explicit Data(std::string const &pngData) : pngData(pngData) {}
+
+    ~Data() {
+      if (pngData.empty()) {
+        return;
+      }
+      std::cout << "b64png(" << name.str() << "):" << base64::to_base64(pngData) << std::endl;
+    }
+
+    std::ostringstream name;
+    std::string pngData;
+  };
+
+public:
+  explicit PngLogger(cv::Mat const &img)
+#if !defined(SHOGI_CAMERA_RELEASE)
+      : data(std::make_shared<Data>(img))
+#endif
+  {
+  }
+
+  explicit PngLogger(std::string const &raw)
+#if !defined(SHOGI_CAMERA_RELEASE)
+      : data(std::make_shared<Data>(raw))
+#endif
+  {
+  }
+
+  template <class T>
+  PngLogger &operator<<(T &&t) {
+    if (data) {
+      data->name << std::forward<T>(t);
+    }
+    return *this;
+  }
+
+private:
+  std::shared_ptr<Data> data;
+};
+
+inline PngLogger LogPng(cv::Mat const &img) {
+  PngLogger logger(img);
+  return logger;
+}
+
+inline PngLogger LogPng(std::string const &pngData) {
+  PngLogger logger(pngData);
+  return logger;
+}
 
 } // namespace sci

@@ -1009,7 +1009,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
         points.push_back(cv::Point2f(s.width * 2, (*y1) * 2));
         cv::polylines(img, points, false, cv::Scalar(0, 255, 0));
       });
-      cout << "b64png(grids_" << cv::format("%04d", cnt) << "):" << base64::to_base64(Img::EncodeToPng(img)) << endl;
+      LogPng(img) << "grids_" << cv::format("%04d", cnt);
 #endif
     }
 #if 0
@@ -1046,7 +1046,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
           break;
         }
       }
-      cout << "b64png(sample_" << cv::format("%04d", cnt) << "_" << index << "):" << base64::to_base64(Img::EncodeToPng(all)) << endl;
+      LogPng(all) << "sample_" << cv::format("%04d", cnt) << "_" << index;
     }
 #endif
   }
