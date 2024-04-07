@@ -1,6 +1,7 @@
 #pragma once
 
 #include <base64.hpp>
+#include <colormap/colormap.h>
 #include <hwm/task/task_queue.hpp>
 #include <opencv2/core.hpp>
 
@@ -2013,6 +2014,11 @@ inline PngLogger LogPng(cv::Mat const &img) {
 inline PngLogger LogPng(std::string const &pngData) {
   PngLogger logger(pngData);
   return logger;
+}
+
+colormap::Color ColorFromColormap(float v) {
+  static colormap::MATLAB::Jet sJet;
+  return sJet.getColor(v);
 }
 
 } // namespace sci
