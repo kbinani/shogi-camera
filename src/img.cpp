@@ -54,19 +54,27 @@ void Img::DetectPiece(cv::Mat const &img, uint8_t board[9][9], double similarity
       cv::Mat part = roi(cv::Rect(1, 1, w, h));
       cv::Mat vsum = cv::Mat::zeros(cv::Size(w, h), CV_32F);
       cv::Mat diff = cv::Mat::zeros(cv::Size(w, h), CV_32F);
-      for (cv::Point delta : {cv::Point(1, 0), cv::Point(0, 1), cv::Point(-1, 0), cv::Point(0, -1)}) {
-        int dx = delta.x;
-        int dy = delta.y;
-        cv::absdiff(part, roi(cv::Rect(1 + dx, 1 + dy, w, h)), diff);
-        vsum += diff;
+      float weightSum = 0;
+      for (int dx = -1; dx <= 1; dx++) {
+        for (int dy = -1; dy <= 1; dy++) {
+          if (dx == 0 && dy == 0) {
+            continue;
+          }
+          cv::absdiff(part, roi(cv::Rect(1 + dx, 1 + dy, w, h)), diff);
+          vsum += diff;
+          weightSum++;
+        }
       }
       double sum = cv::sum(vsum)[0];
-      double s = sum / (255.0 * 4 * w * h);
+      double s = sum / (255.0 * weightSum * w * h);
       sim[x][y] = s;
       minimum = std::min(minimum, s);
       maximum = std::max(maximum, s);
     }
   }
+  double minPositive, maxPositive, minNegative, maxNegative;
+  minPositive = minNegative = numeric_limits<double>::max();
+  maxPositive = maxNegative = numeric_limits<double>::lowest();
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
       double s = sim[x][y];
@@ -76,9 +84,17 @@ void Img::DetectPiece(cv::Mat const &img, uint8_t board[9][9], double similarity
       }
       if (v > BoardImage::kPieceDetectThreshold) {
         board[x][y] = 1;
+        minPositive = std::min(minPositive, v);
+        maxPositive = std::max(maxPositive, v);
+      } else {
+        minNegative = std::min(minNegative, v);
+        maxNegative = std::max(maxNegative, v);
       }
     }
   }
+#if 0
+  cout << "positive = [" << minPositive << ", " << maxPositive << "], negative = [" << minNegative << ", " << maxNegative << "]" << endl;
+#endif
 }
 
 void Img::DetectBoardChange(BoardImage const &before, BoardImage const &after, CvPointSet &buffer, double similarity[9][9]) {
