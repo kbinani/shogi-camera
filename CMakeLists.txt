@@ -48,6 +48,7 @@ add_library(shogi_camera STATIC
   src/csa_adapter.cpp
   src/objc/shogi_camera.mm
   src/csa_server.cpp
+  src/micro688_ai.cpp
   test/doctest_main.cpp
   test/move.test.hpp
   test/game.test.hpp
