@@ -1,5 +1,3 @@
-#include <shogi_camera/shogi_camera.hpp>
-
 #if SHOGI_CAMERA_ENABLE_MICRO688
 
 #include <algorithm>
@@ -181,19 +179,6 @@ const string SfenPiece = "+PLNSBRGK";
 constexpr Score ScoreInfinite = numeric_limits<int16_t>::max();
 constexpr Score ScoreMate = 32600;
 constexpr Score ScoreMateInMaxPly = ScoreMate - MaxPly;
-
-// グローバル変数
-chrono::system_clock::time_point time_start, time_end; // 探索を始めた時刻と終了する時刻
-Move pv_array[MaxPly][MaxPly];                         // 読み筋を記録する
-atomic_bool stop;
-uint64_t nodes;
-
-map<string, Option> options = {
-    {"Eval", Option("Material", vector<string>{"Material", "Random(NoSearch)"})},
-    {"Ordering", Option("Random", vector<string>{"Default", "Random"})},
-    {"TimeMargin", Option(100, 0, 1000)},
-    {"SaveTime", Option(true)},
-};
 
 // GetSquare(0, 0)は盤の左上隅(９一)を表す
 inline constexpr int GetSquare(int x, int y) {
@@ -611,294 +596,307 @@ Score Position::evaluate() const {
   return score * ColorToSign(turn);
 }
 
-// 読み筋などの情報をGUIに送る
-void infoToUSI(const Score score, const int depth) {
-  auto duration = chrono::system_clock::now() - ::time_start;                // 経過した時間
-  auto msec = chrono::duration_cast<chrono::milliseconds>(duration).count(); // 経過した時間(ミリ秒単位)
-  if (msec == 0)
-    msec = 1;
+struct State {
+  // 読み筋などの情報をGUIに送る
+  void infoToUSI(const Score score, const int depth) {
+    auto duration = chrono::system_clock::now() - this->time_start;            // 経過した時間
+    auto msec = chrono::duration_cast<chrono::milliseconds>(duration).count(); // 経過した時間(ミリ秒単位)
+    if (msec == 0)
+      msec = 1;
 
-  ostringstream oss_score;
-  if (abs(score) >= ScoreMateInMaxPly) {
-    if (score > 0) {
-      oss_score << "mate +" << ScoreMate - score;
+    ostringstream oss_score;
+    if (abs(score) >= ScoreMateInMaxPly) {
+      if (score > 0) {
+        oss_score << "mate +" << ScoreMate - score;
+      } else {
+        oss_score << "mate -" << ScoreMate + score;
+      }
     } else {
-      oss_score << "mate -" << ScoreMate + score;
-    }
-  } else {
-    oss_score << "cp " << score;
-  }
-
-  string pv;
-  for (int i = 0; i < MaxPly; i++) {
-    Move move = ::pv_array[0][i];
-    if (move.is_none())
-      break;
-    pv += ' ' + move.toSfen();
-  }
-
-  cout << "info" << " depth " << depth << " time " << msec << " nodes " << ::nodes
-       << " nps " << ::nodes * 1000 / msec << " score " << oss_score.str() << " pv" << pv << endl;
-}
-
-// 探索 静止探索を含む 静止探索は取る手深さ4と王手回避(リキャプチャも入れたい)
-Score search(Position &pos, Score alpha, const Score beta, const int depth) {
-  ::pv_array[pos.ply][0] = Move::None();
-  ::nodes++;
-
-  if (pos.ply > 0) {
-    // 千日手 16手まで遡る
-    for (int i = 4; i <= 16; i += 2) {
-      if (Position::equal(pos, *(&pos - i))) {
-        if (pos.continuous_check[pos.turn] * 2 >= i)
-          return -ScoreInfinite;
-        if (pos.continuous_check[~pos.turn] * 2 >= i)
-          return +ScoreInfinite;
-        return 0;
-      }
-    }
-  }
-
-  Score best_score = -ScoreMate + pos.ply;
-  if (pos.isWin())
-    return -best_score;
-
-  const bool QSearch = depth <= 0 && !pos.checked; // 静止探索か
-  if (QSearch) {
-    best_score = pos.evaluate();
-    if (best_score >= beta || depth <= -4)
-      return best_score;
-  }
-
-  Move moves[MaxMove];
-  int n = pos.generateMoves(moves);
-  bool no_legal = true; // まだこの局面で合法手が見つかっていない
-
-  if (pos.ply == 0 && (string)::options["Ordering"] == "Random") {
-    // 毎回同じ将棋にならないように Rootのみなので遅くていい
-    shuffle(moves, moves + n, random_device());
-  }
-
-  for (int i = 0; i < n; i++) {
-    Move move = moves[i];
-    if (QSearch && !move.captured())
-      continue; // 静止探索は取る手だけ
-
-    // 手を進める
-    pos.doMove(move);
-    // 王手放置でないか確かめる(打ち歩詰め等の可能性は残っている)
-    if ((&pos + 1)->inCheck(pos.turn))
-      continue;
-
-    Score score = -search(*(&pos + 1), -beta, -alpha, depth - 1);
-    no_legal = false;
-
-    // 手を戻す必要はない
-
-    if (score > best_score) {
-      best_score = score;
-
-      if (score > alpha) {
-        // PVをコピーする
-        ::pv_array[pos.ply][0] = move;
-        for (int j = 1; j < MaxPly; j++) {
-          if ((::pv_array[pos.ply][j] = ::pv_array[pos.ply + 1][j - 1]).is_none())
-            break;
-        }
-        if (score >= beta)
-          return score; // βカット
-        alpha = score;
-      }
+      oss_score << "cp " << score;
     }
 
-    // 思考中断
-    if (::stop || chrono::system_clock::now() >= ::time_end) {
-      ::stop = true;
-      return 0; // stopがtrueのときはスコアを使わないので適当に返す
-    }
-  }
-
-  // 打ち歩詰め
-  if (!QSearch && no_legal && pos.checked) {
-    if (pos.previous_move.is_drop() && pos.previous_move.piece_type() == Pawn)
-      return ScoreInfinite;
-  }
-
-  return best_score;
-}
-
-// 合法手の中からランダムに選んで返す
-Move randomMove(Position &pos) {
-  Move moves[MaxMove];
-  int n = pos.generateMoves(moves);
-  uniform_int_distribution<int> distribution(0, n - 1);
-  random_device rand;
-  int k = distribution(rand);
-
-  for (int i = 0; i < n; i++) {
-    Move move = moves[(i + k) % n];
-    pos.doMove(move);
-    if ((&pos + 1)->inCheck(pos.turn))
-      continue;
-    Score score = search(*(&pos + 1), -ScoreInfinite, ScoreInfinite, 0);
-    if (score == ScoreInfinite)
-      continue; // 打ち歩詰め、連続王手の千日手(同一局面2回目でも反則とみなす)
-    return move;
-  }
-  return Move::None();
-}
-
-// 反復深化
-void idLoop(Position *const ppos) {
-  Move best_move = Move::None();
-
-  if (ppos->isWin()) {
-    cout << "info score mate + string nyugyoku win" << endl;
-    cout << "bestmove win" << endl;
-    return;
-  }
-  if ((string)::options["Eval"] == "Random(NoSearch)")
-    goto id_end;
-
-  for (int depth = 1; depth < MaxPly; depth++) {
-    Score score = search(*ppos, -ScoreInfinite, ScoreInfinite, depth);
-    if (::stop)
-      break;
-
-    best_move = ::pv_array[0][0];
-    infoToUSI(score, depth);
-    if (abs(score) >= ScoreMateInMaxPly)
-      break;
-
-    if (::options["SaveTime"]) {
-      auto t = chrono::system_clock::now();
-      auto d0 = t - ::time_start;
-      auto d1 = ::time_end - t;
-      if (d1 < d0 * 5)
+    string pv;
+    for (int i = 0; i < MaxPly; i++) {
+      Move move = this->pv_array[0][i];
+      if (move.is_none())
         break;
+      pv += ' ' + move.toSfen();
     }
+
+    cout << "info" << " depth " << depth << " time " << msec << " nodes " << this->nodes
+         << " nps " << this->nodes * 1000 / msec << " score " << oss_score.str() << " pv" << pv << endl;
   }
-id_end:
-  // 時間までに1手も読めなかったらランダムに指す
-  if (best_move.is_none())
-    best_move = randomMove(*ppos);
 
-  if (best_move.is_none())
-    cout << "info score mate - string resign" << endl;
+  // 探索 静止探索を含む 静止探索は取る手深さ4と王手回避(リキャプチャも入れたい)
+  Score search(Position &pos, Score alpha, const Score beta, const int depth) {
+    this->pv_array[pos.ply][0] = Move::None();
+    this->nodes++;
 
-  cout << "bestmove " << best_move.toSfen() << endl;
-}
+    if (pos.ply > 0) {
+      // 千日手 16手まで遡る
+      for (int i = 4; i <= 16; i += 2) {
+        if (Position::equal(pos, *(&pos - i))) {
+          if (pos.continuous_check[pos.turn] * 2 >= i)
+            return -ScoreInfinite;
+          if (pos.continuous_check[~pos.turn] * 2 >= i)
+            return +ScoreInfinite;
+          return 0;
+        }
+      }
+    }
 
-void think(Position &pos, const int msec) {
-  ::time_start = chrono::system_clock::now();
-  ::time_end = ::time_start + chrono::milliseconds(msec - ::options["TimeMargin"]);
-  ::stop = false;
-  ::nodes = 0;
+    Score best_score = -ScoreMate + pos.ply;
+    if (pos.isWin())
+      return -best_score;
 
-  pos.ply = 0;
+    const bool QSearch = depth <= 0 && !pos.checked; // 静止探索か
+    if (QSearch) {
+      best_score = pos.evaluate();
+      if (best_score >= beta || depth <= -4)
+        return best_score;
+    }
 
-  thread thread(idLoop, &pos);
-  thread.detach();
-}
+    Move moves[MaxMove];
+    int n = pos.generateMoves(moves);
+    bool no_legal = true; // まだこの局面で合法手が見つかっていない
 
-// UIからのコマンドを受け取る
-void usiLoop() {
-  vector<Position> vpos(1024);
-  Position *ppos = &vpos[16];
+    if (pos.ply == 0 && (string)this->options["Ordering"] == "Random") {
+      // 毎回同じ将棋にならないように Rootのみなので遅くていい
+      shuffle(moves, moves + n, random_device());
+    }
 
-  string cmd, token;
+    for (int i = 0; i < n; i++) {
+      Move move = moves[i];
+      if (QSearch && !move.captured())
+        continue; // 静止探索は取る手だけ
 
-  while (getline(cin, cmd)) {
-    istringstream iss(cmd);
-    iss >> token;
+      // 手を進める
+      pos.doMove(move);
+      // 王手放置でないか確かめる(打ち歩詰め等の可能性は残っている)
+      if ((&pos + 1)->inCheck(pos.turn))
+        continue;
 
-    if (token == "usi") {
-      cout << "id name shogi686micro 2.0" << endl;
-      cout << "id author merom686" << endl;
-      cout << ::options;
-      cout << "usiok" << endl;
+      Score score = -search(*(&pos + 1), -beta, -alpha, depth - 1);
+      no_legal = false;
 
-    } else if (token == "setoption") {
-      string name, value;
-      iss >> token; // "name"
-      iss >> name;
-      iss >> token; // "value"
-      value = iss.str().substr((size_t)iss.tellg() + 1);
-      if (::options.count(name) > 0)
-        ::options[name] = value; // 空文字列の意味で"<empty>"が送られて来ることはないよね？
+      // 手を戻す必要はない
 
-    } else if (token == "isready") {
-      // 特に準備することがない
-      cout << "readyok" << endl;
+      if (score > best_score) {
+        best_score = score;
 
-    } else if (token == "position") {
-      ppos = vpos[16].fromSfen(iss.str().substr((size_t)iss.tellg() + 1));
+        if (score > alpha) {
+          // PVをコピーする
+          this->pv_array[pos.ply][0] = move;
+          for (int j = 1; j < MaxPly; j++) {
+            if ((this->pv_array[pos.ply][j] = this->pv_array[pos.ply + 1][j - 1]).is_none())
+              break;
+          }
+          if (score >= beta)
+            return score; // βカット
+          alpha = score;
+        }
+      }
 
-    } else if (token == "go") {
-      Position &pos = *ppos;
-      cout << "info score cp " << pos.evaluate() << " string static score" << endl;
+      // 思考中断
+      if (this->stop || chrono::system_clock::now() >= this->time_end) {
+        this->stop = true;
+        return 0; // stopがtrueのときはスコアを使わないので適当に返す
+      }
+    }
+
+    // 打ち歩詰め
+    if (!QSearch && no_legal && pos.checked) {
+      if (pos.previous_move.is_drop() && pos.previous_move.piece_type() == Pawn)
+        return ScoreInfinite;
+    }
+
+    return best_score;
+  }
+
+  // 合法手の中からランダムに選んで返す
+  Move randomMove(Position &pos) {
+    Move moves[MaxMove];
+    int n = pos.generateMoves(moves);
+    uniform_int_distribution<int> distribution(0, n - 1);
+    random_device rand;
+    int k = distribution(rand);
+
+    for (int i = 0; i < n; i++) {
+      Move move = moves[(i + k) % n];
+      pos.doMove(move);
+      if ((&pos + 1)->inCheck(pos.turn))
+        continue;
+      Score score = search(*(&pos + 1), -ScoreInfinite, ScoreInfinite, 0);
+      if (score == ScoreInfinite)
+        continue; // 打ち歩詰め、連続王手の千日手(同一局面2回目でも反則とみなす)
+      return move;
+    }
+    return Move::None();
+  }
+
+  enum class Special {
+    Win,
+  };
+
+  // 反復深化
+  variant<Move, Special> idLoop(Position *const ppos) {
+    Move best_move = Move::None();
+
+    if (ppos->isWin()) {
+      cout << "info score mate + string nyugyoku win" << endl;
+      cout << "bestmove win" << endl;
+      return Special::Win;
+    }
+    if ((string)this->options["Eval"] == "Random(NoSearch)")
+      goto id_end;
+
+    for (int depth = 1; depth < MaxPly; depth++) {
+      Score score = search(*ppos, -ScoreInfinite, ScoreInfinite, depth);
+      if (this->stop)
+        break;
+
+      best_move = this->pv_array[0][0];
+      infoToUSI(score, depth);
+      if (abs(score) >= ScoreMateInMaxPly)
+        break;
+
+      if (this->options["SaveTime"]) {
+        auto t = chrono::system_clock::now();
+        auto d0 = t - this->time_start;
+        auto d1 = this->time_end - t;
+        if (d1 < d0 * 5)
+          break;
+      }
+    }
+  id_end:
+    // 時間までに1手も読めなかったらランダムに指す
+    if (best_move.is_none())
+      best_move = randomMove(*ppos);
+
+    if (best_move.is_none())
+      cout << "info score mate - string resign" << endl;
+
+    cout << "bestmove " << best_move.toSfen() << endl;
+
+    return best_move;
+  }
+
+  variant<Move, Special> think(Position &pos, const int msec) {
+    this->time_start = chrono::system_clock::now();
+    this->time_end = this->time_start + chrono::milliseconds(msec - this->options["TimeMargin"]);
+    this->stop = false;
+    this->nodes = 0;
+
+    pos.ply = 0;
+
+    return idLoop(&pos);
+  }
+
+  // UIからのコマンドを受け取る
+  void usiLoop() {
+    vector<Position> vpos(1024);
+    Position *ppos = &vpos[16];
+
+    string cmd, token;
+
+    while (getline(cin, cmd)) {
+      istringstream iss(cmd);
       iss >> token;
 
-      if (token == "btime") {
-        int btime, wtime, byoyomi;
-        iss >> btime >> token >> wtime >> token >> byoyomi;
-        int time = pos.turn == Black ? btime : wtime;
-        think(pos, max((time / 60 + byoyomi) / 1000 * 1000, 1000));
+      if (token == "usi") {
+        cout << "id name shogi686micro 2.0" << endl;
+        cout << "id author merom686" << endl;
+        cout << this->options;
+        cout << "usiok" << endl;
 
-      } else if (token == "infinite") {
-        think(pos, 86400 * 1000);
+      } else if (token == "setoption") {
+        string name, value;
+        iss >> token; // "name"
+        iss >> name;
+        iss >> token; // "value"
+        value = iss.str().substr((size_t)iss.tellg() + 1);
+        if (this->options.count(name) > 0)
+          this->options[name] = value; // 空文字列の意味で"<empty>"が送られて来ることはないよね？
 
-      } else if (token == "mate") {
-        cout << "checkmate notimplemented" << endl;
+      } else if (token == "isready") {
+        // 特に準備することがない
+        cout << "readyok" << endl;
+
+      } else if (token == "position") {
+        ppos = vpos[16].fromSfen(iss.str().substr((size_t)iss.tellg() + 1));
+
+      } else if (token == "go") {
+        Position &pos = *ppos;
+        cout << "info score cp " << pos.evaluate() << " string static score" << endl;
+        iss >> token;
+
+        if (token == "btime") {
+          int btime, wtime, byoyomi;
+          iss >> btime >> token >> wtime >> token >> byoyomi;
+          int time = pos.turn == Black ? btime : wtime;
+          think(pos, max((time / 60 + byoyomi) / 1000 * 1000, 1000));
+
+        } else if (token == "infinite") {
+          think(pos, 86400 * 1000);
+
+        } else if (token == "mate") {
+          cout << "checkmate notimplemented" << endl;
+        }
+
+      } else if (token == "stop") {
+        this->stop = true;
+
+      } else if (token == "quit") {
+        this->stop = true;
+        break;
+
+      } else {
+        // 他(usinewgame, ponderhit, gameover)は聞き流す
       }
-
-    } else if (token == "stop") {
-      ::stop = true;
-
-    } else if (token == "quit") {
-      ::stop = true;
-      break;
-
-    } else {
-      // 他(usinewgame, ponderhit, gameover)は聞き流す
     }
   }
-}
 
-#if 0
-int main() {
-    usiLoop();
-    return 0;
-}
-#endif
+  chrono::system_clock::time_point time_start, time_end; // 探索を始めた時刻と終了する時刻
+  Move pv_array[MaxPly][MaxPly];                         // 読み筋を記録する
+  atomic_bool stop;
+  uint64_t nodes;
 
-struct sci::Micro688AI::Impl {
-  optional<Move> next(Position const &p, Color next, deque<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
-    return nullopt;
-  }
-
-  void stop() {
-  }
+  map<string, Option> options = {
+      {"Eval", Option("Material", vector<string>{"Material", "Random(NoSearch)"})},
+      {"Ordering", Option("Random", vector<string>{"Default", "Random"})},
+      {"TimeMargin", Option(100, 0, 1000)},
+      {"SaveTime", Option(true)},
+  };
 };
 
 #else
 
 using namespace std;
 
+struct State {
+};
+
+#endif
+
+#include <shogi_camera/shogi_camera.hpp>
+
+namespace sci {
+
 struct sci::Micro688AI::Impl {
-  Impl() {}
+  Impl() : state(make_unique<::State>()) {
+  }
 
   optional<Move> next(Position const &p, Color next, deque<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+    ::Position pos;
+    pos.clear();
     return nullopt;
   }
 
   void stop() {
   }
+
+  unique_ptr<::State> state;
 };
-
-#endif
-
-namespace sci {
 
 Micro688AI::Micro688AI() : impl(make_unique<Impl>()) {
 }
@@ -906,11 +904,17 @@ Micro688AI::Micro688AI() : impl(make_unique<Impl>()) {
 Micro688AI::~Micro688AI() {}
 
 optional<Move> Micro688AI::next(Position const &p, Color next, deque<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+#if SHOGI_CAMERA_ENABLE_MICRO688
   return impl->next(p, next, moves, hand, handEnemy);
+#else
+  return nullopt;
+#endif
 }
 
 void Micro688AI::stop() {
+#if SHOGI_CAMERA_ENABLE_MICRO688
   impl->stop();
+#endif
 }
 
 } // namespace sci
