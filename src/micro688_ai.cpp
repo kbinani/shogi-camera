@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cassert>
 #include <cctype>
 #include <chrono>
 #include <cstdlib>
@@ -14,18 +15,19 @@
 #include <string>
 #include <thread>
 #include <vector>
+
 using namespace std;
 
-#define DEBUG
-#ifdef DEBUG
-#define assert(x)                                                                  \
-  if (!(x)) {                                                                      \
-    cout << "info string error file:" << __FILE__ << " line:" << __LINE__ << endl; \
-    throw;                                                                         \
-  }
-#else
-#define assert(x) ((void)0)
-#endif
+// #define DEBUG
+// #ifdef DEBUG
+// #d ef ine assert(x)                                                                  \
+//  if (!(x)) {                                                                      \
+//    cout << "info string error file:" << __FILE__ << " line:" << __LINE__ << endl; \
+//    throw;                                                                         \
+//  }
+// #else
+// #define assert(x) ((void)0)
+// #endif
 
 using Score = int;
 
@@ -263,7 +265,7 @@ struct Position {
   // cの玉に相手の利きがあるか
   bool inCheck(const Color c) const;
   // 手を進める
-  void doMove(const Move move) const;
+  void doMove(const Move move, Position *next) const;
   // 入玉宣言勝ちの判定
   bool isWin() const;
   // 評価関数
@@ -397,7 +399,8 @@ Position *Position::fromSfen(const string &s) {
       return sfen_move == move.toSfen();
     });
     assert(it < moves + n);
-    (ppos++)->doMove(*it);
+    ppos->doMove(*it, ppos + 1);
+    ppos++;
   }
   return ppos;
 }
@@ -462,8 +465,8 @@ bool Position::inCheck(const Color c) const {
   return false;
 }
 
-void Position::doMove(const Move move) const {
-  Position &pos = const_cast<Position *>(this)[1];
+void Position::doMove(const Move move, Position *next) const {
+  Position &pos = *next;
   pos = *this; // 次の深さへコピー thisはいじらない
 
   if (move.is_drop()) {
@@ -628,39 +631,39 @@ struct State {
   }
 
   // 探索 静止探索を含む 静止探索は取る手深さ4と王手回避(リキャプチャも入れたい)
-  Score search(Position &pos, Score alpha, const Score beta, const int depth) {
-    this->pv_array[pos.ply][0] = Move::None();
+  Score search(Position *ppos, Score alpha, const Score beta, const int depth) {
+    this->pv_array[ppos->ply][0] = Move::None();
     this->nodes++;
 
-    if (pos.ply > 0) {
+    if (ppos->ply > 0) {
       // 千日手 16手まで遡る
       for (int i = 4; i <= 16; i += 2) {
-        if (Position::equal(pos, *(&pos - i))) {
-          if (pos.continuous_check[pos.turn] * 2 >= i)
+        if (Position::equal(*ppos, *(ppos - i))) {
+          if (ppos->continuous_check[ppos->turn] * 2 >= i)
             return -ScoreInfinite;
-          if (pos.continuous_check[~pos.turn] * 2 >= i)
+          if (ppos->continuous_check[~ppos->turn] * 2 >= i)
             return +ScoreInfinite;
           return 0;
         }
       }
     }
 
-    Score best_score = -ScoreMate + pos.ply;
-    if (pos.isWin())
+    Score best_score = -ScoreMate + ppos->ply;
+    if (ppos->isWin())
       return -best_score;
 
-    const bool QSearch = depth <= 0 && !pos.checked; // 静止探索か
+    const bool QSearch = depth <= 0 && !ppos->checked; // 静止探索か
     if (QSearch) {
-      best_score = pos.evaluate();
+      best_score = ppos->evaluate();
       if (best_score >= beta || depth <= -4)
         return best_score;
     }
 
     Move moves[MaxMove];
-    int n = pos.generateMoves(moves);
+    int n = ppos->generateMoves(moves);
     bool no_legal = true; // まだこの局面で合法手が見つかっていない
 
-    if (pos.ply == 0 && (string)this->options["Ordering"] == "Random") {
+    if (ppos->ply == 0 && (string)this->options["Ordering"] == "Random") {
       // 毎回同じ将棋にならないように Rootのみなので遅くていい
       shuffle(moves, moves + n, random_device());
     }
@@ -671,12 +674,12 @@ struct State {
         continue; // 静止探索は取る手だけ
 
       // 手を進める
-      pos.doMove(move);
+      ppos->doMove(move, ppos + 1);
       // 王手放置でないか確かめる(打ち歩詰め等の可能性は残っている)
-      if ((&pos + 1)->inCheck(pos.turn))
+      if ((ppos + 1)->inCheck(ppos->turn))
         continue;
 
-      Score score = -search(*(&pos + 1), -beta, -alpha, depth - 1);
+      Score score = -search(ppos + 1, -beta, -alpha, depth - 1);
       no_legal = false;
 
       // 手を戻す必要はない
@@ -686,9 +689,9 @@ struct State {
 
         if (score > alpha) {
           // PVをコピーする
-          this->pv_array[pos.ply][0] = move;
+          this->pv_array[ppos->ply][0] = move;
           for (int j = 1; j < MaxPly; j++) {
-            if ((this->pv_array[pos.ply][j] = this->pv_array[pos.ply + 1][j - 1]).is_none())
+            if ((this->pv_array[ppos->ply][j] = this->pv_array[ppos->ply + 1][j - 1]).is_none())
               break;
           }
           if (score >= beta)
@@ -705,8 +708,8 @@ struct State {
     }
 
     // 打ち歩詰め
-    if (!QSearch && no_legal && pos.checked) {
-      if (pos.previous_move.is_drop() && pos.previous_move.piece_type() == Pawn)
+    if (!QSearch && no_legal && ppos->checked) {
+      if (ppos->previous_move.is_drop() && ppos->previous_move.piece_type() == Pawn)
         return ScoreInfinite;
     }
 
@@ -714,19 +717,19 @@ struct State {
   }
 
   // 合法手の中からランダムに選んで返す
-  Move randomMove(Position &pos) {
+  Move randomMove(Position *ppos) {
     Move moves[MaxMove];
-    int n = pos.generateMoves(moves);
+    int n = ppos->generateMoves(moves);
     uniform_int_distribution<int> distribution(0, n - 1);
     random_device rand;
     int k = distribution(rand);
 
     for (int i = 0; i < n; i++) {
       Move move = moves[(i + k) % n];
-      pos.doMove(move);
-      if ((&pos + 1)->inCheck(pos.turn))
+      ppos->doMove(move, ppos + 1);
+      if ((ppos + 1)->inCheck(ppos->turn))
         continue;
-      Score score = search(*(&pos + 1), -ScoreInfinite, ScoreInfinite, 0);
+      Score score = search(ppos + 1, -ScoreInfinite, ScoreInfinite, 0);
       if (score == ScoreInfinite)
         continue; // 打ち歩詰め、連続王手の千日手(同一局面2回目でも反則とみなす)
       return move;
@@ -739,7 +742,7 @@ struct State {
   };
 
   // 反復深化
-  variant<Move, Special> idLoop(Position *const ppos) {
+  variant<Move, Special> idLoop(Position *ppos) {
     Move best_move = Move::None();
 
     if (ppos->isWin()) {
@@ -751,7 +754,7 @@ struct State {
       goto id_end;
 
     for (int depth = 1; depth < MaxPly; depth++) {
-      Score score = search(*ppos, -ScoreInfinite, ScoreInfinite, depth);
+      Score score = search(ppos, -ScoreInfinite, ScoreInfinite, depth);
       if (this->stop)
         break;
 
@@ -771,7 +774,7 @@ struct State {
   id_end:
     // 時間までに1手も読めなかったらランダムに指す
     if (best_move.is_none())
-      best_move = randomMove(*ppos);
+      best_move = randomMove(ppos);
 
     if (best_move.is_none())
       cout << "info score mate - string resign" << endl;
@@ -781,17 +784,18 @@ struct State {
     return best_move;
   }
 
-  variant<Move, Special> think(Position &pos, const int msec) {
+  variant<Move, Special> think(Position *ppos, const int msec) {
     this->time_start = chrono::system_clock::now();
     this->time_end = this->time_start + chrono::milliseconds(msec - this->options["TimeMargin"]);
     this->stop = false;
     this->nodes = 0;
 
-    pos.ply = 0;
+    ppos->ply = 0;
 
-    return idLoop(&pos);
+    return idLoop(ppos);
   }
 
+#if 0
   // UIからのコマンドを受け取る
   void usiLoop() {
     vector<Position> vpos(1024);
@@ -855,6 +859,7 @@ struct State {
       }
     }
   }
+#endif
 
   chrono::system_clock::time_point time_start, time_end; // 探索を始めた時刻と終了する時刻
   Move pv_array[MaxPly][MaxPly];                         // 読み筋を記録する
@@ -886,15 +891,203 @@ struct sci::Micro688AI::Impl {
   Impl() : state(make_unique<::State>()) {
   }
 
+  static Square SquareFromMicro688Square(int square) {
+    int o = square - ::Origin;
+    int y = o / ::Stride;
+    int x = o - y * ::Stride;
+    return MakeSquare(x, y);
+  }
+
+  static Piece PieceFromMicro688PieceType(Color color, int type) {
+    switch (type) {
+    case ::Piece::Pawn:
+      return MakePiece(color, PieceType::Pawn);
+    case ::Piece::Lance:
+      return MakePiece(color, PieceType::Lance);
+    case ::Piece::Knight:
+      return MakePiece(color, PieceType::Knight);
+    case ::Piece::Silver:
+      return MakePiece(color, PieceType::Silver);
+    case ::Piece::Gold:
+      return MakePiece(color, PieceType::Gold);
+    case ::Piece::Bishop:
+      return MakePiece(color, PieceType::Bishop);
+    case ::Piece::Rook:
+      return MakePiece(color, PieceType::Rook);
+    case ::Piece::King:
+      return MakePiece(color, PieceType::King);
+    case ::Piece::ProPawn:
+      return MakePiece(color, PieceType::Pawn, PieceStatus::Promoted);
+    case ::Piece::ProLance:
+      return MakePiece(color, PieceType::Lance, PieceStatus::Promoted);
+    case ::Piece::ProKnight:
+      return MakePiece(color, PieceType::Knight, PieceStatus::Promoted);
+    case ::Piece::ProSilver:
+      return MakePiece(color, PieceType::Silver, PieceStatus::Promoted);
+    case ::Piece::Horse:
+      return MakePiece(color, PieceType::Bishop, PieceStatus::Promoted);
+    case ::Piece::Dragon:
+      return MakePiece(color, PieceType::Rook, PieceStatus::Promoted);
+    default:
+      assert(false);
+      break;
+    }
+  }
+
   optional<Move> next(Position const &p, Color next, deque<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
-    ::Position pos;
-    pos.clear();
+
+    if (vpos.empty()) {
+      vpos.resize(32);
+      index = 16;
+
+      ::Position &pos = vpos[index];
+      pos.clear();
+
+      for (int y = 0; y < 9; y++) {
+        for (int x = 0; x < 9; x++) {
+          auto piece = p.pieces[x][y];
+          ::Color color = ColorFromPiece(piece) == Color::Black ? ::Black : ::White;
+          int sq = ::GetSquare(x, y);
+          int i = 0;
+          switch (PieceTypeFromPiece(piece)) {
+          case PieceType::Pawn:
+            i = ::Piece::Pawn;
+            break;
+          case PieceType::Lance:
+            i = ::Piece::Lance;
+            break;
+          case PieceType::Knight:
+            i = ::Piece::Knight;
+            break;
+          case PieceType::Silver:
+            i = ::Piece::Silver;
+            break;
+          case PieceType::Gold:
+            i = ::Piece::Gold;
+            break;
+          case PieceType::Bishop:
+            i = ::Piece::Bishop;
+            break;
+          case PieceType::Rook:
+            i = ::Piece::Rook;
+            break;
+          case PieceType::King:
+            i = ::Piece::King;
+            pos.king[color] = sq;
+            break;
+          default:
+            break;
+          }
+          if (IsPromotedPiece(piece)) {
+            i |= ::PromoteMask;
+          }
+          i |= ::ColorToTurnMask(color);
+          pos.piece[sq] = i;
+        }
+      }
+
+      ::Color color = next == Color::Black ? ::Black : ::White;
+      ::Color opponent = next == Color::Black ? ::White : ::Black;
+
+      pos.turn = next == Color::Black ? ::Black : ::White;
+
+      for (auto const &h : hand) {
+        switch (h) {
+        case PieceType::Pawn:
+          pos.hand[color][::Piece::Pawn]++;
+          break;
+        case PieceType::Lance:
+          pos.hand[color][::Piece::Lance]++;
+          break;
+        case PieceType::Knight:
+          pos.hand[color][::Piece::Knight]++;
+          break;
+        case PieceType::Silver:
+          pos.hand[color][::Piece::Silver]++;
+          break;
+        case PieceType::Gold:
+          pos.hand[color][::Piece::Gold]++;
+          break;
+        case PieceType::Bishop:
+          pos.hand[color][::Piece::Bishop]++;
+          break;
+        case PieceType::Rook:
+          pos.hand[color][::Piece::Rook]++;
+          break;
+        }
+      }
+      for (auto const &h : handEnemy) {
+        switch (h) {
+        case PieceType::Pawn:
+          pos.hand[opponent][::Piece::Pawn]++;
+          break;
+        case PieceType::Lance:
+          pos.hand[opponent][::Piece::Lance]++;
+          break;
+        case PieceType::Knight:
+          pos.hand[opponent][::Piece::Knight]++;
+          break;
+        case PieceType::Silver:
+          pos.hand[opponent][::Piece::Silver]++;
+          break;
+        case PieceType::Gold:
+          pos.hand[opponent][::Piece::Gold]++;
+          break;
+        case PieceType::Bishop:
+          pos.hand[opponent][::Piece::Bishop]++;
+          break;
+        case PieceType::Rook:
+          pos.hand[opponent][::Piece::Rook]++;
+          break;
+        }
+      }
+      pos.checked = pos.inCheck(pos.turn);
+    } else if (vpos.size() < index + 16) {
+      vpos.resize(vpos.size() + 16);
+    }
+
+    ::Position *ppos = vpos.data() + index;
+    auto ret = state->think(ppos, kLimitSeconds * 1000);
+
+    if (holds_alternative<::Move>(ret)) {
+      auto mv = get<::Move>(ret);
+
+      if (mv.is_none()) {
+        return nullopt;
+      } else {
+        ppos->doMove(mv, ppos + 1);
+        index++;
+
+        Move move;
+        move.color = next;
+        if (!mv.is_drop()) {
+          move.from = SquareFromMicro688Square(mv.from());
+        }
+        move.to = SquareFromMicro688Square(mv.to());
+        int captured = mv.captured();
+        if (captured != 0) {
+          move.captured = PieceFromMicro688PieceType(OpponentColor(next), captured);
+        }
+        move.piece = PieceFromMicro688PieceType(next, mv.piece_type());
+        if (mv.promote()) {
+          move.promote = 1;
+        } else if (move.from && IsPromotableMove(*move.from, move.to, next)) {
+          move.promote = -1;
+        }
+        return move;
+      }
+    } else if (holds_alternative<State::Special>(ret)) {
+      // TODO:
+    }
     return nullopt;
   }
 
   void stop() {
   }
 
+  static int constexpr kLimitSeconds = 10;
+  size_t index;
+  vector<::Position> vpos;
   unique_ptr<::State> state;
 };
 
