@@ -218,6 +218,48 @@ void BlurFile5(BoardImage::Pack &pack, Position const &p) {
   }
 }
 
+bool ArePiecesMatchingToHandicap(Game const &g, uint8_t pieces[9][9]) {
+  set<bool> count;
+  bool ok = true;
+  for (int x = 0; x < 9; x++) {
+    for (int y = 0; y < 9; y++) {
+      bool actual = g.position.pieces[x][y] == 0;
+      bool expected = pieces[x][y] == 0;
+      if (expected != actual) {
+        ok = false;
+        break;
+      }
+    }
+    if (!ok) {
+      break;
+    }
+  }
+  count.insert(ok);
+
+  ok = true;
+  for (int x = 0; x < 9; x++) {
+    for (int y = 0; y < 9; y++) {
+      bool actual = g.position.pieces[8 - x][8 - y] == 0;
+      bool expected = pieces[x][y] == 0;
+      if (expected != actual) {
+        ok = false;
+        break;
+      }
+    }
+    if (!ok) {
+      break;
+    }
+  }
+  count.insert(ok);
+
+  if (g.handicap_ == Handicap::平手 || g.handicap_ == Handicap::青空将棋) {
+    auto found = count.find(true);
+    return count.size() == 1 && found != count.end();
+  } else {
+    return count.size() == 2;
+  }
+}
+
 } // namespace
 
 Statistics::Statistics() : book(make_shared<PieceBook>()), pool(make_unique<hwm::task_queue>(3)) {
@@ -360,6 +402,10 @@ optional<Status::Result> Statistics::push(cv::Mat const &board,
   stableBoardInitialResetCounter = 0;
   stableBoardInitialReadyCounter = std::min(stableBoardInitialReadyCounter + 1, kStableBoardCounterThreshold + 1);
   s.boardReady = stableBoardInitialReadyCounter > kStableBoardCounterThreshold;
+
+  uint8_t pieces[9][9];
+  Img::DetectPiece(history.back().blurGray, pieces, nullptr);
+  s.handicapReady = ArePiecesMatchingToHandicap(g, pieces);
 
   if (!detectMove) {
     return nullopt;

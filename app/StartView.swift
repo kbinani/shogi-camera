@@ -59,6 +59,7 @@ class StartView: UIView {
 
   enum State {
     case waitingStableBoard
+    case waitingHandicap
     case ready
     case cameraNotAvailable
   }
@@ -76,6 +77,10 @@ class StartView: UIView {
       self.startAsWhiteButton.isEnabled = false
     case .waitingStableBoard:
       self.messageLabel.text = "将棋盤全体が映る位置で\n固定してください"
+      self.startAsBlackButton.isEnabled = false
+      self.startAsWhiteButton.isEnabled = false
+    case .waitingHandicap:
+      self.messageLabel.text = "駒の配置を手合割と同じに\nしてください"
       self.startAsBlackButton.isEnabled = false
       self.startAsWhiteButton.isEnabled = false
     case .ready:
@@ -176,6 +181,7 @@ class StartView: UIView {
     let handicapHandSwitch = UISwitch()
     handicapHandSwitch.backgroundColor = UIColor.lightGray
     handicapHandSwitch.isOn = handicapHand
+    handicapHandSwitch.addTarget(self, action: #selector(handicapHandSwitchDidChangeValue(_:)), for: .valueChanged)
     self.addSubview(handicapHandSwitch)
     self.handicapHandSwitch = handicapHandSwitch
     let handicapHandLabel = UILabel()
@@ -363,17 +369,9 @@ class StartView: UIView {
       analyzer.captureSession.removeConnection(connection)
     }
     if csaSwitch.isOn, let server {
-      if handicap == .平手 {
-        analyzer.startGame(userColor: userColor, server: server)
-      } else {
-        analyzer.startGame(userColor: userColor, handicap: handicap, hand: handicapHandSwitch.isOn, server: server)
-      }
+      analyzer.startGame(userColor: userColor, server: server)
     } else {
-      if handicap == .平手 {
-        analyzer.startGame(userColor: userColor, option: 0)
-      } else {
-        analyzer.startGame(userColor: userColor, handicap: handicap, hand: handicapHandSwitch.isOn, option: 0)
-      }
+      analyzer.startGame(userColor: userColor, option: 0)
     }
     delegate?.startView(self, didStartGameWith: analyzer, server: server, handicap: handicap, handicapHand: handicapHandSwitch.isOn)
   }
@@ -441,6 +439,11 @@ class StartView: UIView {
 
   private func handicapButtonDidChangeHandicap(_ handicap: sci.Handicap) {
     self.handicap = handicap
+    analyzer?.setHandicap(handicap: handicap, hand: handicapHandSwitch.isOn)
+  }
+
+  @objc private func handicapHandSwitchDidChangeValue(_ sender: UISwitch) {
+    analyzer?.setHandicap(handicap: handicap, hand: sender.isOn)
   }
 }
 
@@ -456,12 +459,14 @@ extension StartView: AnalyzerDelegate {
 
     self.videoOverlay.status = status
     switch state {
-    case .waitingStableBoard:
-      if status.boardReady == true {
-        state = .ready
-      }
-    case .ready:
-      if status.boardReady != true {
+    case .waitingStableBoard, .waitingHandicap, .ready:
+      if status.boardReady {
+        if status.handicapReady {
+          state = .ready
+        } else {
+          state = .waitingHandicap
+        }
+      } else {
         state = .waitingStableBoard
       }
     case .cameraNotAvailable:

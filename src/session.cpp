@@ -1305,6 +1305,7 @@ void Session::run() {
     s->aborted = this->s->aborted;
     s->game = this->game;
     s->started = this->started;
+    s->handicapReady = this->s->handicapReady;
 
     lock.unlock();
 
@@ -1506,14 +1507,21 @@ void Session::unsafeResign(Color color, Status &s) {
   }
 }
 
+void Session::setHandicap(Handicap h, bool handicapHand) {
+  lock_guard<mutex> lk(mut);
+  game = Game(h, handicapHand);
+}
+
 void Session::startGame(GameStartParameter p) {
   auto config = make_shared<PlayerConfig>();
+
+  lock_guard<mutex> lk(mut);
 
   if (p.server) {
     weak_ptr<CsaServer> server = p.server;
     auto csa = make_shared<CsaAdapter>(server);
     csa->delegate = weak_from_this();
-    auto writer = p.server->setLocalPeer(csa, p.userColor, p.handicap, p.hand);
+    auto writer = p.server->setLocalPeer(csa, p.userColor, game.handicap_, game.handicapHand_);
     csa->setWriter(writer);
     PlayerConfig::Remote remote;
     remote.csa = csa;
@@ -1538,8 +1546,6 @@ void Session::startGame(GameStartParameter p) {
     }
     config->players = local;
   }
-  game = Game(p.handicap, p.hand);
-  s->game = game;
   setPlayerConfig(config);
   started = true;
   s->started = true;

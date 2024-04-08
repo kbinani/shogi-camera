@@ -41,6 +41,13 @@ cv::Mat Img::PieceROI(cv::Mat const &board, int x, int y) {
 }
 
 void Img::DetectPiece(cv::Mat const &img, uint8_t board[9][9], double similarity[9][9]) {
+  int const inset = 5;
+  if (img.size().width <= 9 * inset * 2) {
+    return;
+  }
+  if (img.size().height <= 9 * inset * 2) {
+    return;
+  }
   double sim[9][9];
   double minimum = numeric_limits<double>::max();
   double maximum = numeric_limits<double>::lowest();
@@ -49,9 +56,9 @@ void Img::DetectPiece(cv::Mat const &img, uint8_t board[9][9], double similarity
       board[x][y] = 0;
       cv::Mat roi;
       Img::PieceROI(img, x, y).convertTo(roi, CV_32F);
-      int w = roi.size().width - 2;
-      int h = roi.size().height - 2;
-      cv::Mat part = roi(cv::Rect(1, 1, w, h));
+      int w = roi.size().width - 2 * inset;
+      int h = roi.size().height - 2 * inset;
+      cv::Mat part = roi(cv::Rect(inset, inset, w, h));
       cv::Mat vsum = cv::Mat::zeros(cv::Size(w, h), CV_32F);
       cv::Mat diff = cv::Mat::zeros(cv::Size(w, h), CV_32F);
       float weightSum = 0;
@@ -60,7 +67,7 @@ void Img::DetectPiece(cv::Mat const &img, uint8_t board[9][9], double similarity
           if (dx == 0 && dy == 0) {
             continue;
           }
-          cv::absdiff(part, roi(cv::Rect(1 + dx, 1 + dy, w, h)), diff);
+          cv::absdiff(part, roi(cv::Rect(inset + dx, inset + dy, w, h)), diff);
           vsum += diff;
           weightSum++;
         }

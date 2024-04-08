@@ -1648,6 +1648,8 @@ struct Status {
   bool waitingMove = false;
   // 盤面の画像認識が準備完了となった時 true
   bool boardReady = false;
+  // 手合割の配置になっていたら true (ただし駒の有無だけの判定).
+  bool handicapReady = false;
   // AI の示した手と違う手が指されている時に true
   bool wrongMove = false;
   struct Result {
@@ -1776,8 +1778,6 @@ struct Players {
 
 struct GameStartParameter {
   Color userColor;
-  Handicap handicap;
-  bool hand;
   // 1~: sunfish
   // other: random
   int option;
@@ -1799,6 +1799,7 @@ public:
     std::shared_ptr<Status> cp = s;
     return *cp;
   }
+  void setHandicap(Handicap h, bool handicapHand);
   void startGame(GameStartParameter parameter);
   void stopGame();
   void resign(Color color);
@@ -1907,11 +1908,13 @@ public:
     return ptr->status();
   }
 
+  void setHandicap(Handicap h, bool handicapHand) {
+    ptr->setHandicap(h, handicapHand);
+  }
+
   void startGame(Color userColor, int option) {
     GameStartParameter p;
     p.userColor = userColor;
-    p.handicap = Handicap::平手;
-    p.hand = false;
     p.option = option;
     ptr->startGame(p);
   }
@@ -1919,27 +1922,6 @@ public:
   void startGame(Color userColor, CsaServerWrapper server) {
     GameStartParameter p;
     p.userColor = userColor;
-    p.handicap = Handicap::平手;
-    p.hand = false;
-    p.option = -1;
-    p.server = server.server;
-    ptr->startGame(p);
-  }
-
-  void startGame(Color userColor, Handicap h, bool hand, int option) {
-    GameStartParameter p;
-    p.userColor = userColor;
-    p.handicap = h;
-    p.hand = hand;
-    p.option = option;
-    ptr->startGame(p);
-  }
-
-  void startGame(Color userColor, Handicap h, bool hand, CsaServerWrapper server) {
-    GameStartParameter p;
-    p.userColor = userColor;
-    p.handicap = h;
-    p.hand = hand;
     p.option = -1;
     p.server = server.server;
     ptr->startGame(p);

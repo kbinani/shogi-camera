@@ -95,14 +95,8 @@ class Analyzer {
     self.session.startGame(userColor, server)
   }
 
-  func startGame(userColor: sci.Color, handicap: sci.Handicap, hand: Bool, option: Int) {
-    self.userColor = userColor
-    self.session.startGame(userColor, handicap, hand, Int32(option))
-  }
-
-  func startGame(userColor: sci.Color, handicap: sci.Handicap, hand: Bool, server: sci.CsaServerWrapper) {
-    self.userColor = userColor
-    self.session.startGame(userColor, handicap, hand, server)
+  func setHandicap(handicap: sci.Handicap, hand: Bool) {
+    self.session.setHandicap(handicap, hand)
   }
 
   func stopGame() {
