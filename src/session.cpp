@@ -1306,6 +1306,7 @@ void Session::run() {
     s->game = this->game;
     s->started = this->started;
     s->handicapReady = this->s->handicapReady;
+    memcpy(s->similarityAgainstStableBoard, this->s->similarityAgainstStableBoard, sizeof(s->similarityAgainstStableBoard));
 
     lock.unlock();
 
