@@ -382,7 +382,7 @@ void Img::FindContours(cv::Mat const &image,
 }
 
 void Img::Bin(cv::Mat const &input, cv::Mat &output) {
-  cv::adaptiveThreshold(input, output, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 3, 0);
+  cv::adaptiveThreshold(input, output, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
 }
 
 } // namespace sci
