@@ -248,18 +248,14 @@ void PieceBook::Image::resize(int width, int height) {
   if (mat.size().width == width && mat.size().height == height) {
     return;
   }
+  int w = mat.size().width;
+  int h = mat.size().height;
   cv::Mat bu = mat;
-  cv::Mat tmp = cv::Mat::zeros(height, width, mat.type());
+  cv::Mat tmp = cv::Mat::zeros(cv::Size(width, height), mat.type());
   int dx = width / 2 - (rect.x + rect.width / 2);
   int dy = height / 2 - (rect.y + rect.height / 2);
   rect = cv::Rect(rect.x + dx, rect.y + dy, rect.width, rect.height);
-  for (int x = 0; x < rect.width; x++) {
-    for (int y = 0; y < rect.height; y++) {
-      if (0 <= x - dx && x - dx < width && 0 <= y - dy && y - dy < height) {
-        tmp.at<cv::Vec3b>(x - dx, y - dy) = bu.at<cv::Vec3b>(x, y);
-      }
-    }
-  }
+  bu(cv::Rect(dx, dy, w - dx, h - dy)).copyTo(tmp(cv::Rect(0, 0, w - dx, h - dy)));
   mat = tmp;
 }
 
