@@ -18,17 +18,6 @@
 
 using namespace std;
 
-// #define DEBUG
-// #ifdef DEBUG
-// #d ef ine assert(x)                                                                  \
-//  if (!(x)) {                                                                      \
-//    cout << "info string error file:" << __FILE__ << " line:" << __LINE__ << endl; \
-//    throw;                                                                         \
-//  }
-// #else
-// #define assert(x) ((void)0)
-// #endif
-
 using Score = int;
 
 enum Piece {
@@ -261,7 +250,7 @@ struct Position {
   Position *fromSfen(const string &s);
 
   // 全ての合法手(王手放置等の反則を含む)を生成し、生成した指し手の個数を返す
-  int generateMoves(Move *const moves);
+  int generateMoves(vector<Move> &moves);
   // cの玉に相手の利きがあるか
   bool inCheck(const Color c) const;
   // 手を進める
@@ -281,6 +270,61 @@ struct Position {
   Move previous_move; // 直前に指した手
   bool checked;       // 手番の玉に王手がかかっているか
 };
+
+ostream &operator<<(ostream &os, Position const &p) {
+  for (int y = 0; y < 9; y++) {
+    for (int x = 0; x < 9; x++) {
+      auto sq = GetSquare(x, y);
+      int piece = p.piece[sq];
+      if (piece == 0) {
+        os << " 　";
+      } else {
+        if ((piece & WhiteMask) == WhiteMask) {
+          os << "v";
+        } else {
+          os << " ";
+        }
+        switch (piece & 0xf) {
+        case Pawn:
+          os << "歩";
+          break;
+        case Lance:
+          os << "香";
+          break;
+        case Knight:
+          os << "桂";
+          break;
+        case Silver:
+          os << "銀";
+          break;
+        case Gold:
+          os << "金";
+          break;
+        case Bishop:
+          os << "角";
+          break;
+        case Rook:
+          os << "飛";
+          break;
+        case King:
+          os << "玉";
+          break;
+        case Horse:
+          os << "馬";
+          break;
+        case Dragon:
+          os << "龍";
+          break;
+        default:
+          os << "　";
+          break;
+        }
+      }
+    }
+    os << endl;
+  }
+  return os;
+}
 
 string Move::toSfen() const {
   if (is_none())
@@ -307,7 +351,14 @@ string Move::toSfen() const {
 }
 
 void Position::clear() {
-  memset(this, 0, sizeof *this);
+  //  memset(this, 0, sizeof *this);
+  memset(&turn, 0, sizeof(turn));
+  memset(king, 0, sizeof(king));
+  memset(continuous_check, 0, sizeof(continuous_check));
+  ply = 0;
+  memset(&previous_move, 0, sizeof(previous_move));
+  checked = false;
+  memset(hand, 0, sizeof(hand));
   fill_n(piece, SquareNum, 0xff); // 壁で埋める
   for (int y = 0; y < RankNum; y++) {
     fill_n(&piece[GetSquare(0, y)], FileNum, 0); // y段目を全部空き升に
@@ -392,22 +443,22 @@ Position *Position::fromSfen(const string &s) {
   Position *ppos = this;
   while (iss >> sfen_move) {
     // 全ての合法手を生成して一致するものを探す(合法手でないものを生成しないとは言っていない)
-    Move moves[MaxMove];
+    vector<Move> moves(MaxMove);
     int n = ppos->generateMoves(moves);
 
-    auto it = find_if(moves, moves + n, [&](Move move) {
+    auto it = find_if(moves.begin(), moves.begin() + n, [&](Move const &move) {
       return sfen_move == move.toSfen();
     });
-    assert(it < moves + n);
+    assert(it != moves.end());
     ppos->doMove(*it, ppos + 1);
     ppos++;
   }
   return ppos;
 }
 
-int Position::generateMoves(Move *const moves) {
+int Position::generateMoves(vector<Move> &moves) {
   const int turn_mask = ColorToTurnMask(turn);
-  Move *m = moves;
+  int m = 0;
   int pawn = 0; // 二歩検出用のビットマップ
   // 移動
   for (int y = 0; y < RankNum; y++) {
@@ -423,10 +474,10 @@ int Position::generateMoves(Move *const moves) {
           // 自分の駒と壁以外(空升と相手の駒)へなら移動できる
           if (!(captured & turn_mask)) {
             if (pt < Gold && (promotionZone(from) || promotionZone(to))) {
-              *m++ = Move(from, to, pt, 1, captured % BlackMask);
+              moves[m++] = Move(from, to, pt, 1, captured % BlackMask);
             }
             if (!((pt == Pawn || pt == Lance) && promotionZone<1>(to)) && !(pt == Knight && promotionZone<2>(to))) {
-              *m++ = Move(from, to, pt, 0, captured % BlackMask);
+              moves[m++] = Move(from, to, pt, 0, captured % BlackMask);
             }
           }
           return false;
@@ -444,13 +495,13 @@ int Position::generateMoves(Move *const moves) {
         int p = piece[to];
         if (p == Empty && !(pt == Pawn && (pawn & 1 << x))) {
           if (!((pt == Pawn || pt == Lance) && promotionZone<1>(to)) && !(pt == Knight && promotionZone<2>(to))) {
-            *m++ = Move(0, to, pt, 0, 0);
+            moves[m++] = Move(0, to, pt, 0, 0);
           }
         }
       }
     }
   }
-  return (int)(m - moves);
+  return m;
 }
 
 bool Position::inCheck(const Color c) const {
@@ -632,6 +683,8 @@ struct State {
 
   // 探索 静止探索を含む 静止探索は取る手深さ4と王手回避(リキャプチャも入れたい)
   Score search(Position *ppos, Score alpha, const Score beta, const int depth) {
+    //    ppos->
+
     this->pv_array[ppos->ply][0] = Move::None();
     this->nodes++;
 
@@ -659,13 +712,13 @@ struct State {
         return best_score;
     }
 
-    Move moves[MaxMove];
+    vector<Move> moves(MaxMove);
     int n = ppos->generateMoves(moves);
     bool no_legal = true; // まだこの局面で合法手が見つかっていない
 
     if (ppos->ply == 0 && (string)this->options["Ordering"] == "Random") {
       // 毎回同じ将棋にならないように Rootのみなので遅くていい
-      shuffle(moves, moves + n, random_device());
+      shuffle(moves.begin(), moves.begin() + n, random_device());
     }
 
     for (int i = 0; i < n; i++) {
@@ -718,7 +771,7 @@ struct State {
 
   // 合法手の中からランダムに選んで返す
   Move randomMove(Position *ppos) {
-    Move moves[MaxMove];
+    vector<Move> moves(MaxMove);
     int n = ppos->generateMoves(moves);
     uniform_int_distribution<int> distribution(0, n - 1);
     random_device rand;
@@ -898,6 +951,12 @@ struct sci::Micro688AI::Impl {
     return MakeSquare(x, y);
   }
 
+  static int Micro688SquareFromSquare(Square sq) {
+    int x = sq.file;
+    int y = sq.rank;
+    return ::GetSquare(x, y);
+  }
+
   static Piece PieceFromMicro688PieceType(Color color, int type) {
     switch (type) {
     case ::Piece::Pawn:
@@ -934,11 +993,49 @@ struct sci::Micro688AI::Impl {
     }
   }
 
+  static int Micro688PieceTypeAndStatusFromPiece(Piece p) {
+    PieceType type = PieceTypeFromPiece(p);
+    int pt = 0;
+    switch (type) {
+    case PieceType::Pawn:
+      pt = ::Pawn;
+      break;
+    case PieceType::Lance:
+      pt = ::Lance;
+      break;
+    case PieceType::Knight:
+      pt = ::Knight;
+      break;
+    case PieceType::Silver:
+      pt = ::Silver;
+      break;
+    case PieceType::Gold:
+      pt = ::Gold;
+      break;
+    case PieceType::Bishop:
+      pt = ::Bishop;
+      break;
+    case PieceType::Rook:
+      pt = ::Rook;
+      break;
+    case PieceType::King:
+      pt = ::King;
+      break;
+    default:
+      return 0;
+    }
+    if (IsPromotedPiece(p)) {
+      pt |= ::PromoteMask;
+    }
+    return pt;
+  }
+
   optional<Move> next(Position const &p, Color next, deque<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
 
     if (vpos.empty()) {
       vpos.resize(32);
       index = 16;
+      doneMove = moves.size();
 
       ::Position &pos = vpos[index];
       pos.clear();
@@ -946,6 +1043,9 @@ struct sci::Micro688AI::Impl {
       for (int y = 0; y < 9; y++) {
         for (int x = 0; x < 9; x++) {
           auto piece = p.pieces[x][y];
+          if (piece == 0) {
+            continue;
+          }
           ::Color color = ColorFromPiece(piece) == Color::Black ? ::Black : ::White;
           int sq = ::GetSquare(x, y);
           int i = 0;
@@ -1042,8 +1142,29 @@ struct sci::Micro688AI::Impl {
         }
       }
       pos.checked = pos.inCheck(pos.turn);
-    } else if (vpos.size() < index + 16) {
-      vpos.resize(vpos.size() + 16);
+    } else {
+      int delta = std::max(1, (int)moves.size() - (int)doneMove);
+      if (vpos.size() < index + delta + 16) {
+        vpos.resize(vpos.size() + delta + 16);
+      }
+    }
+    for (size_t i = doneMove; i < moves.size(); i++) {
+      Move m = moves[i];
+      int from = 0;
+      if (m.from) {
+        from = Micro688SquareFromSquare(*m.from);
+      }
+      int to = Micro688SquareFromSquare(m.to);
+      int pt = Micro688PieceTypeAndStatusFromPiece(m.promote == 1 ? Unpromote(m.piece) : m.piece);
+      int promote = m.promote == 1 ? 1 : 0;
+      int captured = 0;
+      if (m.captured) {
+        captured = Micro688PieceTypeAndStatusFromPiece(*m.captured);
+      }
+      ::Move mv = ::Move(from, to, pt, promote, captured);
+      vpos[index].doMove(mv, vpos.data() + index + 1);
+      index++;
+      doneMove++;
     }
 
     ::Position *ppos = vpos.data() + index;
@@ -1057,6 +1178,7 @@ struct sci::Micro688AI::Impl {
       } else {
         ppos->doMove(mv, ppos + 1);
         index++;
+        doneMove++;
 
         Move move;
         move.color = next;
@@ -1071,7 +1193,7 @@ struct sci::Micro688AI::Impl {
         move.piece = PieceFromMicro688PieceType(next, mv.piece_type());
         if (mv.promote()) {
           move.promote = 1;
-        } else if (move.from && IsPromotableMove(*move.from, move.to, next)) {
+        } else if ((mv.piece_type() & PromoteMask) == 0 && move.from && IsPromotableMove(*move.from, move.to, next)) {
           move.promote = -1;
         }
         return move;
@@ -1087,6 +1209,7 @@ struct sci::Micro688AI::Impl {
 
   static int constexpr kLimitSeconds = 10;
   size_t index;
+  size_t doneMove;
   vector<::Position> vpos;
   unique_ptr<::State> state;
 };
