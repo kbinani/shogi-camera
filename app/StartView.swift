@@ -127,7 +127,7 @@ class StartView: UIView {
     self.wifiConnectivity = wifiConnectivity
     self.handicap = handicap
     super.init(frame: .zero)
-    
+
     self.server?.unsetLocalPeer()
     self.analyzer?.setHandicap(handicap: handicap, hand: handicapHand)
 

@@ -165,12 +165,11 @@ class HelpViewController: UIViewController {
     acknowledgement.lineBreakMode = .byWordWrapping
     acknowledgement.textAlignment = .center
     acknowledgement.textColor = .white
-    // swift-format-ignore
     acknowledgement.text = """
-棋譜読み上げボイスとして
-「VOICEVOX:ずんだもん」
-を利用させていただきました。感謝申し上げます。
-"""
+      棋譜読み上げボイスとして
+      「VOICEVOX:ずんだもん」
+      を利用させていただきました。感謝申し上げます。
+      """
     container.addSubview(acknowledgement)
     self.acknowledgement = acknowledgement
 
@@ -395,7 +394,7 @@ OpenCV
 
 """
 
-    #if SHOGI_CAMERA_DEBUG
+    #if SHOGI_CAMERA_ENABLE_SUNFISH
       let line2 =
         """
         ---
@@ -428,7 +427,36 @@ OpenCV
     #else
       let line2 = ""
     #endif
-    let line3 =
+    #if SHOGI_CAMERA_ENABLE_MICRO688
+      let line3 = """
+        MIT License
+
+        Copyright (c) 2017 merom686
+
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+
+
+        """
+    #else
+      let line3 = ""
+    #endif
+    let line4 =
       """
       ---
       base64
@@ -455,7 +483,7 @@ OpenCV
       OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
       SOFTWARE.
       """
-    openSourceLicense.text = line1 + line2 + line3
+    openSourceLicense.text = line1 + line2 + line3 + line4
     openSourceLicense.numberOfLines = 0
     openSourceLicense.lineBreakMode = .byWordWrapping
     container.addSubview(openSourceLicense)
