@@ -1,4 +1,4 @@
-#if SHOGI_CAMERA_ENABLE_MICRO688
+#if SHOGI_CAMERA_ENABLE_MICRO686
 
 #include <algorithm>
 #include <atomic>
@@ -940,24 +940,24 @@ struct State {
 
 namespace sci {
 
-struct sci::Micro688AI::Impl {
+struct sci::Micro686AI::Impl {
   Impl() : state(make_unique<::State>()) {
   }
 
-  static Square SquareFromMicro688Square(int square) {
+  static Square SquareFromMicro686Square(int square) {
     int o = square - ::Origin;
     int y = o / ::Stride;
     int x = o - y * ::Stride;
     return MakeSquare(x, y);
   }
 
-  static int Micro688SquareFromSquare(Square sq) {
+  static int Micro686SquareFromSquare(Square sq) {
     int x = sq.file;
     int y = sq.rank;
     return ::GetSquare(x, y);
   }
 
-  static Piece PieceFromMicro688PieceType(Color color, int type) {
+  static Piece PieceFromMicro686PieceType(Color color, int type) {
     switch (type) {
     case ::Piece::Pawn:
       return MakePiece(color, PieceType::Pawn);
@@ -993,7 +993,7 @@ struct sci::Micro688AI::Impl {
     }
   }
 
-  static int Micro688PieceTypeAndStatusFromPiece(Piece p) {
+  static int Micro686PieceTypeAndStatusFromPiece(Piece p) {
     PieceType type = PieceTypeFromPiece(p);
     int pt = 0;
     switch (type) {
@@ -1152,14 +1152,14 @@ struct sci::Micro688AI::Impl {
       Move m = moves[i];
       int from = 0;
       if (m.from) {
-        from = Micro688SquareFromSquare(*m.from);
+        from = Micro686SquareFromSquare(*m.from);
       }
-      int to = Micro688SquareFromSquare(m.to);
-      int pt = Micro688PieceTypeAndStatusFromPiece(m.promote == 1 ? Unpromote(m.piece) : m.piece);
+      int to = Micro686SquareFromSquare(m.to);
+      int pt = Micro686PieceTypeAndStatusFromPiece(m.promote == 1 ? Unpromote(m.piece) : m.piece);
       int promote = m.promote == 1 ? 1 : 0;
       int captured = 0;
       if (m.captured) {
-        captured = Micro688PieceTypeAndStatusFromPiece(*m.captured);
+        captured = Micro686PieceTypeAndStatusFromPiece(*m.captured);
       }
       ::Move mv = ::Move(from, to, pt, promote, captured);
       vpos[index].doMove(mv, vpos.data() + index + 1);
@@ -1183,14 +1183,14 @@ struct sci::Micro688AI::Impl {
         Move move;
         move.color = next;
         if (!mv.is_drop()) {
-          move.from = SquareFromMicro688Square(mv.from());
+          move.from = SquareFromMicro686Square(mv.from());
         }
-        move.to = SquareFromMicro688Square(mv.to());
+        move.to = SquareFromMicro686Square(mv.to());
         int captured = mv.captured();
         if (captured != 0) {
-          move.captured = PieceFromMicro688PieceType(OpponentColor(next), captured);
+          move.captured = PieceFromMicro686PieceType(OpponentColor(next), captured);
         }
-        move.piece = PieceFromMicro688PieceType(next, mv.piece_type());
+        move.piece = PieceFromMicro686PieceType(next, mv.piece_type());
         if (mv.promote()) {
           move.promote = 1;
         } else if ((mv.piece_type() & PromoteMask) == 0 && move.from && IsPromotableMove(*move.from, move.to, next)) {
@@ -1214,21 +1214,21 @@ struct sci::Micro688AI::Impl {
   unique_ptr<::State> state;
 };
 
-Micro688AI::Micro688AI() : impl(make_unique<Impl>()) {
+Micro686AI::Micro686AI() : impl(make_unique<Impl>()) {
 }
 
-Micro688AI::~Micro688AI() {}
+Micro686AI::~Micro686AI() {}
 
-optional<Move> Micro688AI::next(Position const &p, Color next, deque<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
-#if SHOGI_CAMERA_ENABLE_MICRO688
+optional<Move> Micro686AI::next(Position const &p, Color next, deque<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
+#if SHOGI_CAMERA_ENABLE_MICRO686
   return impl->next(p, next, moves, hand, handEnemy);
 #else
   return nullopt;
 #endif
 }
 
-void Micro688AI::stop() {
-#if SHOGI_CAMERA_ENABLE_MICRO688
+void Micro686AI::stop() {
+#if SHOGI_CAMERA_ENABLE_MICRO686
   impl->stop();
 #endif
 }

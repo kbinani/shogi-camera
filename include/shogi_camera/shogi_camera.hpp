@@ -1260,10 +1260,10 @@ private:
   std::unique_ptr<Impl> impl;
 };
 
-class Micro688AI : public Player {
+class Micro686AI : public Player {
 public:
-  Micro688AI();
-  ~Micro688AI();
+  Micro686AI();
+  ~Micro686AI();
   std::optional<Move> next(Position const &p, Color next, std::deque<Move> const &moves, std::deque<PieceType> const &hand, std::deque<PieceType> const &handEnemy) override;
   std::optional<std::u8string> name() override {
     return u8"686micro";

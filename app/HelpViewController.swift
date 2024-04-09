@@ -427,7 +427,7 @@ OpenCV
     #else
       let line2 = ""
     #endif
-    #if SHOGI_CAMERA_ENABLE_MICRO688
+    #if SHOGI_CAMERA_ENABLE_MICRO686
       let line3 = """
         MIT License
 
