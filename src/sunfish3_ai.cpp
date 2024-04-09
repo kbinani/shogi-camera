@@ -159,6 +159,7 @@ struct Sunfish3AI::Impl {
 
     sunfish::Searcher::Config config = searcher.getConfig();
     config.limitSeconds = kLimitSeconds;
+    config.maxDepth = kMaxDepth;
     searcher.setConfig(config);
   }
 
@@ -225,7 +226,8 @@ struct Sunfish3AI::Impl {
   unique_ptr<mt19937_64> engine;
   mutex mut;
 
-  static constexpr float kLimitSeconds = 30;
+  static constexpr float kLimitSeconds = 60;
+  static constexpr int kMaxDepth = 64;
 };
 #else
 struct Sunfish3AI::Impl {
