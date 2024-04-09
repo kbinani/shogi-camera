@@ -429,6 +429,9 @@ OpenCV
     #endif
     #if SHOGI_CAMERA_ENABLE_MICRO686
       let line3 = """
+        ---
+        shogi686micro
+
         MIT License
 
         Copyright (c) 2017 merom686
