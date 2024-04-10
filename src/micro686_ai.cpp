@@ -250,7 +250,7 @@ struct Position {
   Position *fromSfen(const string &s);
 
   // 全ての合法手(王手放置等の反則を含む)を生成し、生成した指し手の個数を返す
-  int generateMoves(vector<Move> &moves);
+  int generateMoves(Move *moves);
   // cの玉に相手の利きがあるか
   bool inCheck(const Color c) const;
   // 手を進める
@@ -443,20 +443,20 @@ Position *Position::fromSfen(const string &s) {
   Position *ppos = this;
   while (iss >> sfen_move) {
     // 全ての合法手を生成して一致するものを探す(合法手でないものを生成しないとは言っていない)
-    vector<Move> moves(MaxMove);
+    Move moves[MaxMove];
     int n = ppos->generateMoves(moves);
 
-    auto it = find_if(moves.begin(), moves.begin() + n, [&](Move const &move) {
+    auto it = find_if(moves, moves + n, [&](Move const &move) {
       return sfen_move == move.toSfen();
     });
-    assert(it != moves.end());
+    assert(it != moves + n);
     ppos->doMove(*it, ppos + 1);
     ppos++;
   }
   return ppos;
 }
 
-int Position::generateMoves(vector<Move> &moves) {
+int Position::generateMoves(Move *moves) {
   const int turn_mask = ColorToTurnMask(turn);
   int m = 0;
   int pawn = 0; // 二歩検出用のビットマップ
@@ -712,13 +712,13 @@ struct State {
         return best_score;
     }
 
-    vector<Move> moves(MaxMove);
+    Move moves[MaxMove];
     int n = ppos->generateMoves(moves);
     bool no_legal = true; // まだこの局面で合法手が見つかっていない
 
     if (ppos->ply == 0 && (string)this->options["Ordering"] == "Random") {
       // 毎回同じ将棋にならないように Rootのみなので遅くていい
-      shuffle(moves.begin(), moves.begin() + n, random_device());
+      shuffle(moves, moves + n, random_device());
     }
 
     for (int i = 0; i < n; i++) {
@@ -771,7 +771,7 @@ struct State {
 
   // 合法手の中からランダムに選んで返す
   Move randomMove(Position *ppos) {
-    vector<Move> moves(MaxMove);
+    Move moves[MaxMove];
     int n = ppos->generateMoves(moves);
     uniform_int_distribution<int> distribution(0, n - 1);
     random_device rand;
