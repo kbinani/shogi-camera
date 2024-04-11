@@ -1589,7 +1589,7 @@ struct PieceBook {
 
     static constexpr size_t kMaxNumImages = 32;
 
-    void each(Color color, std::function<void(cv::Mat const &, std::optional<PieceShape>)> cb) const;
+    void each(Color color, std::function<void(cv::Mat const &, std::optional<PieceShape>, bool cut)> cb) const;
     void push(cv::Mat const &mat, std::optional<PieceShape> shape);
     void resize(int width, int height);
     void gc();
@@ -1597,7 +1597,7 @@ struct PieceBook {
 
   std::map<PieceUnderlyingType, Entry> store;
 
-  void each(Color color, std::function<void(Piece, cv::Mat const &, std::optional<PieceShape> shape)> cb) const;
+  void each(Color color, std::function<void(Piece, cv::Mat const &, std::optional<PieceShape> shape, bool cut)> cb) const;
   void update(Position const &position, cv::Mat const &board, Status const &s);
   std::string toPng() const;
   static constexpr int kEdgeLineWidth = 2;

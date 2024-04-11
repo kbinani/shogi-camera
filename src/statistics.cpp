@@ -71,7 +71,7 @@ void AppendPromotion(Move &mv,
     vector<float> simUnpromoteBefore;
     double maxSimUnpromoteAfter = 0;
     double maxSimUnpromoteBefore = 0;
-    entry.each(mv.color, [&](cv::Mat const &img, optional<PieceShape> shape) {
+    entry.each(mv.color, [&](cv::Mat const &img, optional<PieceShape> shape, bool cut) {
       auto [sb, imgB] = Img::ComparePiece(boardBefore, mv.from->file, mv.from->rank, img, mv.color, shape, pool, cacheB);
       auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool, cacheA);
       simUnpromoteBefore.push_back(sb);
@@ -100,7 +100,7 @@ void AppendPromotion(Move &mv,
   if (auto entry = book.store.find(static_cast<PieceUnderlyingType>(Promote(RemoveColorFromPiece(mv.piece)))); entry != book.store.end() && !entry->second.images.empty()) {
     vector<float> simPromoteAfter;
     double maxSimPromoteAfter = 0;
-    entry->second.each(mv.color, [&](cv::Mat const &img, optional<PieceShape> shape) {
+    entry->second.each(mv.color, [&](cv::Mat const &img, optional<PieceShape> shape, bool cut) {
       auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool, cacheA);
       simPromoteAfter.push_back(sa);
     });
@@ -571,7 +571,7 @@ optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boa
         optional<Piece> maxSimPiece;
         map<PieceType, pair<double, cv::Mat>> maxSimStat;
         Img::ComparePieceCache cache;
-        book.each(color, [&](Piece piece, cv::Mat const &pi, optional<PieceShape> shape) {
+        book.each(color, [&](Piece piece, cv::Mat const &pi, optional<PieceShape> shape, bool cut) {
           if (!CanDrop(position, piece, MakeSquare(ch.x, ch.y))) {
             return;
           }

@@ -10,7 +10,7 @@ using namespace std;
 
 namespace sci {
 
-void PieceBook::Entry::each(Color color, function<void(cv::Mat const &, optional<PieceShape> shape)> cb) const {
+void PieceBook::Entry::each(Color color, function<void(cv::Mat const &, optional<PieceShape> shape, bool cut)> cb) const {
   cv::Mat img;
   optional<PieceShape> shape;
   if (sumCount > 0) {
@@ -33,14 +33,14 @@ void PieceBook::Entry::each(Color color, function<void(cv::Mat const &, optional
   if (color == Color::Black) {
     for (auto const &entry : images) {
       if (!onlyCut || entry.cut) {
-        cb(entry.mat.clone(), shape);
+        cb(entry.mat.clone(), shape, entry.cut);
       }
     }
   } else {
     for (auto const &entry : images) {
       if (!onlyCut || entry.cut) {
         cv::rotate(entry.mat, img, cv::ROTATE_180);
-        cb(img, shape);
+        cb(img, shape, entry.cut);
       }
     }
   }
@@ -71,11 +71,11 @@ void PieceBook::Entry::push(cv::Mat const &mat, optional<PieceShape> shape) {
   images.push_back(img);
 }
 
-void PieceBook::each(Color color, function<void(Piece, cv::Mat const &, optional<PieceShape> shape)> cb) const {
+void PieceBook::each(Color color, function<void(Piece, cv::Mat const &, optional<PieceShape> shape, bool cut)> cb) const {
   for (auto const &it : store) {
     PieceUnderlyingType piece = it.first;
-    it.second.each(color, [&cb, piece, color](cv::Mat const &img, optional<PieceShape> shape) {
-      cb(static_cast<PieceUnderlyingType>(piece) | static_cast<PieceUnderlyingType>(color), img, shape);
+    it.second.each(color, [&cb, piece, color](cv::Mat const &img, optional<PieceShape> shape, bool cut) {
+      cb(static_cast<PieceUnderlyingType>(piece) | static_cast<PieceUnderlyingType>(color), img, shape, cut);
     });
   }
 }
@@ -264,7 +264,7 @@ string PieceBook::toPng() const {
   int w = 0;
   int h = 0;
   map<Piece, int> count;
-  each(Color::Black, [&](Piece piece, cv::Mat const &img, optional<PieceShape> shape) {
+  each(Color::Black, [&](Piece piece, cv::Mat const &img, optional<PieceShape> shape, bool cut) {
     w = std::max(w, img.size().width);
     h = std::max(h, img.size().height);
     count[piece] += 1;
@@ -285,7 +285,7 @@ string PieceBook::toPng() const {
   int row = 0;
   for (auto const &it : store) {
     int column = 0;
-    it.second.each(Color::Black, [&](cv::Mat const &img, optional<PieceShape> shape) {
+    it.second.each(Color::Black, [&](cv::Mat const &img, optional<PieceShape> shape, bool cut) {
       int x = column * w;
       int y = row * h;
       cv::Mat color;
@@ -293,7 +293,7 @@ string PieceBook::toPng() const {
       Img::Bitblt(color, all, x, y);
       cv::rectangle(all,
                     cv::Point(x + 1, y + 1), cv::Point(x + w - 2, y + h - 2),
-                    shape ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 0, 255));
+                    cut ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 0, 255));
       column++;
     });
     row++;
