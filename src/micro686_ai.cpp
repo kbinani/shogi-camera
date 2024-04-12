@@ -1207,7 +1207,7 @@ struct sci::Micro686AI::Impl {
   void stop() {
   }
 
-  static int constexpr kLimitSeconds = 60;
+  static int constexpr kLimitSeconds = 30;
   size_t index;
   size_t doneMove;
   vector<::Position> vpos;

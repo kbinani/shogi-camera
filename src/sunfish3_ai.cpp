@@ -226,7 +226,7 @@ struct Sunfish3AI::Impl {
   unique_ptr<mt19937_64> engine;
   mutex mut;
 
-  static constexpr float kLimitSeconds = 60;
+  static constexpr float kLimitSeconds = 30;
   static constexpr int kMaxDepth = 64;
 };
 #else
