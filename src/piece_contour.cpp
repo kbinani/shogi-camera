@@ -8,12 +8,48 @@ using namespace std;
 
 namespace sci {
 
-shared_ptr<PieceContour> PieceContour::Make(vector<cv::Point2f> const &points) {
-  if (points.size() != 5) {
+shared_ptr<PieceContour> PieceContour::Make(vector<cv::Point2f> const &pts) {
+  if (pts.size() < 5) {
     return nullptr;
   }
+  vector<cv::Point2f> points = pts;
   vector<int> indices;
-  for (int i = 0; i < 5; i++) {
+  while (points.size() > 5) {
+    indices.clear();
+    for (int i = 0; i < (int)points.size(); i++) {
+      indices.push_back(i);
+    }
+    sort(indices.begin(), indices.end(), [&points](int a, int b) {
+      float lengthA = cv::norm(points[a] - points[(a + 1) % 5]);
+      float lengthB = cv::norm(points[b] - points[(b + 1) % 5]);
+      return lengthA < lengthB;
+    });
+
+    // 最も短い辺を消す
+    int min = indices[0];
+    vector<cv::Point2f> tmp;
+    {
+      int i0 = (min - 1 + (int)points.size()) % points.size();
+      int i1 = min;
+      int i2 = (min + 1) % points.size();
+      int i3 = (min + 2) % points.size();
+      if (auto intersection = Intersection(points[i0], points[i1], points[i2], points[i3]); intersection) {
+        tmp.push_back(*intersection);
+      } else {
+        // 交点が決定できなかったので平均を使う
+        tmp.push_back((points[i1] + points[i2]) * 0.5f);
+      }
+    }
+    for (int i = 0; i < points.size() - 2; i++) {
+      int idx = (min + i + 2) % points.size();
+      tmp.push_back(points[idx]);
+    }
+    assert(tmp.size() + 1 == points.size());
+    tmp.swap(points);
+  }
+
+  indices.clear();
+  for (int i = 0; i < (int)points.size(); i++) {
     indices.push_back(i);
   }
   sort(indices.begin(), indices.end(), [&points](int a, int b) {
@@ -21,6 +57,7 @@ shared_ptr<PieceContour> PieceContour::Make(vector<cv::Point2f> const &points) {
     float lengthB = cv::norm(points[b] - points[(b + 1) % 5]);
     return lengthA < lengthB;
   });
+
   // 最も短い辺が隣り合っている場合, 将棋の駒らしいと判定する.
   int min0 = indices[0];
   int min1 = indices[1];

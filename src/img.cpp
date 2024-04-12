@@ -370,7 +370,10 @@ void Img::FindContours(cv::Mat const &image,
         squares.push_back(contour);
         break;
       }
-      case 5: {
+      case 5:
+      case 6:
+      case 7:
+      case 8: {
         if (auto pc = PieceContour::Make(contour->points); pc && pc->aspectRatio >= 0.6) {
           pieces.push_back(pc);
         }

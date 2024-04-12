@@ -912,6 +912,46 @@ inline double Distance(cv::Point const &a, cv::Point const &b) {
   return sqrt(dx * dx + dy * dy);
 }
 
+inline std::optional<cv::Point2d> Intersection(cv::Point2d const &p1, cv::Point2d const &p2, cv::Point2d const &q1, cv::Point2d const &q2) {
+  cv::Point2d v = p2 - p1;
+  cv::Point2d w = q2 - q1;
+
+  double cross = w.x * v.y - w.y * v.x;
+  if (!isnormal(cross)) {
+    // 平行
+    return std::nullopt;
+  }
+
+  if (w.x != 0) {
+    double s = (q1.y * w.x + p1.x * w.y - q1.x * w.y - w.x * p1.y) / cross;
+    if (s == 0 || isnormal(s)) {
+      return p1 + v * s;
+    } else {
+      return std::nullopt;
+    }
+  } else {
+    if (v.x != 0) {
+      double s = (q1.x - p1.x) / v.x;
+      if (s == 0 || isnormal(s)) {
+        return p1 + v * s;
+      } else {
+        return std::nullopt;
+      }
+    } else {
+      // v と w がどちらも y 軸に平行
+      return std::nullopt;
+    }
+  }
+}
+
+inline std::optional<cv::Point2d> Intersection(cv::Vec4f const &a, cv::Vec4f const &b) {
+  cv::Point2d p1(a[2], a[3]);
+  cv::Point2d p2(a[2] + a[0], a[3] + a[1]);
+  cv::Point2d q1(b[2], b[3]);
+  cv::Point2d q2(b[2] + b[0], b[3] + b[1]);
+  return Intersection(p1, p2, q1, q2);
+}
+
 inline cv::Point2f PerspectiveTransform(cv::Point2f const &src, cv::Mat const &mtx, bool rotate180, int width, int height) {
   cv::Mat dst;
   std::vector<cv::Point2f> vp;
