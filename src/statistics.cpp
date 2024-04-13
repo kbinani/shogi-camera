@@ -167,6 +167,13 @@ void AppendPromotion(Move &mv,
       }
     }
   }
+  if (promote != 1) {
+    auto colorRoiBefore = Img::PieceROI(boardBeforeColor, mv.from->file, mv.from->rank);
+    auto colorRoiAfter = Img::PieceROI(boardAfterColor, mv.to.file, mv.to.rank);
+    if (Img::Vermillion(colorRoiBefore, colorRoiAfter)) {
+      promote = 1;
+    }
+  }
 #if 1
   static int count = 0;
   count++;
@@ -177,6 +184,8 @@ void AppendPromotion(Move &mv,
   LogPng(book.toPng()) << "promote_" << count << "_book_promote=" << promote;
   LogPng(maxImgUnpromoteBefore) << "promote_" << count << "_maxbefore_promote=" << promote;
   LogPng(maxImgUnpromoteAfter) << "promote_" << count << "_maxafter_promote=" << promote;
+  LogPng(Img::PieceROI(boardBeforeColor, mv.from->file, mv.from->rank)) << "promote_" << count << "_before_promote_color";
+  LogPng(Img::PieceROI(boardAfterColor, mv.to.file, mv.to.rank)) << "promote_" << count << "_after_promote_color";
 #endif
 
 #if SHOGI_CAMERA_DEBUG

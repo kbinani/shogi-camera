@@ -52,6 +52,7 @@ add_library(shogi_camera STATIC
   test/doctest_main.cpp
   test/move.test.hpp
   test/game.test.hpp
+  test/img.test.hpp
 )
 target_include_directories(shogi_camera PUBLIC
   include

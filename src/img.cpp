@@ -390,4 +390,59 @@ void Img::Bin(cv::Mat const &input, cv::Mat &output) {
   cv::adaptiveThreshold(input, output, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
 }
 
+static void LUVFromBGR(cv::Mat const &input, cv::Mat &output) {
+  cv::Mat luv;
+  cv::cvtColor(input, luv, cv::COLOR_BGR2Luv);
+  vector<cv::Mat> channels;
+  cv::split(luv, channels);
+  channels[0].convertTo(channels[0], CV_32F, 100.0f / 255.0f, 0.0f);
+  channels[1].convertTo(channels[1], CV_32F, 354.0f / 255.0f, -134.0f);
+  channels[2].convertTo(channels[2], CV_32F, 256.0f / 255.0f, -140.0f);
+  cv::Mat out(input.size(), CV_32FC3);
+  cv::merge(channels, out);
+  output = out;
+}
+
+static double SimilarityAgainstVermillion(cv::Mat const &bgr) {
+  cv::Mat luv;
+  LUVFromBGR(bgr, luv);
+
+  // vermillion: RGB(233, 81, 78)[0, 255], L*u*v(55.6863[0, 100], 115.882[-134, 220], 22.6353[-140, 122])
+  cv::Mat vermillion(bgr.size(), CV_32FC3, cv::Scalar(55.6863f, 115.882f, 22.6353f));
+
+  cv::Mat diff;
+  cv::absdiff(luv, vermillion, diff);
+  cv::multiply(diff, diff, diff);
+  vector<cv::Mat> channels;
+  cv::split(diff, channels);
+  cv::Mat out(bgr.size(), CV_32F, cv::Scalar::all(0));
+  for (auto const &channel : channels) {
+    out += channel;
+  }
+  cv::sqrt(out, out);
+  out = out / sqrt(100.0f * 100.0f + 256.0f * 256.0f + 354.0f * 354.0f) * -1 + 1;
+  double min = 0.75, max = 0.83;
+  out = (out - min) / (max - min);
+  cv::Mat gray;
+  out.convertTo(gray, CV_8U, 255);
+  cv::threshold(gray, gray, 127, 255, cv::THRESH_BINARY);
+  double average = cv::sum(gray)[0] / bgr.size().area();
+#if 0
+  static int cnt = 0;
+  cnt++;
+  LogPng(gray) << "sample_" << cnt << "_" << average;
+#endif
+  return average;
+}
+
+bool Img::Vermillion(cv::Mat const &before, cv::Mat const &after) {
+  double simBefore = SimilarityAgainstVermillion(before);
+  double simAfter = SimilarityAgainstVermillion(after);
+#if 0
+  cout << __FUNCTION__ << ", " << simBefore << " => " << simAfter << endl;
+#endif
+  double constexpr threshold = 8;
+  return (simBefore < threshold && simAfter > threshold);
+}
+
 } // namespace sci
