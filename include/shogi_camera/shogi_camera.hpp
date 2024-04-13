@@ -1042,7 +1042,23 @@ struct PieceShape {
   cv::Point2f point2;
 
   // PieceContour#mean と center が一致するような頂点の列を計算する.
-  void poly(cv::Point2f const &center, std::vector<cv::Point2f> &buffer, Color color) const;
+  template <class T>
+  void poly(cv::Point_<T> const &center, std::vector<cv::Point_<T>> &buffer, Color color) const {
+    buffer.clear();
+    if (color == Color::Black) {
+      buffer.push_back(cv::Point_<T>(apex) + center);
+      buffer.push_back(cv::Point_<T>(point1) + center);
+      buffer.push_back(cv::Point_<T>(point2) + center);
+      buffer.push_back(cv::Point_<T>(-point2.x, point2.y) + center);
+      buffer.push_back(cv::Point_<T>(-point1.x, point1.y) + center);
+    } else {
+      buffer.push_back(cv::Point_<T>(-apex) + center);
+      buffer.push_back(cv::Point_<T>(-point1) + center);
+      buffer.push_back(cv::Point_<T>(-point2) + center);
+      buffer.push_back(cv::Point_<T>(point2.x, -point2.y) + center);
+      buffer.push_back(cv::Point_<T>(point1.x, -point1.y) + center);
+    }
+  }
 };
 
 // 駒のような形をした Contour. points[0] が駒の頂点, points[2] => points[3] が底辺
@@ -1633,6 +1649,7 @@ struct PieceBook {
     void push(cv::Mat const &mat, std::optional<PieceShape> shape);
     void resize(int width, int height);
     void gc();
+    std::optional<PieceShape> shape() const;
   };
 
   std::map<PieceUnderlyingType, Entry> store;

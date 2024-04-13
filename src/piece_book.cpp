@@ -12,14 +12,7 @@ namespace sci {
 
 void PieceBook::Entry::each(Color color, function<void(cv::Mat const &, optional<PieceShape> shape, bool cut)> cb) const {
   cv::Mat img;
-  optional<PieceShape> shape;
-  if (sumCount > 0) {
-    PieceShape ps;
-    ps.apex = sumApex / (float)sumCount;
-    ps.point1 = sumPoint1 / (float)sumCount;
-    ps.point2 = sumPoint2 / (float)sumCount;
-    shape = ps;
-  }
+  auto shape = this->shape();
   int total = 0;
   int cut = 0;
   total += images.size();
@@ -69,6 +62,17 @@ void PieceBook::Entry::push(cv::Mat const &mat, optional<PieceShape> shape) {
   img.rect = cv::Rect(0, 0, mat.size().width, mat.size().height);
   img.mat = mat;
   images.push_back(img);
+}
+
+std::optional<PieceShape> PieceBook::Entry::shape() const {
+  if (sumCount == 0) {
+    return std::nullopt;
+  }
+  PieceShape ps;
+  ps.apex = sumApex / (float)sumCount;
+  ps.point1 = sumPoint1 / (float)sumCount;
+  ps.point2 = sumPoint2 / (float)sumCount;
+  return ps;
 }
 
 void PieceBook::each(Color color, function<void(Piece, cv::Mat const &, optional<PieceShape> shape, bool cut)> cb) const {
@@ -135,14 +139,33 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
         store[p].push(part.clone(), nearest->toShape());
       } else {
         auto roi = Img::PieceROI(board, x, y);
+        auto rect = Img::PieceROIRect(board.size(), x, y);
         PieceUnderlyingType p = RemoveColorFromPiece(piece);
+        optional<cv::Mat> mask;
+        auto found = store.find(p);
+        if (found != store.end()) {
+          if (auto shape = found->second.shape(); shape) {
+            mask = cv::Mat::zeros(roi.size(), roi.type());
+            int cx = (int)round(rect.width * 0.5);
+            int cy = (int)round(rect.height * 0.5);
+            vector<cv::Point> points;
+            shape->poly(cv::Point(cx, cy), points, Color::Black);
+            cv::fillConvexPoly(*mask, points, cv::Scalar::all(255));
+          }
+        }
         Color color = ColorFromPiece(piece);
         cv::Mat tmp;
         if (color == Color::White) {
           cv::rotate(roi, tmp, cv::ROTATE_180);
-          Img::Bin(tmp, tmp);
         } else {
-          Img::Bin(roi, tmp);
+          tmp = roi.clone();
+        }
+        if (mask) {
+          cv::bitwise_and(tmp, *mask, tmp);
+          Img::Bin(tmp, tmp);
+          cv::bitwise_and(tmp, *mask, tmp);
+        } else {
+          Img::Bin(tmp, tmp);
         }
         store[p].push(tmp, nullopt);
       }

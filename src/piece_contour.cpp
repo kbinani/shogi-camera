@@ -88,23 +88,6 @@ shared_ptr<PieceContour> PieceContour::Make(vector<cv::Point2f> const &pts) {
   return ret;
 }
 
-void PieceShape::poly(cv::Point2f const &center, vector<cv::Point2f> &buffer, Color color) const {
-  buffer.clear();
-  if (color == Color::Black) {
-    buffer.push_back(apex + center);
-    buffer.push_back(point1 + center);
-    buffer.push_back(point2 + center);
-    buffer.push_back(cv::Point2f(-point2.x, point2.y) + center);
-    buffer.push_back(cv::Point2f(-point1.x, point1.y) + center);
-  } else {
-    buffer.push_back(-apex + center);
-    buffer.push_back(-point1 + center);
-    buffer.push_back(-point2 + center);
-    buffer.push_back(cv::Point2f(point2.x, -point2.y) + center);
-    buffer.push_back(cv::Point2f(point1.x, -point1.y) + center);
-  }
-}
-
 PieceShape PieceContour::toShape() const {
   cv::Point2f apex = points[0];
   cv::Point2f bottom = points[3] - points[2];
