@@ -10,6 +10,27 @@ using namespace std;
 
 namespace sci {
 
+namespace {
+
+int SizeRank(PieceUnderlyingType type) {
+  auto t = PieceTypeFromPiece(type);
+  switch (t) {
+  case PieceType::Pawn:
+  case PieceType::Lance:
+  case PieceType::Knight:
+    return 0;
+  case PieceType::Silver:
+  case PieceType::Gold:
+    return 1;
+  case PieceType::Bishop:
+  case PieceType::Rook:
+  case PieceType::King:
+    return 2;
+  }
+}
+
+} // namespace
+
 void PieceBook::Entry::each(Color color, function<void(cv::Mat const &, optional<PieceShape> shape, bool cut)> cb) const {
   cv::Mat img;
   auto shape = this->shape();
@@ -142,16 +163,13 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
         auto rect = Img::PieceROIRect(board.size(), x, y);
         PieceUnderlyingType p = RemoveColorFromPiece(piece);
         optional<cv::Mat> mask;
-        auto found = store.find(p);
-        if (found != store.end()) {
-          if (auto shape = found->second.shape(); shape) {
-            mask = cv::Mat::zeros(roi.size(), roi.type());
-            int cx = (int)round(rect.width * 0.5);
-            int cy = (int)round(rect.height * 0.5);
-            vector<cv::Point> points;
-            shape->poly(cv::Point(cx, cy), points, Color::Black);
-            cv::fillConvexPoly(*mask, points, cv::Scalar::all(255));
-          }
+        if (auto hint = this->hint(p); hint) {
+          mask = cv::Mat::zeros(roi.size(), roi.type());
+          int cx = (int)round(rect.width * 0.5);
+          int cy = (int)round(rect.height * 0.5);
+          vector<cv::Point> points;
+          hint->poly(cv::Point(cx, cy), points, Color::Black);
+          cv::fillConvexPoly(*mask, points, cv::Scalar::all(255));
         }
         Color color = ColorFromPiece(piece);
         cv::Mat tmp;
@@ -190,6 +208,49 @@ void PieceBook::update(Position const &position, cv::Mat const &board, Status co
   for (auto &i : store) {
     i.second.gc();
   }
+}
+
+optional<PieceShape> PieceBook::hint(PieceUnderlyingType type) const {
+  auto found = store.find(type);
+  if (found != store.end()) {
+    if (auto shape = found->second.shape(); shape) {
+      return *shape;
+    }
+  }
+  struct Item {
+    int size;
+    uint64_t count;
+    PieceShape shape;
+  };
+  vector<Item> items;
+  int size = SizeRank(type);
+  for (auto const &it : store) {
+    int s = SizeRank(it.first);
+    if (size > s) {
+      continue;
+    }
+    if (auto shape = it.second.shape(); shape) {
+      Item item;
+      item.size = s;
+      item.count = it.second.sumCount;
+      item.shape = *shape;
+      items.push_back(item);
+    }
+  }
+  if (items.empty()) {
+    return nullopt;
+  }
+  if (items.size() == 1) {
+    return items[0].shape;
+  }
+  sort(items.begin(), items.end(), [size](Item const &a, Item const &b) -> bool {
+    if (a.size == b.size) {
+      return a.count > b.count;
+    } else {
+      return a.size < b.size;
+    }
+  });
+  return items[0].shape;
 }
 
 void PieceBook::Entry::gc() {
