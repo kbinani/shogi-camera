@@ -317,6 +317,7 @@ void Img::FindContours(cv::Mat const &image,
 
   vector<vector<cv::Point>> all;
   double area = size.width * size.height;
+  double maxSquareArea = area / 81.0;
 
   int ch[] = {0, 0};
   mixChannels(&image, 1, &gray0, 1, ch, 1);
@@ -344,11 +345,11 @@ void Img::FindContours(cv::Mat const &image,
       }
       contours.push_back(contour);
 
-      if (area / 81.0 <= contour->area) {
-        continue;
-      }
       switch (contour->points.size()) {
       case 4: {
+        if (maxSquareArea <= contour->area) {
+          continue;
+        }
         // アスペクト比が 0.6 未満の四角形を除去
         if (contour->aspectRatio() < 0.6) {
           break;
@@ -373,8 +374,9 @@ void Img::FindContours(cv::Mat const &image,
       case 5:
       case 6:
       case 7:
-      case 8: {
-        if (auto pc = PieceContour::Make(contour->points); pc && pc->aspectRatio >= 0.6) {
+      case 8:
+      case 9: {
+        if (auto pc = PieceContour::Make(contour->points); pc && pc->aspectRatio >= 0.6 && pc->area < maxSquareArea) {
           pieces.push_back(pc);
         }
         break;
