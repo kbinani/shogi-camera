@@ -326,6 +326,19 @@ class GameView: UIView {
       notifyError(message: sci.Utility.CFStringFromU8String(status.error).takeRetainedValue() as String)
       return
     }
+    if !status.game.moves.empty() {
+      let start: Int =
+        if let moveIndex {
+          moveIndex + 1
+        } else {
+          0
+        }
+      for i in start..<status.game.moves.size() {
+        let mv = status.game.moves[i]
+        self.reader?.play(move: mv, first: status.game.first, last: i > 0 ? status.game.moves[i - 1] : nil)
+        self.moveIndex = i
+      }
+    }
     if let result = status.result.value, self.result == nil {
       self.result = result
       switch result.reason {
@@ -383,18 +396,6 @@ class GameView: UIView {
       readYourTurn = true
     }
     if !status.game.moves.empty() {
-      if let moveIndex {
-        if moveIndex + 1 < status.game.moves.size() {
-          let mv = status.game.moves[moveIndex + 1]
-          self.reader?.play(move: mv, first: status.game.first, last: status.game.moves[moveIndex])
-          self.moveIndex = moveIndex + 1
-        }
-      } else {
-        let mv = status.game.moves[0]
-        self.reader?.play(move: mv, first: status.game.first, last: nil)
-        self.moveIndex = 0
-      }
-
       if status.wrongMove && !status.aborted {
         if self.wrongMoveLastNotified == nil || Date.now.timeIntervalSince(self.wrongMoveLastNotified!) > self.kWrongMoveNotificationInterval {
           self.wrongMoveLastNotified = Date.now
