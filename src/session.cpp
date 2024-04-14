@@ -1133,7 +1133,7 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
             s.corners.push_back(*bottomLeft);
 
             bool ok = true;
-            if (stat.squareArea && stat.outlineTL.size() == maxCount) {
+            if (stat.squareArea && stat.outlineTL.size() == maxCount && s.started) {
               // 既存の outline と比較してかけ離れた位置の場合は無視する
               cv::Point2f sumTL(0, 0);
               cv::Point2f sumTR(0, 0);
