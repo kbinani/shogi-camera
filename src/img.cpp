@@ -191,6 +191,8 @@ double Img::Similarity(cv::Mat const &before, cv::Mat const &after, int x, int y
 
 pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
                                         int x, int y,
+                                        shared_ptr<PieceContour> nearest,
+                                        cv::Mat const &warpNearest, bool rotate180,
                                         cv::Mat const &tmpl,
                                         Color targetColor,
                                         optional<PieceShape> shape,
@@ -231,7 +233,7 @@ pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
     for (int iy = -dy; iy <= dy; iy++) {
       for (int ix = -dx; ix <= dx; ix++) {
         futures.push_back(pool.enqueue(
-            [width, height, x, y, w, h, count, &board, &mask, &tmpl, &cache, &mut](int t, int ix, int iy) {
+            [width, height, x, y, w, h, count, &board, &mask, &tmpl, &cache, &mut, nearest, warpNearest, rotate180](int t, int ix, int iy) {
               cv::Mat rotated;
               tuple<int, int, int> key(t, ix, iy);
               {
@@ -248,7 +250,25 @@ pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
                 cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
                 m.at<double>(0, 2) -= (cx - w / 2);
                 m.at<double>(1, 2) -= (cy - h / 2);
-                cv::warpAffine(board, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+                if (nearest) {
+                  vector<cv::Point2f> points = nearest->points;
+                  PerspectiveTransform(points, warpNearest, rotate180, width, height);
+
+                  vector<cv::Point> ipoints;
+                  copy(points.begin(), points.end(), back_inserter(ipoints));
+                  cv::Mat m = cv::Mat::zeros(board.size(), board.type());
+                  cv::fillConvexPoly(m, ipoints, cv::Scalar::all(255));
+                  cv::Mat cp;
+                  cv::bitwise_and(board, m, cp);
+#if 1
+                  static int foo = 0;
+                  foo++;
+                  LogPng(cp) << "sample_" << foo << "_x=" << x << "_y=" << y;
+#endif
+                  cv::warpAffine(cp, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+                } else {
+                  cv::warpAffine(board, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+                }
                 cv::bitwise_and(rotated, mask, rotated);
                 Bin(rotated, rotated);
                 cv::bitwise_and(rotated, mask, rotated);

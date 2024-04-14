@@ -966,6 +966,12 @@ inline cv::Point2f PerspectiveTransform(cv::Point2f const &src, cv::Mat const &m
   }
 }
 
+inline void PerspectiveTransform(std::vector<cv::Point2f> &buffer, cv::Mat const &mtx, bool rotate180, int width, int height) {
+  for (auto &p : buffer) {
+    p = PerspectiveTransform(p, mtx, rotate180, width, height);
+  }
+}
+
 inline cv::Point2f WarpAffine(cv::Point2f const &p, cv::Mat const &mtx) {
   double x = mtx.at<double>(0, 0) * p.x + mtx.at<double>(0, 1) * p.y + mtx.at<double>(0, 2);
   double y = mtx.at<double>(1, 0) * p.x + mtx.at<double>(1, 1) * p.y + mtx.at<double>(1, 2);
@@ -1804,6 +1810,7 @@ struct Statistics {
 
   static std::optional<Move> Detect(cv::Mat const &boardBeforeGray, cv::Mat const &boardBeforeColor,
                                     cv::Mat const &boardAfterGray, cv::Mat const &boardAfterColor,
+                                    std::vector<std::shared_ptr<PieceContour>> const &pieces,
                                     CvPointSet const &changes,
                                     Position const &position,
                                     std::vector<Move> const &moves,
@@ -1943,6 +1950,8 @@ public:
   // 2 枚の画像を比較する. right を ±degrees 度, x と y 方向にそれぞれ ±width*translationRatio, ±height*translationRatio 移動して画像の一致度を計算し, 最大の一致度を返す.
   static std::pair<double, cv::Mat> ComparePiece(cv::Mat const &board,
                                                  int x, int y,
+                                                 std::shared_ptr<PieceContour> nearest,
+                                                 cv::Mat const &warpNearest, bool rotate180,
                                                  cv::Mat const &tmpl,
                                                  Color targetColor,
                                                  std::optional<PieceShape> shape,
@@ -2028,6 +2037,8 @@ class PngLogger {
       if (pngData.empty()) {
         return;
       }
+      static std::mutex sMut;
+      std::lock_guard<std::mutex> lock(sMut);
       std::cout << "b64png(" << name.str() << "):" << base64::to_base64(pngData) << std::endl;
     }
 

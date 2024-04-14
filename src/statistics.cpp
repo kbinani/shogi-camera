@@ -72,8 +72,14 @@ void AppendPromotion(Move &mv,
     double maxSimUnpromoteAfter = 0;
     double maxSimUnpromoteBefore = 0;
     entry.each(mv.color, [&](cv::Mat const &img, optional<PieceShape> shape, bool cut) {
-      auto [sb, imgB] = Img::ComparePiece(boardBefore, mv.from->file, mv.from->rank, img, mv.color, shape, pool, cacheB);
-      auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool, cacheA);
+      auto [sb, imgB] = Img::ComparePiece(boardBefore,
+                                          mv.from->file, mv.from->rank,
+                                          nullptr, s.perspectiveTransform, s.rotate,
+                                          img, mv.color, shape, pool, cacheB);
+      auto [sa, imgA] = Img::ComparePiece(boardAfter,
+                                          mv.to.file, mv.to.rank,
+                                          nullptr, s.perspectiveTransform, s.rotate,
+                                          img, mv.color, shape, pool, cacheA);
       simUnpromoteBefore.push_back(sb);
       simUnpromoteAfter.push_back(sa);
       if (sb > maxSimUnpromoteBefore) {
@@ -101,7 +107,10 @@ void AppendPromotion(Move &mv,
     vector<float> simPromoteAfter;
     double maxSimPromoteAfter = 0;
     entry->second.each(mv.color, [&](cv::Mat const &img, optional<PieceShape> shape, bool cut) {
-      auto [sa, imgA] = Img::ComparePiece(boardAfter, mv.to.file, mv.to.rank, img, mv.color, shape, pool, cacheA);
+      auto [sa, imgA] = Img::ComparePiece(boardAfter,
+                                          mv.to.file, mv.to.rank,
+                                          nullptr, s.perspectiveTransform, s.rotate,
+                                          img, mv.color, shape, pool, cacheA);
       simPromoteAfter.push_back(sa);
     });
     cv::Scalar meanAfterScalar, stddevAfterScalar;
@@ -427,6 +436,7 @@ optional<Status::Result> Statistics::push(cv::Mat const &board,
   }
   optional<Move> move = Detect(last.back().gray_, last.back().fullcolor,
                                board, fullcolor,
+                               s.pieces,
                                ch,
                                g.position,
                                detected,
@@ -548,6 +558,7 @@ optional<Status::Result> Statistics::push(cv::Mat const &board,
 
 optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boardBeforeColor,
                                   cv::Mat const &boardAfter, cv::Mat const &boardAfterColor,
+                                  vector<shared_ptr<PieceContour>> const &pieces,
                                   CvPointSet const &changes,
                                   Position const &position,
                                   vector<Move> const &moves,
@@ -575,8 +586,24 @@ optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boa
         mv.piece = MakePiece(color, *hand.begin());
         move = mv;
       } else {
-        double maxSim = 0;
+
+        cv::Rect roiRect = Img::PieceROIRect(boardAfter.size(), ch.x, ch.y);
+        shared_ptr<PieceContour> nearest;
+        double distance = numeric_limits<double>::max();
+        for (auto const &piece : pieces) {
+          double d = cv::norm(piece->center() - cv::Point2f(roiRect.x + roiRect.width * 0.5f, roiRect.y + roiRect.height * 0.5f));
+          if (d > std::min(roiRect.width, roiRect.height)) {
+            continue;
+          }
+          if (d < distance) {
+            distance = d;
+            nearest = piece;
+          }
+        }
+
         cv::Mat roi = Img::PieceROI(boardAfter, ch.x, ch.y);
+
+        double maxSim = 0;
         optional<Piece> maxSimPiece;
         map<PieceType, pair<double, cv::Mat>> maxSimStat;
         Img::ComparePieceCache cache;
@@ -589,7 +616,10 @@ optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boa
             // 持ち駒に無い.
             return;
           }
-          auto [sim, img] = Img::ComparePiece(boardAfter, ch.x, ch.y, pi, color, shape, pool, cache);
+          auto [sim, img] = Img::ComparePiece(boardAfter,
+                                              ch.x, ch.y,
+                                              nearest, s.perspectiveTransform, s.rotate,
+                                              pi, color, shape, pool, cache);
           auto found = maxSimStat.find(pt);
           if (found == maxSimStat.end()) {
             maxSimStat[pt] = make_pair(sim, img);
