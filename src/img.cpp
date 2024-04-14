@@ -260,12 +260,15 @@ pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
                   cv::fillConvexPoly(tmpMask, ipoints, cv::Scalar::all(255));
                   cv::Mat cp;
                   cv::bitwise_and(board, tmpMask, cp);
-#if 1
+                  cv::warpAffine(cp, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+#if 0
                   static int foo = 0;
                   foo++;
-                  LogPng(cp) << "sample_" << foo << "_x=" << x << "_y=" << y;
+                  LogPng(cp) << "sample_" << foo << "_cp_x=" << x << "_y=" << y;
+                  LogPng(rotated) << "sample_" << foo << "_rotated_x=" << x << "_y=" << y;
+                  cv::warpAffine(board, cp, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+                  LogPng(cp) << "sample_" << foo << "_normal_rotated_x=" << x << "_y=" << y;
 #endif
-                  cv::warpAffine(cp, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
                 } else {
                   cv::warpAffine(board, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
                 }

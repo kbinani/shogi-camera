@@ -591,7 +591,10 @@ optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boa
         shared_ptr<PieceContour> nearest;
         double distance = numeric_limits<double>::max();
         for (auto const &piece : pieces) {
-          double d = cv::norm(piece->center() - cv::Point2f(roiRect.x + roiRect.width * 0.5f, roiRect.y + roiRect.height * 0.5f));
+          cv::Point2f center = PerspectiveTransform(piece->center(),
+                                                    s.perspectiveTransform, s.rotate,
+                                                    boardAfter.size().width, boardAfter.size().height);
+          double d = cv::norm(center - cv::Point2f(roiRect.x + roiRect.width * 0.5f, roiRect.y + roiRect.height * 0.5f));
           if (d > std::min(roiRect.width, roiRect.height)) {
             continue;
           }
