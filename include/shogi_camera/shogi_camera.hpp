@@ -1950,8 +1950,6 @@ public:
   // 2 枚の画像を比較する. right を ±degrees 度, x と y 方向にそれぞれ ±width*translationRatio, ±height*translationRatio 移動して画像の一致度を計算し, 最大の一致度を返す.
   static std::pair<double, cv::Mat> ComparePiece(cv::Mat const &board,
                                                  int x, int y,
-                                                 std::shared_ptr<PieceContour> nearest,
-                                                 cv::Mat const &warpNearest, bool rotate180,
                                                  cv::Mat const &tmpl,
                                                  Color targetColor,
                                                  std::optional<PieceShape> shape,

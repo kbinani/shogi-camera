@@ -74,11 +74,9 @@ void AppendPromotion(Move &mv,
     entry.each(mv.color, [&](cv::Mat const &img, optional<PieceShape> shape, bool cut) {
       auto [sb, imgB] = Img::ComparePiece(boardBefore,
                                           mv.from->file, mv.from->rank,
-                                          nullptr, s.perspectiveTransform, s.rotate,
                                           img, mv.color, shape, pool, cacheB);
       auto [sa, imgA] = Img::ComparePiece(boardAfter,
                                           mv.to.file, mv.to.rank,
-                                          nullptr, s.perspectiveTransform, s.rotate,
                                           img, mv.color, shape, pool, cacheA);
       simUnpromoteBefore.push_back(sb);
       simUnpromoteAfter.push_back(sa);
@@ -109,7 +107,6 @@ void AppendPromotion(Move &mv,
     entry->second.each(mv.color, [&](cv::Mat const &img, optional<PieceShape> shape, bool cut) {
       auto [sa, imgA] = Img::ComparePiece(boardAfter,
                                           mv.to.file, mv.to.rank,
-                                          nullptr, s.perspectiveTransform, s.rotate,
                                           img, mv.color, shape, pool, cacheA);
       simPromoteAfter.push_back(sa);
     });
@@ -586,24 +583,6 @@ optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boa
         mv.piece = MakePiece(color, *hand.begin());
         move = mv;
       } else {
-
-        cv::Rect roiRect = Img::PieceROIRect(boardAfter.size(), ch.x, ch.y);
-        shared_ptr<PieceContour> nearest;
-        double distance = numeric_limits<double>::max();
-        for (auto const &piece : pieces) {
-          cv::Point2f center = PerspectiveTransform(piece->center(),
-                                                    s.perspectiveTransform, s.rotate,
-                                                    boardAfter.size().width, boardAfter.size().height);
-          double d = cv::norm(center - cv::Point2f(roiRect.x + roiRect.width * 0.5f, roiRect.y + roiRect.height * 0.5f));
-          if (d > std::min(roiRect.width, roiRect.height)) {
-            continue;
-          }
-          if (d < distance) {
-            distance = d;
-            nearest = piece;
-          }
-        }
-
         cv::Mat roi = Img::PieceROI(boardAfter, ch.x, ch.y);
 
         double maxSim = 0;
@@ -621,7 +600,6 @@ optional<Move> Statistics::Detect(cv::Mat const &boardBefore, cv::Mat const &boa
           }
           auto [sim, img] = Img::ComparePiece(boardAfter,
                                               ch.x, ch.y,
-                                              nearest, s.perspectiveTransform, s.rotate,
                                               pi, color, shape, pool, cache);
           auto found = maxSimStat.find(pt);
           if (found == maxSimStat.end()) {

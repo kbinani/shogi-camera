@@ -189,10 +189,8 @@ double Img::Similarity(cv::Mat const &before, cv::Mat const &after, int x, int y
   return maxSim;
 }
 
-pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board_,
+pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
                                         int x, int y,
-                                        shared_ptr<PieceContour> nearest,
-                                        cv::Mat const &warpNearest, bool rotate180,
                                         cv::Mat const &tmpl,
                                         Color targetColor,
                                         optional<PieceShape> shape,
@@ -201,8 +199,8 @@ pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board_,
   constexpr int degrees = 10;
   constexpr float translationRatio = 0.2f;
 
-  int width = board_.size().width;
-  int height = board_.size().height;
+  int width = board.size().width;
+  int height = board.size().height;
 
   int w = tmpl.size().width;
   int h = tmpl.size().height;
@@ -227,32 +225,13 @@ pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board_,
     mask = cv::Mat(h, w, CV_8U, cv::Scalar::all(255));
   }
   mutex mut;
-  cv::Mat board = board_;
-  if (nearest) {
-    vector<cv::Point2f> points = nearest->points;
-    PerspectiveTransform(points, warpNearest, rotate180, width, height);
-
-    vector<cv::Point> ipoints;
-    copy(points.begin(), points.end(), back_inserter(ipoints));
-    cv::Mat tmpMask = cv::Mat::zeros(board.size(), board.type());
-    cv::fillConvexPoly(tmpMask, ipoints, cv::Scalar::all(255));
-    cv::Mat cp;
-    cv::bitwise_and(board, tmpMask, cp);
-    board = cp;
-#if 0
-    static int foo = 0;
-    foo++;
-    LogPng(cp) << "sample_masked_" << foo;
-    LogPng(board_) << "sample_original_" << foo;
-#endif
-  }
 
   for (int t = -degrees; t <= degrees; t += 2) {
     deque<future<pair<float, cv::Mat>>> futures;
     for (int iy = -dy; iy <= dy; iy++) {
       for (int ix = -dx; ix <= dx; ix++) {
         futures.push_back(pool.enqueue(
-            [width, height, x, y, w, h, count, &board, &mask, &tmpl, &cache, &mut, nearest, warpNearest, rotate180](int t, int ix, int iy) {
+            [width, height, x, y, w, h, count, &board, &mask, &tmpl, &cache, &mut](int t, int ix, int iy) {
               cv::Mat rotated;
               tuple<int, int, int> key(t, ix, iy);
               {
