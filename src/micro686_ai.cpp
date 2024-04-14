@@ -929,8 +929,6 @@ struct State {
 
 #else
 
-using namespace std;
-
 struct State {
 };
 
@@ -938,7 +936,11 @@ struct State {
 
 #include <shogi_camera/shogi_camera.hpp>
 
+using namespace std;
+
 namespace sci {
+
+#if SHOGI_CAMERA_ENABLE_MICRO686
 
 struct sci::Micro686AI::Impl {
   Impl() : state(make_unique<::State>()) {
@@ -1031,7 +1033,6 @@ struct sci::Micro686AI::Impl {
   }
 
   optional<Move> next(Position const &p, Color next, deque<Move> const &moves, deque<PieceType> const &hand, deque<PieceType> const &handEnemy) {
-
     if (vpos.empty()) {
       vpos.resize(32);
       index = 16;
@@ -1213,6 +1214,12 @@ struct sci::Micro686AI::Impl {
   vector<::Position> vpos;
   unique_ptr<::State> state;
 };
+
+#else
+
+struct sci::Micro686AI::Impl {};
+
+#endif
 
 Micro686AI::Micro686AI() : impl(make_unique<Impl>()) {
 }
