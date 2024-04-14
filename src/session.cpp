@@ -1132,21 +1132,54 @@ void FindBoard(cv::Mat const &frame, Status &s, Statistics &stat) {
             s.corners.push_back(*bottomRight);
             s.corners.push_back(*bottomLeft);
 
-            stat.outlineTL.push_back(*topLeft);
-            stat.outlineTR.push_back(*topRight);
-            stat.outlineBR.push_back(*bottomRight);
-            stat.outlineBL.push_back(*bottomLeft);
-            if (stat.outlineTL.size() > maxCount) {
-              stat.outlineTL.pop_front();
+            bool ok = true;
+            if (stat.squareArea && stat.outlineTL.size() == maxCount) {
+              // 既存の outline と比較してかけ離れた位置の場合は無視する
+              cv::Point2f sumTL(0, 0);
+              cv::Point2f sumTR(0, 0);
+              cv::Point2f sumBR(0, 0);
+              cv::Point2f sumBL(0, 0);
+              for (auto const &p : stat.outlineTL) {
+                sumTL += p;
+              }
+              sumTL = sumTL / float(stat.outlineTL.size());
+              for (auto const &p : stat.outlineTR) {
+                sumTR += p;
+              }
+              sumTR = sumTR / float(stat.outlineTR.size());
+              for (auto const &p : stat.outlineBR) {
+                sumBR += p;
+              }
+              sumBR = sumBR / float(stat.outlineBR.size());
+              for (auto const &p : stat.outlineBL) {
+                sumBL += p;
+              }
+              sumBL = sumBL / float(stat.outlineBL.size());
+              double threshold = sqrt(*stat.squareArea) * 0.3;
+              if (cv::norm(sumTL - cv::Point2f(*topLeft)) >= threshold ||
+                  cv::norm(sumTR - cv::Point2f(*topRight)) >= threshold ||
+                  cv::norm(sumBR - cv::Point2f(*bottomRight)) >= threshold ||
+                  cv::norm(sumBL - cv::Point2f(*bottomLeft)) >= threshold) {
+                ok = false;
+              }
             }
-            if (stat.outlineTR.size() > maxCount) {
-              stat.outlineTR.pop_front();
-            }
-            if (stat.outlineBR.size() > maxCount) {
-              stat.outlineBR.pop_front();
-            }
-            if (stat.outlineBL.size() > maxCount) {
-              stat.outlineBL.pop_front();
+            if (ok) {
+              stat.outlineTL.push_back(*topLeft);
+              stat.outlineTR.push_back(*topRight);
+              stat.outlineBR.push_back(*bottomRight);
+              stat.outlineBL.push_back(*bottomLeft);
+              if (stat.outlineTL.size() > maxCount) {
+                stat.outlineTL.pop_front();
+              }
+              if (stat.outlineTR.size() > maxCount) {
+                stat.outlineTR.pop_front();
+              }
+              if (stat.outlineBR.size() > maxCount) {
+                stat.outlineBR.pop_front();
+              }
+              if (stat.outlineBL.size() > maxCount) {
+                stat.outlineBL.pop_front();
+              }
             }
           }
         }
