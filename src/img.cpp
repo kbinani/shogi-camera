@@ -189,7 +189,7 @@ double Img::Similarity(cv::Mat const &before, cv::Mat const &after, int x, int y
   return maxSim;
 }
 
-pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
+pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board_,
                                         int x, int y,
                                         shared_ptr<PieceContour> nearest,
                                         cv::Mat const &warpNearest, bool rotate180,
@@ -201,8 +201,8 @@ pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
   constexpr int degrees = 10;
   constexpr float translationRatio = 0.2f;
 
-  int width = board.size().width;
-  int height = board.size().height;
+  int width = board_.size().width;
+  int height = board_.size().height;
 
   int w = tmpl.size().width;
   int h = tmpl.size().height;
@@ -227,6 +227,25 @@ pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
     mask = cv::Mat(h, w, CV_8U, cv::Scalar::all(255));
   }
   mutex mut;
+  cv::Mat board = board_;
+  if (nearest) {
+    vector<cv::Point2f> points = nearest->points;
+    PerspectiveTransform(points, warpNearest, rotate180, width, height);
+
+    vector<cv::Point> ipoints;
+    copy(points.begin(), points.end(), back_inserter(ipoints));
+    cv::Mat tmpMask = cv::Mat::zeros(board.size(), board.type());
+    cv::fillConvexPoly(tmpMask, ipoints, cv::Scalar::all(255));
+    cv::Mat cp;
+    cv::bitwise_and(board, tmpMask, cp);
+    board = cp;
+#if 0
+    static int foo = 0;
+    foo++;
+    LogPng(cp) << "sample_masked_" << foo;
+    LogPng(board_) << "sample_original_" << foo;
+#endif
+  }
 
   for (int t = -degrees; t <= degrees; t += 2) {
     deque<future<pair<float, cv::Mat>>> futures;
@@ -250,28 +269,7 @@ pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
                 cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(cx, cy), t, 1);
                 m.at<double>(0, 2) -= (cx - w / 2);
                 m.at<double>(1, 2) -= (cy - h / 2);
-                if (nearest) {
-                  vector<cv::Point2f> points = nearest->points;
-                  PerspectiveTransform(points, warpNearest, rotate180, width, height);
-
-                  vector<cv::Point> ipoints;
-                  copy(points.begin(), points.end(), back_inserter(ipoints));
-                  cv::Mat tmpMask = cv::Mat::zeros(board.size(), board.type());
-                  cv::fillConvexPoly(tmpMask, ipoints, cv::Scalar::all(255));
-                  cv::Mat cp;
-                  cv::bitwise_and(board, tmpMask, cp);
-                  cv::warpAffine(cp, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
-#if 0
-                  static int foo = 0;
-                  foo++;
-                  LogPng(cp) << "sample_" << foo << "_cp_x=" << x << "_y=" << y;
-                  LogPng(rotated) << "sample_" << foo << "_rotated_x=" << x << "_y=" << y;
-                  cv::warpAffine(board, cp, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
-                  LogPng(cp) << "sample_" << foo << "_normal_rotated_x=" << x << "_y=" << y;
-#endif
-                } else {
-                  cv::warpAffine(board, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
-                }
+                cv::warpAffine(board, rotated, m, tmpl.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT);
                 cv::bitwise_and(rotated, mask, rotated);
                 Bin(rotated, rotated);
                 cv::bitwise_and(rotated, mask, rotated);
