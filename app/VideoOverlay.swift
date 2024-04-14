@@ -146,33 +146,35 @@ class VideoOverlay: CALayer {
       }
     }
 
-    // 盤面の向きを表示
-    let cx = width * 0.5
-    let cy = height * 0.5
-    let length = min(width, height) * 0.5 * 0.8
-    let dx = length * cos(CGFloat(status.boardDirection))
-    let dy = length * sin(CGFloat(status.boardDirection))
-    let p0 = CGPoint(x: cx - dx, y: cy - dy)
-    let p1 = CGPoint(x: cx + dx, y: cy + dy)
-    ctx.move(to: p0)
-    ctx.addLine(to: p1)
-    ctx.setLineWidth(3)
-    ctx.setStrokeColor(UIColor.white.cgColor)
-    ctx.strokePath()
-
-    let cap: CGFloat = 12
-    let angle: CGFloat = 30
-    let a0 = CGFloat(status.boardDirection) + CGFloat.pi + angle / 180 * CGFloat.pi
-    let a1 = CGFloat(status.boardDirection) + CGFloat.pi - angle / 180 * CGFloat.pi
-    ctx.move(to: .init(x: p1.x + cap * cos(a0), y: p1.y + cap * sin(a0)))
-    ctx.addLine(to: p1)
-    ctx.addLine(to: .init(x: p1.x + cap * cos(a1), y: p1.y + cap * sin(a1)))
-    ctx.setLineCap(.round)
-    ctx.strokePath()
-
-    ctx.setFillColor(UIColor.white.cgColor)
     let r: CGFloat = 6
-    ctx.fillEllipse(in: .init(x: p0.x - r, y: p0.y - r, width: 2 * r, height: 2 * r))
+    #if SHOGI_CAMERA_DEBUG
+      // 盤面の向きを表示
+      let cx = width * 0.5
+      let cy = height * 0.5
+      let length = min(width, height) * 0.5 * 0.8
+      let dx = length * cos(CGFloat(status.boardDirection))
+      let dy = length * sin(CGFloat(status.boardDirection))
+      let p0 = CGPoint(x: cx - dx, y: cy - dy)
+      let p1 = CGPoint(x: cx + dx, y: cy + dy)
+      ctx.move(to: p0)
+      ctx.addLine(to: p1)
+      ctx.setLineWidth(3)
+      ctx.setStrokeColor(UIColor.white.cgColor)
+      ctx.strokePath()
+
+      let cap: CGFloat = 12
+      let angle: CGFloat = 30
+      let a0 = CGFloat(status.boardDirection) + CGFloat.pi + angle / 180 * CGFloat.pi
+      let a1 = CGFloat(status.boardDirection) + CGFloat.pi - angle / 180 * CGFloat.pi
+      ctx.move(to: .init(x: p1.x + cap * cos(a0), y: p1.y + cap * sin(a0)))
+      ctx.addLine(to: p1)
+      ctx.addLine(to: .init(x: p1.x + cap * cos(a1), y: p1.y + cap * sin(a1)))
+      ctx.setLineCap(.round)
+      ctx.strokePath()
+
+      ctx.setFillColor(UIColor.white.cgColor)
+      ctx.fillEllipse(in: .init(x: p0.x - r, y: p0.y - r, width: 2 * r, height: 2 * r))
+    #endif
 
     if let preciseOutlinePath = status.preciseOutline.value?.cgPath {
       ctx.addPath(preciseOutlinePath)
