@@ -410,7 +410,7 @@ void Img::Bin(cv::Mat const &input, cv::Mat &output) {
   cv::adaptiveThreshold(input, output, 255, cv::THRESH_BINARY, cv::ADAPTIVE_THRESH_GAUSSIAN_C, 5, 0);
 }
 
-static void LUVFromBGR(cv::Mat const &input, cv::Mat &output) {
+void Img::LUVFromBGR(cv::Mat const &input, cv::Mat &output) {
   cv::Mat luv;
   cv::cvtColor(input, luv, cv::COLOR_BGR2Luv);
   vector<cv::Mat> channels;
@@ -423,24 +423,30 @@ static void LUVFromBGR(cv::Mat const &input, cv::Mat &output) {
   output = out;
 }
 
+cv::Scalar Img::LUVFromBGR(cv::Scalar input) {
+  cv::Mat tmp(cv::Size(1, 1), CV_8UC3, input);
+  cv::Mat out;
+  LUVFromBGR(tmp, out);
+  auto v = out.at<cv::Vec3f>(0, 0);
+  return cv::Scalar(v[0], v[1], v[2]);
+}
+
 static double SimilarityAgainstVermillion(cv::Mat const &bgr) {
   cv::Mat luv;
-  LUVFromBGR(bgr, luv);
+  Img::LUVFromBGR(bgr, luv);
 
   // vermillion: RGB(233, 81, 78)[0, 255], L*u*v(55.6863[0, 100], 115.882[-134, 220], 22.6353[-140, 122])
-  cv::Mat vermillion(bgr.size(), CV_32FC3, cv::Scalar(55.6863f, 115.882f, 22.6353f));
 
   cv::Mat diff;
-  cv::absdiff(luv, vermillion, diff);
+  cv::absdiff(luv, cv::Scalar(55.6863f, 115.882f, 22.6353f), diff);
   cv::multiply(diff, diff, diff);
   vector<cv::Mat> channels;
   cv::split(diff, channels);
   cv::Mat out(bgr.size(), CV_32F, cv::Scalar::all(0));
-  for (auto const &channel : channels) {
-    out += channel;
-  }
+  out += channels[1]; // u
+  out += channels[2]; // v
   cv::sqrt(out, out);
-  out = out / sqrt(100.0f * 100.0f + 256.0f * 256.0f + 354.0f * 354.0f) * -1 + 1;
+  out = out / sqrt(256.0f * 256.0f + 354.0f * 354.0f) * -1 + 1;
   double min = 0.75, max = 0.83;
   out = (out - min) / (max - min);
   cv::Mat gray;
