@@ -256,10 +256,10 @@ pair<double, cv::Mat> Img::ComparePiece(cv::Mat const &board,
 
                   vector<cv::Point> ipoints;
                   copy(points.begin(), points.end(), back_inserter(ipoints));
-                  cv::Mat m = cv::Mat::zeros(board.size(), board.type());
-                  cv::fillConvexPoly(m, ipoints, cv::Scalar::all(255));
+                  cv::Mat tmpMask = cv::Mat::zeros(board.size(), board.type());
+                  cv::fillConvexPoly(tmpMask, ipoints, cv::Scalar::all(255));
                   cv::Mat cp;
-                  cv::bitwise_and(board, m, cp);
+                  cv::bitwise_and(board, tmpMask, cp);
 #if 1
                   static int foo = 0;
                   foo++;
