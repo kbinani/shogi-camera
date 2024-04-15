@@ -88,12 +88,16 @@ inline Piece Unpromote(Piece p) {
   return p & ~static_cast<PieceUnderlyingType>(PieceStatus::Promoted);
 }
 
+inline bool IsPromotablePieceType(PieceType t) {
+  return (t != PieceType::King) && (t != PieceType::Gold);
+}
+
 inline bool CanPromote(Piece p) {
   if (IsPromotedPiece(p)) {
     return false;
   }
   PieceType type = PieceTypeFromPiece(p);
-  return type != PieceType::King && type != PieceType::Gold;
+  return IsPromotablePieceType(type);
 }
 
 inline std::u8string ShortStringFromPieceTypeAndStatus(PieceUnderlyingType p) {

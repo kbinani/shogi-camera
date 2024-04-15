@@ -1194,7 +1194,7 @@ struct sci::Micro686AI::Impl {
         move.piece = PieceFromMicro686PieceType(next, mv.piece_type());
         if (mv.promote()) {
           move.promote = 1;
-        } else if ((mv.piece_type() & PromoteMask) == 0 && move.from && IsPromotableMove(*move.from, move.to, next)) {
+        } else if ((mv.piece_type() & PromoteMask) == 0 && move.from && IsPromotablePieceType(PieceTypeFromPiece(move.piece)) && IsPromotableMove(*move.from, move.to, next)) {
           move.promote = -1;
         }
         return move;
